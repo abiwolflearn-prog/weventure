@@ -26,7 +26,7 @@ export default function QuickActionCards() {
       title: 'Reserve Hot Desk',
       description: 'Book immediate workspace space in Sectors A-D with high load density.',
       icon: Building,
-      color: 'bg-brand-primary/10 text-brand-primary group-hover:bg-brand-primary group-hover:text-white',
+      color: 'bg-[#A3E635]/15 text-[#84CC16] group-hover:bg-[#A3E635] group-hover:text-[#111111]',
       actionText: 'Book Desk',
       onClick: () => alert('Launching desk reservation matrix flow...'),
     },
@@ -62,7 +62,7 @@ export default function QuickActionCards() {
   return (
     <div className="space-y-4">
       <div className="flex items-center space-x-2.5">
-        <Sparkles className="w-4 h-4 text-[#2563EB]" />
+        <Sparkles className="w-4 h-4 text-[#84CC16]" />
         <h3 className="font-display font-bold text-[14px] text-[#6B7280] uppercase tracking-wider">
           Quick Access Hub
         </h3>
@@ -75,13 +75,13 @@ export default function QuickActionCards() {
             <button
               key={act.id}
               onClick={act.onClick}
-              className="group bg-white border border-[#E5E7EB] p-6 rounded-[20px] shadow-[0_4px_20px_rgba(0,0,0,0.03)] text-left transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-1 flex flex-col justify-between h-52 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="group bg-white border border-[#E5E7EB] p-6 rounded-[20px] shadow-[0_4px_20px_rgba(0,0,0,0.03)] text-left transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-1 flex flex-col justify-between h-52 focus:outline-none focus:ring-2 focus:ring-[#A3E635]"
             >
               <div>
                 <div className={`p-2.5 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${act.color}`}>
                   <Icon className="w-5 h-5" />
                 </div>
-                <h4 className="font-display font-bold text-base text-gray-900 mt-4.5 group-hover:text-blue-600 transition-colors">
+                <h4 className="font-display font-bold text-base text-gray-900 mt-4.5 group-hover:text-[#84CC16] transition-colors">
                   {act.title}
                 </h4>
                 <p className="text-xs text-gray-600 mt-1.5 leading-relaxed line-clamp-2 font-medium">
@@ -89,7 +89,7 @@ export default function QuickActionCards() {
                 </p>
               </div>
 
-              <div className="flex items-center space-x-1 text-xs font-bold text-blue-600 group-hover:text-indigo-700 mt-3 select-none">
+              <div className="flex items-center space-x-1 text-xs font-bold text-[#84CC16] group-hover:text-[#65A30D] mt-3 select-none">
                 <span>{act.actionText}</span>
                 <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-1" />
               </div>

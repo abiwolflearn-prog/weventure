@@ -305,7 +305,7 @@ export default function AnalyticsDashboard() {
       sortable: true,
       render: (row) => (
         <div className="flex items-center gap-2">
-          <Building2 className="w-4 h-4 text-brand-primary" />
+          <Building2 className="w-4 h-4 text-[#84CC16]" />
           <span className="font-bold text-gray-900">{row.name}</span>
         </div>
       ),
@@ -338,7 +338,7 @@ export default function AnalyticsDashboard() {
       render: (row) => (
         <div className="flex items-center gap-2 max-w-[120px]">
           <div className="w-full bg-[#F3F4F6] h-1.5 rounded-full overflow-hidden">
-            <div className="bg-brand-primary h-full" style={{ width: `${row.usageRate}%` }} />
+            <div className="bg-[#84CC16] h-full" style={{ width: `${row.usageRate}%` }} />
           </div>
           <span className="font-bold text-[10px]">{row.usageRate}%</span>
         </div>
@@ -437,7 +437,7 @@ export default function AnalyticsDashboard() {
       key: 'totalRevenue',
       header: 'Cashflow Yield',
       sortable: true,
-      render: (row) => <span className="font-extrabold text-brand-primary">${row.totalRevenue?.toLocaleString()}</span>,
+      render: (row) => <span className="font-extrabold text-[#65A30D]">${row.totalRevenue?.toLocaleString()}</span>,
     },
   ];
 
@@ -612,7 +612,7 @@ export default function AnalyticsDashboard() {
       key: 'totalSpent',
       header: 'Total Contributed Capital',
       sortable: true,
-      render: (row) => <span className="font-extrabold text-brand-primary">${row.totalSpent?.toLocaleString()}</span>,
+      render: (row) => <span className="font-extrabold text-[#65A30D]">${row.totalSpent?.toLocaleString()}</span>,
     },
   ];
 
@@ -702,7 +702,7 @@ export default function AnalyticsDashboard() {
       key: 'totalRevenue',
       header: 'Spatial Yield',
       sortable: true,
-      render: (row) => <span className="font-extrabold text-brand-primary">${row.totalRevenue?.toLocaleString()}</span>,
+      render: (row) => <span className="font-extrabold text-[#65A30D]">${row.totalRevenue?.toLocaleString()}</span>,
     },
   ];
 
@@ -744,7 +744,7 @@ export default function AnalyticsDashboard() {
             <h1 className="font-display font-extrabold text-2xl tracking-tight text-[#111827]">
               WeVentureHub BI Executive Portal
             </h1>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-brand-primary/10 text-brand-primary text-[10px] font-bold">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#A3E635]/15 text-[#65A30D] text-[10px] font-bold">
               <Sparkles className="w-3.5 h-3.5 mr-1" /> Corporate Intelligence
             </span>
           </div>
@@ -772,7 +772,7 @@ export default function AnalyticsDashboard() {
                 onClick={() => setActivePerspective(item.id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition-all whitespace-nowrap ${
                   isSelected
-                    ? 'bg-white text-[#2563EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)] border border-[#E5E7EB]'
+                    ? 'bg-white text-[#84CC16] shadow-[0_1px_2px_rgba(0,0,0,0.05)] border border-[#E5E7EB]'
                     : 'text-[#4B5563] hover:text-[#111827]'
                 }`}
               >
@@ -874,7 +874,7 @@ export default function AnalyticsDashboard() {
                   <div className="space-y-4">
                     <div className="bg-[#F9FAFB] p-4 rounded-xl border border-[#E5E7EB]">
                       <p className="text-[10px] uppercase font-bold text-[#4B5563]">Database Engine</p>
-                      <p className="text-sm font-bold text-[#2563EB] mt-1">{row.database}</p>
+                      <p className="text-sm font-bold text-[#65A30D] mt-1">{row.database}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-3 bg-white border border-[#E5E7EB] rounded-xl">
@@ -933,7 +933,7 @@ export default function AnalyticsDashboard() {
                   <div className="space-y-4">
                     <div className="bg-[#F9FAFB] p-4 rounded-xl border border-[#E5E7EB]">
                       <p className="text-[10px] uppercase font-bold text-[#4B5563]">Gross Contribution Yield</p>
-                      <p className="text-xl font-extrabold text-[#2563EB] mt-1">${row.totalRevenue?.toLocaleString()}</p>
+                      <p className="text-xl font-extrabold text-[#65A30D] mt-1">${row.totalRevenue?.toLocaleString()}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-3 bg-white border border-[#E5E7EB] rounded-xl">
@@ -1049,7 +1049,7 @@ export default function AnalyticsDashboard() {
                   <div className="space-y-4">
                     <div className="bg-[#F9FAFB] p-4 rounded-xl border border-[#E5E7EB]">
                       <p className="text-[10px] uppercase font-bold text-[#4B5563]">Total Contribution Value</p>
-                      <p className="text-xl font-extrabold text-[#2563EB] mt-1">${row.totalSpent?.toLocaleString()}</p>
+                      <p className="text-xl font-extrabold text-[#65A30D] mt-1">${row.totalSpent?.toLocaleString()}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-3 bg-white border border-[#E5E7EB] rounded-xl">
@@ -1112,7 +1112,7 @@ export default function AnalyticsDashboard() {
                   <div className="space-y-4">
                     <div className="bg-[#F9FAFB] p-4 rounded-xl border border-[#E5E7EB]">
                       <p className="text-[10px] uppercase font-bold text-[#4B5563]">Total Gross Spatial Yield</p>
-                      <p className="text-xl font-extrabold text-[#2563EB] mt-1">${row.totalRevenue?.toLocaleString()}</p>
+                      <p className="text-xl font-extrabold text-[#65A30D] mt-1">${row.totalRevenue?.toLocaleString()}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-3 bg-white border border-[#E5E7EB] rounded-xl">

@@ -14,6 +14,7 @@ export interface IWorkspacePayload {
     allowedDays: number[];
   };
   bufferTime?: number;
+  imageUrl?: string;
 }
 
 export const workspaceApi = {

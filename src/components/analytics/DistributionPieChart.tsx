@@ -32,7 +32,7 @@ export default function DistributionPieChart({
 
   // Fallback palette of high quality UI colors
   const defaultColors = [
-    '#5B2EFF', // Indigo
+    '#84CC16', // Success Lemon Green
     '#10B981', // Emerald
     '#EC4899', // Pink
     '#F59E0B', // Amber

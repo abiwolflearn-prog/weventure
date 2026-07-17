@@ -81,15 +81,15 @@ export default function CalendarWidget() {
       <button
         key={`day-${day}`}
         onClick={() => setSelectedDate(dayString)}
-        className={`group relative p-2 md:p-3 text-center border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-brand-primary flex flex-col justify-between items-center h-12 md:h-14 ${
+        className={`group relative p-2 md:p-3 text-center border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-[#A3E635] flex flex-col justify-between items-center h-12 md:h-14 ${
           isSelected
-            ? 'bg-brand-primary text-white font-bold shadow-sm'
+            ? 'bg-[#A3E635] text-[#111111] font-black shadow-sm'
             : isToday
-            ? 'bg-brand-primary/10 text-brand-primary font-bold border-brand-primary'
+            ? 'bg-[#A3E635]/15 text-[#65A30D] font-bold border-[#A3E635]'
             : 'hover:bg-neutral-slate-50 hover:bg-gray-150'
         }`}
       >
-        <span className={`text-xs md:text-sm ${isSelected ? 'text-white' : 'text-gray-800'}`}>
+        <span className={`text-xs md:text-sm ${isSelected ? 'text-[#111111] font-bold' : 'text-gray-800'}`}>
           {day}
         </span>
         
@@ -97,13 +97,13 @@ export default function CalendarWidget() {
         {dayEvents.length > 0 && (
           <div className="flex gap-1 justify-center mt-1">
             {dayEvents.slice(0, 3).map((ev) => {
-              let dotColor = 'bg-brand-primary';
+              let dotColor = 'bg-[#84CC16]';
               if (ev.type === 'EVENT_VENUE') dotColor = 'bg-indigo-500';
               if (ev.type === 'HOT_DESK') dotColor = 'bg-emerald-500';
               return (
                 <span
                   key={ev.id}
-                  className={`w-1 h-1 md:w-1.5 md:h-1.5 rounded-full ${isSelected ? 'bg-white' : dotColor}`}
+                  className={`w-1 h-1 md:w-1.5 md:h-1.5 rounded-full ${isSelected ? 'bg-[#111111]' : dotColor}`}
                 />
               );
             })}
@@ -116,7 +116,7 @@ export default function CalendarWidget() {
   const getTypeBadgeStyle = (type: IEvent['type']) => {
     switch (type) {
       case 'MEETING_ROOM':
-        return 'bg-brand-primary/10 text-brand-primary';
+        return 'bg-[#A3E635]/15 text-[#65A30D] font-bold';
       case 'HOT_DESK':
         return 'bg-emerald-100 text-emerald-700 bg-emerald-50/30 dark:text-emerald-400';
       case 'EVENT_VENUE':
@@ -131,8 +131,8 @@ export default function CalendarWidget() {
         {/* Header Nav */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-[#2563EB]/8 rounded-[12px] text-blue-600">
-              <Calendar className="w-5 h-5 text-[#2563EB]" />
+            <div className="p-2.5 bg-[#A3E635]/10 rounded-[12px] text-[#84CC16]">
+              <Calendar className="w-5 h-5 text-[#84CC16]" />
             </div>
             <div>
               <h3 className="font-display font-bold text-[18px] text-gray-900">Workspace Timeline</h3>
@@ -199,7 +199,7 @@ export default function CalendarWidget() {
               selectedDayEvents.map((ev) => (
                 <div
                   key={ev.id}
-                  className="p-3.5 border border-neutral-100 hover:border-blue-600 bg-neutral-50/50 rounded-xl transition"
+                  className="p-3.5 border border-neutral-100 hover:border-[#A3E635] bg-neutral-50/50 rounded-xl transition"
                 >
                   <div className="flex items-start justify-between gap-1.5 mb-2.5">
                     <h5 className="font-display font-bold text-xs text-gray-900">
@@ -233,7 +233,7 @@ export default function CalendarWidget() {
         <div className="pt-4 border-t border-neutral-100">
           <button
             onClick={() => alert('Redirecting to the dynamic space reservation wizard...')}
-            className="w-full inline-flex items-center justify-center gap-1.5 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white text-xs font-bold rounded-[14px] transition shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600"
+            className="w-full inline-flex items-center justify-center gap-1.5 h-12 bg-[#A3E635] hover:bg-[#84CC16] text-[#111111] text-xs font-black rounded-[14px] transition shadow-sm focus:outline-none focus:ring-2 focus:ring-[#A3E635]"
           >
             <span>Reserve New Timeline</span>
             <ArrowRight className="w-3.5 h-3.5" />

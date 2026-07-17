@@ -235,12 +235,12 @@ export default function TransactionsPage() {
   // Calculate high-fidelity success rate & general metrics
   const successRate = stats ? 98.4 : 100; // Simulated fallback or computed
 
-  const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', '#6366f1'];
+  const CHART_COLORS = ['#84CC16', '#65A30D', '#A3E635', '#22C55E', '#10B981', '#14B8A6', '#06B6D4'];
 
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
-        <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+        <Loader2 className="w-10 h-10 text-[#84CC16] animate-spin" />
         <span className="text-xs text-gray-600 font-mono">Compiling financial aggregates...</span>
       </div>
     );
@@ -264,7 +264,7 @@ export default function TransactionsPage() {
             variant="secondary"
             className="rounded-xl flex items-center gap-1.5 text-xs font-bold"
           >
-            <DollarSign className="w-4 h-4 text-blue-600" />
+            <DollarSign className="w-4 h-4 text-[#65A30D]" />
             <span>File Refund Request</span>
           </Button>
 
@@ -285,7 +285,7 @@ export default function TransactionsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 space-y-1">
             <span className="text-[10px] uppercase font-mono text-gray-600 font-bold tracking-wider block">Gross Income</span>
-            <div className="font-display font-extrabold text-2xl text-blue-600">
+            <div className="font-display font-extrabold text-2xl text-[#65A30D]">
               {stats.charges.toFixed(2)} ETB
             </div>
             <p className="text-[10px] text-gray-600">Total charge capture operations</p>
@@ -293,7 +293,7 @@ export default function TransactionsPage() {
 
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 space-y-1">
             <span className="text-[10px] uppercase font-mono text-gray-600 font-bold tracking-wider block">Refunds Settled</span>
-            <div className="font-display font-extrabold text-2xl text-blue-600">
+            <div className="font-display font-extrabold text-2xl text-[#65A30D]">
               {stats.refunds.toFixed(2)} ETB
             </div>
             <p className="text-[10px] text-gray-600">Returned resources to customers</p>
@@ -381,25 +381,25 @@ export default function TransactionsPage() {
       <div className="flex border-b border-gray-200 gap-6">
         <button 
           onClick={() => setActiveTab('analytics')}
-          className={`pb-3 text-xs font-bold uppercase font-mono tracking-wider transition-all border-b-2 ${activeTab === 'analytics' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900'}`}
+          className={`pb-3 text-xs font-bold uppercase font-mono tracking-wider transition-all border-b-2 ${activeTab === 'analytics' ? 'border-[#84CC16] text-[#65A30D]' : 'border-transparent text-gray-600 hover:text-gray-900'}`}
         >
           Revenue & Method Analytics
         </button>
         <button 
           onClick={() => setActiveTab('ledger')}
-          className={`pb-3 text-xs font-bold uppercase font-mono tracking-wider transition-all border-b-2 ${activeTab === 'ledger' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900'}`}
+          className={`pb-3 text-xs font-bold uppercase font-mono tracking-wider transition-all border-b-2 ${activeTab === 'ledger' ? 'border-[#84CC16] text-[#65A30D]' : 'border-transparent text-gray-600 hover:text-gray-900'}`}
         >
           Ledger Streams ({filteredTransactions.length})
         </button>
         <button 
           onClick={() => setActiveTab('refunds')}
-          className={`pb-3 text-xs font-bold uppercase font-mono tracking-wider transition-all border-b-2 ${activeTab === 'refunds' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900'}`}
+          className={`pb-3 text-xs font-bold uppercase font-mono tracking-wider transition-all border-b-2 ${activeTab === 'refunds' ? 'border-[#84CC16] text-[#65A30D]' : 'border-transparent text-gray-600 hover:text-gray-900'}`}
         >
           Refund Queue ({refunds.filter((r: any) => r.status === 'PENDING').length})
         </button>
         <button 
           onClick={() => setActiveTab('diagnostics')}
-          className={`pb-3 text-xs font-bold uppercase font-mono tracking-wider transition-all border-b-2 ${activeTab === 'diagnostics' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900'}`}
+          className={`pb-3 text-xs font-bold uppercase font-mono tracking-wider transition-all border-b-2 ${activeTab === 'diagnostics' ? 'border-[#84CC16] text-[#65A30D]' : 'border-transparent text-gray-600 hover:text-gray-900'}`}
         >
           Diagnostic Console & Webhooks
         </button>
@@ -423,7 +423,7 @@ export default function TransactionsPage() {
                     <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                     <YAxis tick={{ fontSize: 10 }} />
                     <Tooltip formatter={(value) => [`${Number(value).toFixed(2)} ETB`, 'Revenue']} />
-                    <Bar dataKey="revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="revenue" fill="#84CC16" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -491,7 +491,7 @@ export default function TransactionsPage() {
                         <span className="text-gray-600">{item.total.toFixed(2)} ETB ({percent}%)</span>
                       </div>
                       <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                        <div className="h-full bg-blue-600 rounded-full" style={{ width: `${percent}%` }} />
+                        <div className="h-full bg-[#84CC16] rounded-full" style={{ width: `${percent}%` }} />
                       </div>
                     </div>
                   );
@@ -537,7 +537,7 @@ export default function TransactionsPage() {
                 placeholder="Search ledger by Reference ID, email or descriptions..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-white border border-gray-200 rounded-xl py-2 pl-9 pr-4 text-xs font-medium focus:outline-none focus:border-blue-500"
+                className="w-full bg-white border border-gray-200 rounded-xl py-2 pl-9 pr-4 text-xs font-medium focus:outline-none focus:border-[#84CC16]"
               />
             </div>
 
@@ -638,14 +638,14 @@ export default function TransactionsPage() {
                               {isCredit ? (
                                 <ArrowUpRight className="w-4 h-4 text-lime-500 shrink-0" />
                               ) : (
-                                <ArrowDownLeft className="w-4 h-4 text-blue-600 shrink-0" />
+                                <ArrowDownLeft className="w-4 h-4 text-[#65A30D] shrink-0" />
                               )}
-                              <span className={`text-[10px] font-extrabold uppercase ${isCredit ? 'text-lime-500' : 'text-blue-600'}`}>
+                              <span className={`text-[10px] font-extrabold uppercase ${isCredit ? 'text-lime-500' : 'text-[#65A30D]'}`}>
                                 {txn.type}
                               </span>
                             </div>
                           </td>
-                          <td className={`py-4 px-6 font-bold text-sm ${isCredit ? 'text-lime-500' : 'text-blue-600'}`}>
+                          <td className={`py-4 px-6 font-bold text-sm ${isCredit ? 'text-lime-500' : 'text-[#65A30D]'}`}>
                             {isCredit ? '+' : ''}{txn.amount.toFixed(2)}
                           </td>
                         </tr>
@@ -757,7 +757,7 @@ export default function TransactionsPage() {
                   <select
                     value={simulatedBank}
                     onChange={(e) => setSimulatedBank(e.target.value)}
-                    className="w-full bg-white border border-gray-200 text-xs font-semibold p-2 rounded-xl focus:outline-none focus:border-blue-500 h-9"
+                    className="w-full bg-white border border-gray-200 text-xs font-semibold p-2 rounded-xl focus:outline-none focus:border-[#84CC16] h-9"
                   >
                     <option value="CBE">Commercial Bank of Ethiopia (CBE)</option>
                     <option value="TELEBIRR">Telebirr SuperApp Portal</option>

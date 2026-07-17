@@ -15,7 +15,7 @@ const envSchema = z.object({
   MONGODB_URI: z.string().default('mongodb://127.0.0.1:27017/weventurehub'),
   JWT_ACCESS_SECRET: z.string().default('default-super-secure-access-secret-minimum-32-chars-long'),
   JWT_REFRESH_SECRET: z.string().default('default-super-secure-refresh-secret-minimum-32-chars-long'),
-  JWT_ACCESS_EXaPIRATION: z.string().default('15m'),
+  JWT_ACCESS_EXPIRATION: z.string().default('15m'),
   JWT_REFRESH_EXPIRATION: z.string().default('7d'),
   GEMINI_API_KEY: z.string().optional(),
   APP_URL: z.string().default('http://localhost:3000'),

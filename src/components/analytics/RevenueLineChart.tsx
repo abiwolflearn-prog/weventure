@@ -121,16 +121,16 @@ export default function RevenueLineChart({
             <AreaChart data={data} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#5B2EFF" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#5B2EFF" stopOpacity={0.01} />
+                  <stop offset="5%" stopColor="#84CC16" stopOpacity={0.25} stopColorOpacity={0.25} />
+                  <stop offset="95%" stopColor="#84CC16" stopOpacity={0.01} stopColorOpacity={0.01} />
                 </linearGradient>
                 <linearGradient id="colorSub1" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#10B981" stopOpacity={0.01} />
+                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.2} stopColorOpacity={0.2} />
+                  <stop offset="95%" stopColor="#10B981" stopOpacity={0.01} stopColorOpacity={0.01} />
                 </linearGradient>
                 <linearGradient id="colorSub2" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366F1" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#6366F1" stopOpacity={0.01} />
+                  <stop offset="5%" stopColor="#6366F1" stopOpacity={0.2} stopColorOpacity={0.2} />
+                  <stop offset="95%" stopColor="#6366F1" stopOpacity={0.01} stopColorOpacity={0.01} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
@@ -174,7 +174,7 @@ export default function RevenueLineChart({
                     type="monotone"
                     name="Combined Revenue ($)"
                     dataKey="totalRevenue"
-                    stroke="#5B2EFF"
+                    stroke="#84CC16"
                     strokeWidth={2.5}
                     fillOpacity={1}
                     fill="url(#colorTotal)"

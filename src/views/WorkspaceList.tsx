@@ -16,7 +16,10 @@ import {
   Clock, 
   CalendarCheck,
   Tag,
-  Briefcase
+  Briefcase,
+  UploadCloud,
+  X,
+  Image
 } from 'lucide-react';
 import { useAppSelector } from '../store';
 import { workspaceApi, IWorkspacePayload } from '../lib/workspaceApi';
@@ -38,6 +41,7 @@ interface WorkspaceItem {
   amenities: string[];
   isAvailable: boolean;
   bufferTime: number;
+  imageUrl?: string;
   availabilityRules: {
     startHour: number;
     endHour: number;
@@ -81,6 +85,50 @@ export default function WorkspaceList() {
   const [wsEndHour, setWsEndHour] = useState('20');
   const [wsIsAvailable, setWsIsAvailable] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
+  const [wsImageUrl, setWsImageUrl] = useState('');
+  const [dragActive, setDragActive] = useState(false);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      handleImageFile(file);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      handleImageFile(file);
+    }
+  };
+
+  const handleImageFile = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file (PNG, JPG, JPEG, or WEBP)');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setWsImageUrl(reader.result as string);
+    };
+    reader.onerror = () => {
+      alert('Failed to read file. Please try another image.');
+    };
+    reader.readAsDataURL(file);
+  };
 
   // User Roles Check
   const isAdminOrStaff = 
@@ -230,6 +278,7 @@ export default function WorkspaceList() {
       amenities: wsAmenitiesText.split(',').map(s => s.trim()).filter(Boolean),
       isAvailable: wsIsAvailable,
       bufferTime: Number(wsBufferTime),
+      imageUrl: wsImageUrl || undefined,
       availabilityRules: {
         startHour: Number(wsStartHour),
         endHour: Number(wsEndHour),
@@ -255,6 +304,7 @@ export default function WorkspaceList() {
     setWsStartHour(space.availabilityRules?.startHour?.toString() || '8');
     setWsEndHour(space.availabilityRules?.endHour?.toString() || '20');
     setWsIsAvailable(space.isAvailable);
+    setWsImageUrl(space.imageUrl || '');
     setWorkspaceFormOpen(true);
   };
 
@@ -275,6 +325,7 @@ export default function WorkspaceList() {
     setWsStartHour('8');
     setWsEndHour('20');
     setWsIsAvailable(true);
+    setWsImageUrl('');
     setFormError(null);
   };
 
@@ -321,9 +372,15 @@ export default function WorkspaceList() {
       accessor: 'name',
       render: (row) => (
         <div className="flex items-center space-x-3.5">
-          <div className="p-2.5 bg-[#EFF6FF] rounded-[10px] text-[#2563EB]">
-            <Building className="w-4.5 h-4.5" />
-          </div>
+          {row.imageUrl ? (
+            <div className="w-10 h-10 rounded-[10px] overflow-hidden border border-gray-100 flex-shrink-0">
+              <img src={row.imageUrl} alt={row.name} className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="p-2.5 bg-[#A3E635]/15 rounded-[10px] text-[#65A30D] flex-shrink-0">
+              <Building className="w-4.5 h-4.5" />
+            </div>
+          )}
           <div>
             <p className="font-bold text-[#111827] text-[14px]">{row.name}</p>
             <p className="text-[10px] text-[#9CA3AF] font-bold uppercase tracking-wider mt-0.5">ID: {row.id.substring(0, 8)}</p>
@@ -337,7 +394,7 @@ export default function WorkspaceList() {
       render: (row) => (
         <span className={`px-2.5 py-1 rounded-[6px] text-[10px] font-bold uppercase tracking-wider ${
           row.type === 'MEETING_ROOM'
-            ? 'bg-[#EFF6FF] text-[#2563EB]'
+            ? 'bg-[#A3E635]/15 text-[#65A30D]'
             : row.type === 'EVENT_VENUE'
             ? 'bg-[#F5F3FF] text-[#7C3AED]'
             : 'bg-[#FFF7ED] text-[#EA580C]'
@@ -386,7 +443,7 @@ export default function WorkspaceList() {
               setSelectedWorkspace(row);
               setBookingError(null);
             }}
-            className="bg-[#2563EB] hover:bg-[#1D4ED8] disabled:bg-[#E5E7EB] disabled:text-[#9CA3AF] text-white font-bold text-[12px] h-[34px] px-3.5 rounded-[6px]"
+            className="bg-[#84CC16] hover:bg-[#65A30D] disabled:bg-[#E5E7EB] disabled:text-[#9CA3AF] text-[#111111] font-bold text-[12px] h-[34px] px-3.5 rounded-[6px]"
           >
             Book Space
           </Button>
@@ -395,7 +452,7 @@ export default function WorkspaceList() {
             <>
               <button 
                 onClick={() => handleEditWorkspaceClick(row)}
-                className="p-2 border border-[#E5E7EB] rounded-[8px] hover:bg-gray-50 hover:text-[#2563EB] text-[#4B5563] bg-white transition-colors"
+                className="p-2 border border-[#E5E7EB] rounded-[8px] hover:bg-gray-50 hover:text-[#65A30D] text-[#4B5563] bg-white transition-colors"
                 title="Edit space properties"
               >
                 <Edit className="w-4 h-4" />
@@ -450,9 +507,9 @@ export default function WorkspaceList() {
           {isAdminOrStaff && (
             <Button 
               onClick={() => { resetWorkspaceForm(); setWorkspaceFormOpen(true); }} 
-              className="flex items-center gap-1.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-[12px] h-[36px] rounded-[8px]"
+              className="flex items-center gap-1.5 bg-[#84CC16] hover:bg-[#65A30D] text-[#111111] font-bold text-[12px] h-[36px] rounded-[8px]"
             >
-              <Plus className="w-4 h-4 text-white" />
+              <Plus className="w-4 h-4 text-[#111111]" />
               <span>Add Workspace</span>
             </Button>
           )}
@@ -481,7 +538,7 @@ export default function WorkspaceList() {
                   onClick={() => setFilterType(type)}
                   className={`px-4 py-2 rounded-full text-[12px] font-bold whitespace-nowrap transition-all duration-200 border ${
                     filterType === type 
-                      ? 'bg-[#2563EB] text-white border-[#2563EB] shadow-sm' 
+                      ? 'bg-[#84CC16] text-[#111111] border-[#84CC16] shadow-sm' 
                       : 'bg-white border-[#E5E7EB] text-[#4B5563] hover:bg-[#F8FAFC]'
                   }`}
                 >
@@ -494,7 +551,7 @@ export default function WorkspaceList() {
           {/* Table list */}
           {isWorkspacesLoading ? (
             <div className="p-16 text-center text-[#6B7280]">
-              <div className="animate-spin w-8 h-8 border-4 border-[#2563EB] border-t-transparent rounded-full mx-auto mb-4" />
+              <div className="animate-spin w-8 h-8 border-4 border-[#84CC16] border-t-transparent rounded-full mx-auto mb-4" />
               <p className="text-[13px] font-bold text-[#111827]">Retrieving workspace resources...</p>
             </div>
           ) : (
@@ -504,14 +561,14 @@ export default function WorkspaceList() {
       ) : (
         /* Visual Scheduler tab with integrated calendar */
         <div className="space-y-6">
-          <div className="p-4 bg-[#EFF6FF] text-[#1E40AF] rounded-[12px] text-[12.5px] font-bold flex items-center space-x-2.5 border border-[#DBEAFE]">
-            <CalendarCheck className="w-5 h-5 shrink-0 text-[#2563EB]" />
+          <div className="p-4 bg-[#A3E635]/15 text-[#65A30D] rounded-[12px] text-[12.5px] font-bold flex items-center space-x-2.5 border border-[#84CC16]/20">
+            <CalendarCheck className="w-5 h-5 shrink-0 text-[#65A30D]" />
             <span>Interactive Visual Planner: click on any empty cell in Monthly, Weekly, or Gantt Resource timeline to instantly launch booking form.</span>
           </div>
 
           {isWorkspacesLoading || isBookingsLoading ? (
             <div className="p-16 text-center text-[#6B7280]">
-              <div className="animate-spin w-8 h-8 border-4 border-[#2563EB] border-t-transparent rounded-full mx-auto mb-4" />
+              <div className="animate-spin w-8 h-8 border-4 border-[#84CC16] border-t-transparent rounded-full mx-auto mb-4" />
               <p className="text-[13px] font-bold text-[#111827]">Generating visual timeline matrix...</p>
             </div>
           ) : (
@@ -557,7 +614,7 @@ export default function WorkspaceList() {
                   <h4 className="font-display font-bold text-[15px] text-[#111827]">
                     {selectedWorkspace.name}
                   </h4>
-                  <p className="text-[10px] bg-[#EFF6FF] text-[#2563EB] px-2 py-0.5 rounded-[4px] inline-block uppercase font-bold mt-1.5">
+                  <p className="text-[10px] bg-[#A3E635]/15 text-[#65A30D] px-2 py-0.5 rounded-[4px] inline-block uppercase font-bold mt-1.5">
                     {selectedWorkspace.type.replace('_', ' ')}
                   </p>
                 </div>
@@ -618,7 +675,7 @@ export default function WorkspaceList() {
 
             <div className="p-4 bg-[#F8FAFC] rounded-[14px] border border-[#E5E7EB] flex justify-between items-center text-[13px]">
               <span className="font-bold text-[#4B5563]">Estimated Total Rate</span>
-              <span className="font-bold text-[#2563EB] font-mono text-[16px]">
+              <span className="font-bold text-[#65A30D] font-mono text-[16px]">
                 USD {calculateEstimatedPrice().toFixed(2)}
               </span>
             </div>
@@ -634,7 +691,7 @@ export default function WorkspaceList() {
               <Button 
                 onClick={handleConfirmBooking}
                 isLoading={createBookingMutation.isPending}
-                className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-[12px] px-5 py-2 rounded-[8px]"
+                className="bg-[#84CC16] hover:bg-[#65A30D] text-[#111111] font-bold text-[12px] px-5 py-2 rounded-[8px]"
               >
                 Confirm Reservation
               </Button>
@@ -711,6 +768,58 @@ export default function WorkspaceList() {
             className="w-full rounded-[10px] border-[#E5E7EB]"
           />
 
+          {/* Local Image Upload Area */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-[#6B7280]">Local Workspace Photo</label>
+            <div 
+              onDragEnter={handleDrag}
+              onDragOver={handleDrag}
+              onDragLeave={handleDrag}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-[14px] p-5 transition-all text-center flex flex-col items-center justify-center cursor-pointer ${
+                dragActive 
+                  ? "border-[#84CC16] bg-[#A3E635]/15" 
+                  : wsImageUrl 
+                    ? "border-emerald-200 bg-emerald-50/20" 
+                    : "border-[#E5E7EB] hover:border-[#84CC16] bg-[#F9FAFB] hover:bg-white"
+              }`}
+            >
+              {wsImageUrl ? (
+                <div className="relative w-full max-h-48 rounded-[10px] overflow-hidden group">
+                  <img src={wsImageUrl} alt="Preview" className="w-full h-48 object-cover rounded-[10px]" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-[10px]">
+                    <button
+                      type="button"
+                      onClick={() => setWsImageUrl('')}
+                      className="p-2 bg-[#EF4444] text-white rounded-full hover:bg-red-600 transition shadow-lg animate-fade-in"
+                      title="Remove Image"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer py-4">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <div className="p-3 bg-[#A3E635]/15 rounded-full text-[#65A30D] mb-3">
+                    <UploadCloud className="w-6 h-6" />
+                  </div>
+                  <p className="text-[13px] font-bold text-[#111827]">
+                    Click to upload a local photo <span className="text-[#65A30D] font-medium">or drag & drop here</span>
+                  </p>
+                  <p className="text-[11px] text-[#6B7280] mt-1">
+                    Accepts PNG, JPG, JPEG, WEBP. Max file size: 5MB
+                  </p>
+                </label>
+              )}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <Input 
               label="Availability Start Hour" 
@@ -738,7 +847,7 @@ export default function WorkspaceList() {
               id="wsIsAvailable"
               checked={wsIsAvailable} 
               onChange={(e) => setWsIsAvailable(e.target.checked)}
-              className="w-4.5 h-4.5 text-[#2563EB] rounded-[4px] border-[#E5E7EB] focus:ring-[#2563EB] cursor-pointer"
+              className="w-4.5 h-4.5 text-[#84CC16] rounded-[4px] border-[#E5E7EB] focus:ring-[#84CC16] cursor-pointer"
             />
             <label htmlFor="wsIsAvailable" className="text-[12.5px] font-semibold text-[#4B5563] cursor-pointer">
               Mark space as active and reservable immediately
@@ -757,7 +866,7 @@ export default function WorkspaceList() {
             <Button 
               type="submit"
               isLoading={createWorkspaceMutation.isPending || updateWorkspaceMutation.isPending}
-              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-[12px] px-5 py-2 rounded-[8px]"
+              className="bg-[#84CC16] hover:bg-[#65A30D] text-[#111111] font-bold text-[12px] px-5 py-2 rounded-[8px]"
             >
               {editingWorkspace ? 'Save Changes' : 'Create Workspace'}
             </Button>

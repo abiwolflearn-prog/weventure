@@ -122,14 +122,14 @@ export default function RecentActivityWidget() {
         return <AlertCircle className="w-4 h-4 text-rose-500" />;
       case 'INFO':
       default:
-        return <PlusCircle className="w-4 h-4 text-blue-600" />;
+        return <PlusCircle className="w-4 h-4 text-[#84CC16]" />;
     }
   };
 
   const getLogCategoryColor = (category: IActivityLog['category']) => {
     switch (category) {
       case 'BOOKING':
-        return 'bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400';
+        return 'bg-[#A3E635]/15 text-[#65A30D] font-bold';
       case 'EVENT':
         return 'bg-emerald-100 text-emerald-700 bg-emerald-50/30 dark:text-emerald-400';
       case 'PAYMENT':
@@ -147,13 +147,13 @@ export default function RecentActivityWidget() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-100 pb-5 mb-5">
         <div className="flex items-center space-x-3">
-          <div className="p-2.5 bg-[#2563EB]/8 rounded-[12px] text-blue-600 shrink-0">
-            <History className="w-5 h-5 animate-pulse text-[#2563EB]" />
+          <div className="p-2.5 bg-[#A3E635]/10 rounded-[12px] text-[#84CC16] shrink-0">
+            <History className="w-5 h-5 animate-pulse text-[#84CC16]" />
           </div>
           <div>
             <h3 className="font-display font-bold text-[18px] text-gray-900 flex items-center gap-2">
               <span>Timeline Feed</span>
-              {isLoading && <Loader2 className="w-4 h-4 text-[#2563EB] animate-spin" />}
+              {isLoading && <Loader2 className="w-4 h-4 text-[#84CC16] animate-spin" />}
             </h3>
             <p className="text-[14px] text-[#6B7280] mt-0.5">Chronological audit stream of platform events</p>
           </div>
@@ -165,7 +165,7 @@ export default function RecentActivityWidget() {
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value as any)}
-            className="text-xs font-semibold px-2.5 py-1.5 border border-gray-200 bg-white text-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-600"
+            className="text-xs font-semibold px-2.5 py-1.5 border border-gray-200 bg-white text-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#A3E635]"
           >
             <option value="ALL">All Event Channels</option>
             <option value="BOOKING">Workspace Bookings</option>
@@ -215,7 +215,7 @@ export default function RecentActivityWidget() {
                   </span>
                   <span className="text-[10px] text-neutral-200 hidden sm:block">•</span>
                   <span className="text-[10px] text-gray-600 font-semibold inline-flex items-center select-none shrink-0 whitespace-nowrap">
-                    <Clock className="w-3 h-3 mr-1 text-blue-600" />
+                    <Clock className="w-3 h-3 mr-1 text-[#84CC16]" />
                     {log.timestamp}
                   </span>
                 </div>

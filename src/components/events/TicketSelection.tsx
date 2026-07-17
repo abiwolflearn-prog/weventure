@@ -264,7 +264,7 @@ export function TicketSelection({ event, onSuccess, onCancel }: TicketSelectionP
           onDrop={handleDrop}
           className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition ${
             dragActive 
-              ? 'border-brand-primary bg-brand-primary/5' 
+              ? 'border-[#84CC16] bg-[#84CC16]/5' 
               : value 
                 ? 'border-emerald-500 bg-emerald-500/5' 
                 : 'border-gray-200 hover:bg-neutral-slate-50'
@@ -285,7 +285,7 @@ export function TicketSelection({ event, onSuccess, onCancel }: TicketSelectionP
             ) : (
               <div className="text-xs text-neutral-slate-400 flex flex-col items-center gap-1">
                 <Upload className="w-5 h-5 text-neutral-slate-300" />
-                <span>Drag & drop file here, or <span className="text-brand-primary font-bold">browse</span></span>
+                <span>Drag & drop file here, or <span className="text-[#65A30D] font-bold">browse</span></span>
               </div>
             )}
           </label>
@@ -317,7 +317,7 @@ export function TicketSelection({ event, onSuccess, onCancel }: TicketSelectionP
               placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
               value={value}
               onChange={(e) => handleCustomAnswerChange(attendeeIdx, field.id, e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 bg-white focus:border-brand-primary outline-none"
+              className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 bg-white focus:border-[#84CC16] outline-none"
               rows={2}
             />
           </div>
@@ -351,7 +351,7 @@ export function TicketSelection({ event, onSuccess, onCancel }: TicketSelectionP
               id={`${attendeeIdx}-${field.id}`}
               checked={!!value}
               onChange={(e) => handleCustomAnswerChange(attendeeIdx, field.id, e.target.checked)}
-              className="rounded border-neutral-slate-300 text-brand-primary focus:ring-brand-primary"
+              className="rounded border-neutral-slate-300 text-[#65A30D] focus:ring-[#84CC16]"
             />
             <label htmlFor={`${attendeeIdx}-${field.id}`} className="text-[11px] font-bold text-neutral-slate-500 cursor-pointer">
               {field.label} {field.required && <span className="text-red-500">*</span>}
@@ -374,7 +374,7 @@ export function TicketSelection({ event, onSuccess, onCancel }: TicketSelectionP
                     value={opt}
                     checked={value === opt}
                     onChange={() => handleCustomAnswerChange(attendeeIdx, field.id, opt)}
-                    className="text-brand-primary focus:ring-brand-primary"
+                    className="text-[#65A30D] focus:ring-[#84CC16]"
                   />
                   <span>{opt}</span>
                 </label>
@@ -416,7 +416,7 @@ export function TicketSelection({ event, onSuccess, onCancel }: TicketSelectionP
   if (isLoading) {
     return (
       <div className="py-12 text-center space-y-3">
-        <div className="w-10 h-10 border-4 border-brand-primary border-t-transparent rounded-full animate-spin mx-auto" />
+        <div className="w-10 h-10 border-4 border-[#84CC16] border-t-transparent rounded-full animate-spin mx-auto" />
         <p className="text-xs text-neutral-slate-400 font-mono">Synchronizing WeVentureHub Seat Matrix...</p>
       </div>
     );
@@ -455,7 +455,7 @@ export function TicketSelection({ event, onSuccess, onCancel }: TicketSelectionP
                 key={ticket.id}
                 className={`p-5 rounded-3xl border transition-all relative overflow-hidden ${
                   qtySelected > 0
-                    ? 'border-brand-primary bg-brand-primary/5 dark:bg-brand-primary/10'
+                    ? 'border-[#84CC16] bg-[#84CC16]/5 dark:bg-[#84CC16]/10'
                     : 'border-gray-200 bg-white'
                 }`}
               >
@@ -558,7 +558,7 @@ export function TicketSelection({ event, onSuccess, onCancel }: TicketSelectionP
         <div className="bg-white border border-gray-200 shadow-sm rounded-3xl p-6 shadow-sm space-y-6">
           <div className="border-b pb-3 border-gray-200 text-left">
             <h3 className="font-display font-bold text-base flex items-center gap-1.5">
-              <Ticket className="w-4 h-4 text-brand-primary" />
+              <Ticket className="w-4 h-4 text-[#65A30D]" />
               <span>Checkout Ledger</span>
             </h3>
             <p className="text-[11px] text-neutral-slate-400">Review selected quantities and attendee particulars.</p>
@@ -575,7 +575,7 @@ export function TicketSelection({ event, onSuccess, onCancel }: TicketSelectionP
                 }`}
               >
                 <div className="flex items-center gap-1.5 pb-1">
-                  <span className="w-5 h-5 rounded-full bg-brand-primary/10 text-brand-primary text-[10px] font-bold flex items-center justify-center">
+                  <span className="w-5 h-5 rounded-full bg-[#84CC16]/10 text-[#65A30D] text-[10px] font-bold flex items-center justify-center">
                     {index + 1}
                   </span>
                   <span className="text-xs font-extrabold text-gray-700">
@@ -645,7 +645,7 @@ export function TicketSelection({ event, onSuccess, onCancel }: TicketSelectionP
 
               <div className="flex justify-between items-center pt-3 border-t border-dashed border-gray-200">
                 <span className="text-xs font-bold">Total Cost</span>
-                <span className="font-display font-extrabold text-lg text-brand-primary">
+                <span className="font-display font-extrabold text-lg text-[#65A30D]">
                   ${calculateTotal().toFixed(2)}
                 </span>
               </div>

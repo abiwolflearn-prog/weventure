@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { Building, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
+import WeVentureLogo from '../components/WeVentureLogo';
 
 export default function AuthLayout() {
   return (
@@ -14,9 +15,7 @@ export default function AuthLayout() {
 
         <div className="relative z-10 max-w-md text-center">
           <Link to="/" className="inline-flex items-center space-x-2 text-white mb-8">
-            <div className="p-2.5 bg-brand-primary rounded-xl">
-              <Building className="w-8 h-8" />
-            </div>
+            <WeVentureLogo size="40" mode="dark" className="drop-shadow-sm" />
             <span className="font-display font-bold text-2xl tracking-tight">WeVentureHub</span>
           </Link>
           
@@ -44,9 +43,7 @@ export default function AuthLayout() {
       <div className="w-full lg:w-1/2 flex flex-col justify-between p-8 sm:p-12 md:p-16">
         <div className="flex justify-between items-center lg:hidden mb-12">
           <Link to="/" className="flex items-center space-x-2">
-            <div className="p-1.5 bg-brand-primary text-white rounded-lg">
-              <Building className="w-5 h-5" />
-            </div>
+            <WeVentureLogo size="32" className="drop-shadow-sm" />
             <span className="font-display font-bold text-lg">WeVentureHub</span>
           </Link>
           <Link to="/" className="text-xs text-neutral-slate-500 hover:text-brand-primary transition">

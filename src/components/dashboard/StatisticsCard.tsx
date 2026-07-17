@@ -62,7 +62,7 @@ export default function StatisticsCard({
         ? '#A3E635' /* Lemon Green success */
         : changeType === 'negative' 
         ? '#EF4444' 
-        : '#2563EB';
+        : '#84CC16';
 
     return (
       <svg width={width} height={height} className="overflow-visible shrink-0">
@@ -84,8 +84,8 @@ export default function StatisticsCard({
         <span className="text-[14px] font-semibold tracking-tight text-[#6B7280]">
           {title}
         </span>
-        <div className="p-2.5 rounded-[12px] bg-[#2563EB]/8 text-[#2563EB] transition-transform duration-300 group-hover:scale-110">
-          <Icon className="w-5 h-5 text-[#2563EB]" />
+        <div className="p-2.5 rounded-[12px] bg-[#A3E635]/10 text-[#84CC16] transition-transform duration-300 group-hover:scale-110">
+          <Icon className="w-5 h-5 text-[#84CC16]" />
         </div>
       </div>
 

@@ -386,7 +386,7 @@ export default function ReportsPage() {
       {/* Upper Module Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-[#E5E7EB] pb-6">
         <div>
-          <span className="text-[14px] font-bold text-[#2563EB] tracking-wide uppercase">
+          <span className="text-[14px] font-bold text-[#65A30D] tracking-wide uppercase">
             Platform Core Business Intelligence
           </span>
           <h1 className="font-display font-bold text-[32px] text-[#111827] tracking-tight mt-1">
@@ -403,7 +403,7 @@ export default function ReportsPage() {
             onClick={() => setActiveTab('builder')}
             className={`px-4 py-2 text-[12px] font-bold uppercase tracking-wider rounded-lg transition-all duration-150 ${
               activeTab === 'builder'
-                ? 'bg-white text-[#2563EB] shadow-sm font-bold'
+                ? 'bg-white text-[#84CC16] shadow-sm font-bold'
                 : 'text-[#6B7280] hover:text-[#111827]'
             }`}
           >
@@ -413,13 +413,13 @@ export default function ReportsPage() {
             onClick={() => setActiveTab('templates')}
             className={`px-4 py-2 text-[12px] font-bold uppercase tracking-wider rounded-lg transition-all duration-150 relative ${
               activeTab === 'templates'
-                ? 'bg-white text-[#2563EB] shadow-sm font-bold'
+                ? 'bg-white text-[#84CC16] shadow-sm font-bold'
                 : 'text-[#6B7280] hover:text-[#111827]'
             }`}
           >
             Saved Templates
             {savedTemplates.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#2563EB] text-[10px] text-white font-bold shadow-sm">
+              <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#84CC16] text-[10px] text-[#111111] font-bold shadow-sm">
                 {savedTemplates.length}
               </span>
             )}
@@ -428,7 +428,7 @@ export default function ReportsPage() {
             onClick={() => setActiveTab('history')}
             className={`px-4 py-2 text-[12px] font-bold uppercase tracking-wider rounded-lg transition-all duration-150 relative ${
               activeTab === 'history'
-                ? 'bg-white text-[#2563EB] shadow-sm font-bold'
+                ? 'bg-white text-[#84CC16] shadow-sm font-bold'
                 : 'text-[#6B7280] hover:text-[#111827]'
             }`}
           >
@@ -445,7 +445,7 @@ export default function ReportsPage() {
       {/* KPI Overviews */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-[#FFFFFF] border border-[#E5E7EB] p-6 rounded-[20px] shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300 flex items-center space-x-4">
-          <div className="p-3.5 bg-blue-50 text-[#2563EB] rounded-[14px]">
+          <div className="p-3.5 bg-[#A3E635]/15 text-[#65A30D] rounded-[14px]">
             <FileSpreadsheet className="w-6 h-6" />
           </div>
           <div className="space-y-1">
@@ -503,7 +503,7 @@ export default function ReportsPage() {
             <div className="lg:col-span-4 bg-[#FFFFFF] p-6 rounded-[20px] border border-[#E5E7EB] shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-5 h-fit">
               <div className="flex items-center justify-between border-b border-gray-100 pb-4">
                 <div className="flex items-center space-x-2.5 font-display font-bold text-[16px] text-[#111827]">
-                  <Filter className="w-5 h-5 text-[#2563EB]" />
+                  <Filter className="w-5 h-5 text-[#84CC16]" />
                   <span>Report Settings</span>
                 </div>
                 <button
@@ -645,7 +645,7 @@ export default function ReportsPage() {
                 <Button
                   onClick={runPreview}
                   disabled={isPreviewLoading}
-                  className="flex-grow justify-center bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-[13px] h-[44px] rounded-[12px] shadow-[0_2px_10px_rgba(37,99,235,0.2)]"
+                  className="flex-grow justify-center bg-[#84CC16] hover:bg-[#65A30D] text-[#111111] font-bold text-[13px] h-[44px] rounded-[12px] shadow-[0_2px_10px_rgba(132,204,22,0.2)]"
                 >
                   {isPreviewLoading ? 'Aggregating...' : 'Compile BI Report'}
                 </Button>
@@ -655,7 +655,7 @@ export default function ReportsPage() {
                     setIsSaveModalOpen(true);
                   }}
                   variant="outline"
-                  className="shrink-0 border-[#E5E7EB] hover:bg-[#F8FAFC] h-[44px] w-[44px] p-0 flex items-center justify-center rounded-[12px] text-[#2563EB]"
+                  className="shrink-0 border-[#E5E7EB] hover:bg-[#F8FAFC] h-[44px] w-[44px] p-0 flex items-center justify-center rounded-[12px] text-[#65A30D]"
                 >
                   <Plus className="w-5 h-5" />
                 </Button>
@@ -780,7 +780,7 @@ export default function ReportsPage() {
                     {/* Table Footer counts */}
                     <div className="p-4 px-5 bg-[#F8FAFC] border-t border-[#E5E7EB] flex justify-between items-center text-[12px] font-semibold text-[#6B7280]">
                       <span>Records generated: {previewData.rows.length} rows</span>
-                      <span className="font-bold text-[#2563EB]">SECURE ARCHIVE READY</span>
+                      <span className="font-bold text-[#65A30D]">SECURE ARCHIVE READY</span>
                     </div>
                   </div>
                 ) : (
@@ -816,7 +816,7 @@ export default function ReportsPage() {
                 <FileText className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
                 <h3 className="text-[16px] font-bold text-[#111827]">No Saved BI Templates</h3>
                 <p className="text-[13px] text-[#6B7280] mt-2 leading-relaxed">You haven't configured any custom reporting templates yet. Open Report Builder, configure your indicators, and register templates with scheduled delivery triggers.</p>
-                <Button onClick={() => setActiveTab('builder')} className="mt-5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-[13px] px-5 h-[40px] rounded-[10px] shadow-sm">Build Your First Report</Button>
+                <Button onClick={() => setActiveTab('builder')} className="mt-5 bg-[#84CC16] hover:bg-[#65A30D] text-[#111111] font-bold text-[13px] px-5 h-[40px] rounded-[10px] shadow-sm">Build Your First Report</Button>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -866,9 +866,9 @@ export default function ReportsPage() {
                       <Button
                         onClick={() => runTemplateMutation.mutate(template.id)}
                         disabled={runTemplateMutation.isPending}
-                        className="flex-grow justify-center bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-[12px] h-[38px] rounded-[10px] flex items-center gap-1.5 shadow-sm"
+                        className="flex-grow justify-center bg-[#84CC16] hover:bg-[#65A30D] text-[#111111] font-bold text-[12px] h-[38px] rounded-[10px] flex items-center gap-1.5 shadow-sm"
                       >
-                        <Play className="w-3.5 h-3.5 fill-current text-white" />
+                        <Play className="w-3.5 h-3.5 fill-current text-[#111111]" />
                         <span>Run Now</span>
                       </Button>
                       <button
@@ -955,14 +955,14 @@ export default function ReportsPage() {
                             </span>
                           ) : item.generatedBy}
                         </td>
-                        <td className="p-4 font-bold text-[#2563EB]">
+                        <td className="p-4 font-bold text-[#65A30D]">
                           {item.format}
                         </td>
                         <td className="p-4 pr-6 text-right">
                           <a 
                             href={item.fileUrl} 
                             download={`${item.name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}.${item.format === 'EXCEL' ? 'xls' : item.format.toLowerCase()}`}
-                            className="inline-flex items-center space-x-1.5 text-[#2563EB] hover:text-[#1D4ED8] font-bold p-2 hover:bg-[#F1F5F9] rounded-lg transition"
+                            className="inline-flex items-center space-x-1.5 text-[#65A30D] hover:text-[#84CC16] font-bold p-2 hover:bg-[#F1F5F9] rounded-lg transition"
                           >
                             <Download className="w-4 h-4" />
                             <span className="hidden sm:inline">Retrieve</span>
@@ -992,7 +992,7 @@ export default function ReportsPage() {
               value={saveReportName}
               onChange={(e) => setSaveReportName(e.target.value)}
               placeholder="e.g. Monthly Operational Financial Audit"
-              className="w-full bg-[#FFFFFF] border border-[#E5E7EB] p-3 rounded-[12px] text-[13px] text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] shadow-sm transition"
+              className="w-full bg-[#FFFFFF] border border-[#E5E7EB] p-3 rounded-[12px] text-[13px] text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#84CC16] focus:ring-1 focus:ring-[#84CC16] shadow-sm transition"
             />
           </div>
 
@@ -1003,7 +1003,7 @@ export default function ReportsPage() {
               onChange={(e) => setSaveReportDesc(e.target.value)}
               placeholder="Configure template purpose for internal audits..."
               rows={2}
-              className="w-full bg-[#FFFFFF] border border-[#E5E7EB] p-3 rounded-[12px] text-[13px] text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] shadow-sm transition resize-none"
+              className="w-full bg-[#FFFFFF] border border-[#E5E7EB] p-3 rounded-[12px] text-[13px] text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#84CC16] focus:ring-1 focus:ring-[#84CC16] shadow-sm transition resize-none"
             />
           </div>
 
@@ -1013,7 +1013,7 @@ export default function ReportsPage() {
               <select
                 value={saveReportFormat}
                 onChange={(e) => setSaveReportFormat(e.target.value as ReportFormat)}
-                className="w-full bg-[#FFFFFF] border border-[#E5E7EB] p-3 rounded-[12px] text-[13px] text-[#111827] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] shadow-sm transition"
+                className="w-full bg-[#FFFFFF] border border-[#E5E7EB] p-3 rounded-[12px] text-[13px] text-[#111827] focus:outline-none focus:border-[#84CC16] focus:ring-1 focus:ring-[#84CC16] shadow-sm transition"
               >
                 <option value={ReportFormat.CSV}>Comma Separated (.csv)</option>
                 <option value={ReportFormat.EXCEL}>MS Excel Tabular (.xls)</option>
@@ -1027,7 +1027,7 @@ export default function ReportsPage() {
                   type="checkbox"
                   checked={isScheduleEnabled}
                   onChange={(e) => setIsScheduleEnabled(e.target.checked)}
-                  className="rounded border-[#E5E7EB] text-[#2563EB] focus:ring-[#2563EB] h-4 w-4"
+                  className="rounded border-[#E5E7EB] text-[#84CC16] focus:ring-[#84CC16] h-4 w-4"
                 />
                 <span className="text-[13px] font-bold text-[#374151]">Enable Email Scheduler</span>
               </label>
@@ -1041,8 +1041,8 @@ export default function ReportsPage() {
               animate={{ opacity: 1, y: 0 }}
               className="bg-[#F8FAFC] border border-[#E5E7EB] p-4 rounded-[12px] space-y-4"
             >
-              <div className="flex items-center space-x-2 text-[#2563EB] font-bold text-[13px]">
-                <Mail className="w-5 h-5 text-[#2563EB]" />
+              <div className="flex items-center space-x-2 text-[#65A30D] font-bold text-[13px]">
+                <Mail className="w-5 h-5 text-[#65A30D]" />
                 <span>Automated Email Scheduler Settings</span>
               </div>
 
@@ -1051,7 +1051,7 @@ export default function ReportsPage() {
                 <select
                   value={scheduleFrequency}
                   onChange={(e) => setScheduleFrequency(e.target.value as any)}
-                  className="w-full bg-[#FFFFFF] border border-[#E5E7EB] p-2.5 rounded-[10px] text-[13px] text-[#111827] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] shadow-sm transition"
+                  className="w-full bg-[#FFFFFF] border border-[#E5E7EB] p-2.5 rounded-[10px] text-[13px] text-[#111827] focus:outline-none focus:border-[#84CC16] focus:ring-1 focus:ring-[#84CC16] shadow-sm transition"
                 >
                   <option value="DAILY">Compile & Send Daily</option>
                   <option value="WEEKLY">Compile & Send Weekly</option>
@@ -1066,7 +1066,7 @@ export default function ReportsPage() {
                   value={scheduleEmails}
                   onChange={(e) => setScheduleEmails(e.target.value)}
                   placeholder="e.g. cfo@weventurehub.com, admin@weventurehub.com"
-                  className="w-full bg-[#FFFFFF] border border-[#E5E7EB] p-2.5 rounded-[10px] text-[13px] text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] shadow-sm transition"
+                  className="w-full bg-[#FFFFFF] border border-[#E5E7EB] p-2.5 rounded-[10px] text-[13px] text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#84CC16] focus:ring-1 focus:ring-[#84CC16] shadow-sm transition"
                 />
                 <span className="text-[11px] text-[#6B7280] block pt-0.5 leading-relaxed font-medium">Automated cron compiles live aggregates and dispatches reports to all listed recipients.</span>
               </div>
@@ -1084,7 +1084,7 @@ export default function ReportsPage() {
             <Button
               onClick={handleSaveTemplate}
               disabled={saveTemplateMutation.isPending}
-              className="w-1/2 justify-center bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold h-[40px] rounded-[10px]"
+              className="w-1/2 justify-center bg-[#84CC16] hover:bg-[#65A30D] text-[#111111] font-bold h-[40px] rounded-[10px]"
             >
               {saveTemplateMutation.isPending ? 'Registering...' : 'Register Template'}
             </Button>

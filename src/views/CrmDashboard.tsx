@@ -453,7 +453,7 @@ export default function CrmDashboard() {
       {/* Upper Module Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-[#E5E7EB] pb-6">
         <div>
-          <span className="text-[14px] font-bold text-[#2563EB] tracking-wide uppercase">
+          <span className="text-[14px] font-bold text-[#84CC16] tracking-wide uppercase font-mono">
             Ecosystem Pipeline Coordinates
           </span>
           <h1 className="font-display font-bold text-[32px] text-[#111827] tracking-tight mt-1">
@@ -470,7 +470,7 @@ export default function CrmDashboard() {
             <Button
               size="sm"
               onClick={() => { setEditingContactId(null); setIsContactModalOpen(true); }}
-              className="bg-[#2563EB] text-[#FFFFFF] hover:bg-[#1D4ED8] h-[44px] px-5 rounded-[12px] font-bold shadow-[0_2px_10px_rgba(37,99,235,0.2)] flex items-center gap-2"
+              className="bg-[#A3E635] text-[#111111] hover:bg-[#84CC16] h-[44px] px-5 rounded-[12px] font-black shadow-[0_2px_10px_rgba(163,230,53,0.15)] flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
               <span>Register Contact</span>
@@ -480,7 +480,7 @@ export default function CrmDashboard() {
             <Button
               size="sm"
               onClick={() => { setEditingCompanyId(null); setIsCompanyModalOpen(true); }}
-              className="bg-[#2563EB] text-[#FFFFFF] hover:bg-[#1D4ED8] h-[44px] px-5 rounded-[12px] font-bold shadow-[0_2px_10px_rgba(37,99,235,0.2)] flex items-center gap-2"
+              className="bg-[#A3E635] text-[#111111] hover:bg-[#84CC16] h-[44px] px-5 rounded-[12px] font-black shadow-[0_2px_10px_rgba(163,230,53,0.15)] flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
               <span>Add Company Profile</span>
@@ -490,7 +490,7 @@ export default function CrmDashboard() {
             <Button
               size="sm"
               onClick={() => { setEditingLeadId(null); setIsLeadModalOpen(true); }}
-              className="bg-[#2563EB] text-[#FFFFFF] hover:bg-[#1D4ED8] h-[44px] px-5 rounded-[12px] font-bold shadow-[0_2px_10px_rgba(37,99,235,0.2)] flex items-center gap-2"
+              className="bg-[#A3E635] text-[#111111] hover:bg-[#84CC16] h-[44px] px-5 rounded-[12px] font-black shadow-[0_2px_10px_rgba(163,230,53,0.15)] flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
               <span>Initiate Opportunity</span>
@@ -500,7 +500,7 @@ export default function CrmDashboard() {
             <Button
               size="sm"
               onClick={() => setIsActivityModalOpen(true)}
-              className="bg-[#2563EB] text-[#FFFFFF] hover:bg-[#1D4ED8] h-[44px] px-5 rounded-[12px] font-bold shadow-[0_2px_10px_rgba(37,99,235,0.2)] flex items-center gap-2"
+              className="bg-[#A3E635] text-[#111111] hover:bg-[#84CC16] h-[44px] px-5 rounded-[12px] font-black shadow-[0_2px_10px_rgba(163,230,53,0.15)] flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
               <span>Record Action</span>
@@ -517,7 +517,7 @@ export default function CrmDashboard() {
             onClick={() => setActiveTab(tab)}
             className={`pb-3.5 px-4 text-[14px] font-bold border-b-2 uppercase tracking-wider transition-all duration-200 whitespace-nowrap ${
               activeTab === tab
-                ? 'border--[#2563EB] border-[#2563EB] text-[#2563EB] font-bold'
+                ? 'border-[#84CC16] text-[#84CC16] font-bold'
                 : 'border-transparent text-[#6B7280] hover:text-[#111827]'
             }`}
           >
@@ -607,7 +607,7 @@ export default function CrmDashboard() {
                     <XAxis dataKey="stage" tick={{ fill: '#6B7280', fontSize: 11, fontWeight: 500 }} />
                     <YAxis tick={{ fill: '#6B7280', fontSize: 11 }} />
                     <Tooltip contentStyle={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '12px', color: '#111827', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} />
-                    <Bar dataKey="value" name="Deal Value ($)" fill="#2563EB" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="value" name="Deal Value ($)" fill="#84CC16" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -643,7 +643,7 @@ export default function CrmDashboard() {
               <div className="space-y-4 max-h-96 overflow-y-auto pr-2 divide-y divide-gray-100">
                 {analytics.recentActivities.map((act: any, idx: number) => (
                   <div key={act.id} className={`flex gap-4 text-[13px] ${idx > 0 ? 'pt-4' : ''}`}>
-                    <div className="p-2.5 bg-blue-50 text-[#2563EB] rounded-[12px] h-fit shrink-0">
+                    <div className="p-2.5 bg-[#A3E635]/10 text-[#65A30D] rounded-[12px] h-fit shrink-0">
                       <ActivityIcon className="w-5 h-5" />
                     </div>
                     <div className="space-y-1">
@@ -679,13 +679,13 @@ export default function CrmDashboard() {
                 placeholder="Search name, email, or phone..."
                 value={contactSearch}
                 onChange={(e) => setContactSearch(e.target.value)}
-                className="w-full text-[13px] bg-[#FFFFFF] border border-[#E5E7EB] pl-10 pr-4 py-3 rounded-[12px] text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] shadow-sm transition"
+                className="w-full text-[13px] bg-[#FFFFFF] border border-[#E5E7EB] pl-10 pr-4 py-3 rounded-[12px] text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#A3E635] focus:ring-1 focus:ring-[#A3E635] shadow-sm transition"
               />
             </div>
             <select
               value={contactStatus}
               onChange={(e) => setContactStatus(e.target.value)}
-              className="text-[13px] bg-[#FFFFFF] border border-[#E5E7EB] p-3 rounded-[12px] text-[#111827] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] shadow-sm font-semibold transition"
+              className="text-[13px] bg-[#FFFFFF] border border-[#E5E7EB] p-3 rounded-[12px] text-[#111827] focus:outline-none focus:border-[#A3E635] focus:ring-1 focus:ring-[#A3E635] shadow-sm font-semibold transition"
             >
               <option value="">All Statuses</option>
               <option value="ACTIVE">Active Account</option>
@@ -695,7 +695,7 @@ export default function CrmDashboard() {
             <select
               value={contactRole}
               onChange={(e) => setContactRole(e.target.value)}
-              className="text-[13px] bg-[#FFFFFF] border border-[#E5E7EB] p-3 rounded-[12px] text-[#111827] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] shadow-sm font-semibold transition"
+              className="text-[13px] bg-[#FFFFFF] border border-[#E5E7EB] p-3 rounded-[12px] text-[#111827] focus:outline-none focus:border-[#A3E635] focus:ring-1 focus:ring-[#A3E635] shadow-sm font-semibold transition"
             >
               <option value="">All Ecosystem Roles</option>
               <option value="MEMBER">Hub Member</option>
@@ -776,7 +776,7 @@ export default function CrmDashboard() {
                           <td className="p-4 pr-6 text-right space-x-1 whitespace-nowrap">
                             <button
                               onClick={() => handleViewContact(contact.id!)}
-                              className="p-2 hover:bg-[#F1F5F9] rounded-lg text-[#2563EB] transition-colors"
+                              className="p-2 hover:bg-[#F1F5F9] rounded-lg text-[#84CC16] transition-colors"
                               title="Inspect Customer Portfolio"
                             >
                               <Eye className="w-4 h-4" />
@@ -823,14 +823,14 @@ export default function CrmDashboard() {
             <div className="bg-[#FFFFFF] border border-[#E5E7EB] rounded-[20px] p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] h-fit space-y-6">
               {contactDetailsLoading ? (
                 <div className="py-24 text-center space-y-3">
-                  <div className="animate-spin w-8 h-8 border-4 border-[#2563EB] border-t-transparent rounded-full mx-auto" />
+                  <div className="animate-spin w-8 h-8 border-4 border-[#84CC16] border-t-transparent rounded-full mx-auto" />
                   <p className="text-[13px] text-[#6B7280] font-semibold">Pulling workspace reservations & ticket databases...</p>
                 </div>
               ) : selectedContact ? (
                 <div className="space-y-6">
                   {/* Avatar & Basic Info */}
                   <div className="flex items-center gap-4 border-b border-gray-100 pb-5">
-                    <div className="w-14 h-14 bg-blue-50 text-[#2563EB] border border-[#DBEAFE] rounded-[16px] flex items-center justify-center font-bold text-xl uppercase shrink-0">
+                    <div className="w-14 h-14 bg-[#A3E635]/10 text-[#65A30D] border border-[#A3E635]/20 rounded-[16px] flex items-center justify-center font-bold text-xl uppercase shrink-0">
                       {selectedContact.firstName[0]}{selectedContact.lastName[0]}
                     </div>
                     <div className="space-y-1">
@@ -902,7 +902,7 @@ export default function CrmDashboard() {
                   {/* INTEGRATION PANEL 1: Event Registrations */}
                   <div className="border-t border-gray-100 pt-5 space-y-3">
                     <h4 className="text-[11px] uppercase font-bold tracking-wider text-[#6B7280] flex items-center gap-2">
-                      <Ticket className="w-4 h-4 text-[#2563EB]" />
+                      <Ticket className="w-4 h-4 text-[#84CC16]" />
                       <span>Live Event Registrations ({selectedContact.integrations?.registrations?.length || 0})</span>
                     </h4>
                     {(!selectedContact.integrations?.registrations || selectedContact.integrations.registrations.length === 0) ? (
@@ -922,7 +922,7 @@ export default function CrmDashboard() {
                                 {reg.status}
                               </span>
                               <span className={`px-2 py-0.5 rounded-full font-bold ${
-                                reg.checkedIn ? 'bg-[#DBEAFE] text-[#1E40AF]' : 'bg-gray-100 text-gray-500'
+                                reg.checkedIn ? 'bg-[#A3E635]/15 text-[#65A30D] font-bold' : 'bg-gray-100 text-gray-500'
                               }`}>
                                 {reg.checkedIn ? 'Checked In' : 'Registered'}
                               </span>
@@ -974,7 +974,7 @@ export default function CrmDashboard() {
                         value={newNoteText}
                         onChange={(e) => setNewNoteText(e.target.value)}
                         placeholder="Log contact feedback, email response, call outcome..."
-                        className="w-full text-[13px] p-3 bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] transition"
+                        className="w-full text-[13px] p-3 bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#A3E635] focus:ring-1 focus:ring-[#A3E635] transition"
                         rows={2}
                         required
                       />
@@ -1031,7 +1031,7 @@ export default function CrmDashboard() {
               placeholder="Search companies by name or domain..."
               value={companySearch}
               onChange={(e) => setCompanySearch(e.target.value)}
-              className="w-full text-[13px] bg-[#FFFFFF] border border-[#E5E7EB] pl-10 pr-4 py-3 rounded-[12px] text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] shadow-sm transition"
+              className="w-full text-[13px] bg-[#FFFFFF] border border-[#E5E7EB] pl-10 pr-4 py-3 rounded-[12px] text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#A3E635] focus:ring-1 focus:ring-[#A3E635] shadow-sm transition"
             />
           </div>
 
@@ -1137,7 +1137,7 @@ export default function CrmDashboard() {
                     </div>
 
                     {/* Stage deals value sum */}
-                    <p className="text-[14px] font-bold text-[#2563EB] mt-2 font-mono">
+                    <p className="text-[14px] font-bold text-[#84CC16] mt-2 font-mono">
                       ${stageValue.toLocaleString()}
                     </p>
 
@@ -1147,7 +1147,7 @@ export default function CrmDashboard() {
                         <p className="text-[11px] text-[#9CA3AF] italic text-center py-6 font-medium">Empty lane</p>
                       ) : (
                         stageLeads.map((lead) => (
-                          <div key={lead.id} className="p-3.5 bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] shadow-sm space-y-3 text-[13px] hover:border-[#2563EB] hover:shadow-md transition duration-200">
+                          <div key={lead.id} className="p-3.5 bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] shadow-sm space-y-3 text-[13px] hover:border-[#A3E635] hover:shadow-md transition duration-200">
                             <div className="space-y-1">
                               <p className="font-bold text-[#111827] leading-tight">{lead.title}</p>
                               {lead.companyId && (
@@ -1164,7 +1164,7 @@ export default function CrmDashboard() {
                               <select
                                 value={lead.pipelineStage}
                                 onChange={(e) => handleMoveLeadStage(lead.id!, e.target.value as any)}
-                                className="text-[11px] p-1 border border-[#E5E7EB] bg-[#F8FAFC] rounded-[6px] font-bold w-full text-[#374151] focus:outline-none focus:border-[#2563EB]"
+                                className="text-[11px] p-1 border border-[#E5E7EB] bg-[#F8FAFC] rounded-[6px] font-bold w-full text-[#374151] focus:outline-none focus:border-[#A3E635]"
                               >
                                 <option value="NEW">New</option>
                                 <option value="QUALIFIED">Qualified</option>
@@ -1204,7 +1204,7 @@ export default function CrmDashboard() {
             ) : (
               activities.map((act, idx) => (
                 <div key={act.id} className={`flex gap-4 text-[13px] ${idx > 0 ? 'pt-4' : ''}`}>
-                  <div className="p-2.5 bg-blue-50 text-[#2563EB] rounded-[12px] h-fit shrink-0">
+                  <div className="p-2.5 bg-[#A3E635]/15 text-[#65A30D] rounded-[12px] h-fit shrink-0">
                     <ActivityIcon className="w-5 h-5" />
                   </div>
                   <div className="space-y-1">

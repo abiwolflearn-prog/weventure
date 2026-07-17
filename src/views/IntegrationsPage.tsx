@@ -405,15 +405,15 @@ print(response.json())`;
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
         <div>
           <div className="flex items-center gap-2">
-            <span className="bg-brand-primary/10 text-brand-primary text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5">
-              <Sparkles className="w-3 h-3" /> Enterprise Console
+            <span className="bg-[#84CC16]/10 text-[#65A30D] text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-[#84CC16]" /> Enterprise Console
             </span>
           </div>
           <h1 id="integration-hub-header" className="text-3xl font-bold tracking-tight text-slate-900 mt-2">
             API & Integrations Platform
           </h1>
           <p className="text-slate-500 mt-1">
-            Build custom apps, configure secure inbound/outbound real-time webhook systems, and govern multi-tenant automation pipelines.
+            Build custom apps, configure secure inbound/outbound real-time webhook systems, and govern WeVentureHub automation pipelines.
           </p>
         </div>
         
@@ -426,7 +426,7 @@ print(response.json())`;
           </button>
           <button 
             onClick={() => { setAnalyticsEnv('production'); fetchAnalytics(); }}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${analyticsEnv === 'production' ? 'bg-amber-600 text-white shadow' : 'text-slate-500 hover:text-slate-800'}`}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${analyticsEnv === 'production' ? 'bg-[#84CC16] text-[#111111] shadow font-bold' : 'text-slate-500 hover:text-slate-800'}`}
           >
             Production Env
           </button>
@@ -452,7 +452,7 @@ print(response.json())`;
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-all cursor-pointer ${
                 isActive 
-                  ? 'border-brand-primary text-brand-primary' 
+                  ? 'border-[#84CC16] text-[#65A30D]' 
                   : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
               }`}
             >
@@ -483,7 +483,7 @@ print(response.json())`;
                     value={newKeyName}
                     onChange={(e) => setNewKeyName(e.target.value)}
                     placeholder="e.g., Salesforce Sync Pipeline"
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#84CC16]"
                     required
                   />
                 </div>
@@ -493,7 +493,7 @@ print(response.json())`;
                   <select
                     value={newKeyEnv}
                     onChange={(e) => setNewKeyEnv(e.target.value as any)}
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary bg-white"
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#84CC16] bg-white"
                   >
                     <option value="sandbox">Sandbox (Testing)</option>
                     <option value="production">Production</option>
@@ -503,7 +503,7 @@ print(response.json())`;
                 <button
                   type="submit"
                   disabled={loading}
-                  className="bg-brand-primary text-white font-medium px-5 py-2.5 rounded-lg flex items-center gap-2 hover:opacity-90 disabled:opacity-50 transition cursor-pointer"
+                  className="bg-[#84CC16] text-[#111111] font-bold px-5 py-2.5 rounded-lg flex items-center gap-2 hover:bg-[#A3E635] disabled:opacity-50 transition cursor-pointer"
                 >
                   <Plus className="w-4 h-4" /> {loading ? 'Creating...' : 'Generate Key'}
                 </button>
@@ -602,7 +602,7 @@ print(response.json())`;
                       value={subName}
                       onChange={(e) => setSubName(e.target.value)}
                       placeholder="e.g., Salesforce Booking Relay"
-                      className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                      className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#84CC16]"
                       required
                     />
                   </div>
@@ -613,7 +613,7 @@ print(response.json())`;
                       value={subUrl}
                       onChange={(e) => setSubUrl(e.target.value)}
                       placeholder="https://yourdomain.com/webhook-receiver"
-                      className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                      className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#84CC16]"
                       required
                     />
                   </div>
@@ -625,7 +625,7 @@ print(response.json())`;
                     <select
                       value={subEnv}
                       onChange={(e) => setSubEnv(e.target.value as any)}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary bg-white"
+                      className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#84CC16] bg-white"
                     >
                       <option value="sandbox">Sandbox (Testing)</option>
                       <option value="production">Production</option>
@@ -657,7 +657,7 @@ print(response.json())`;
                             }}
                             className={`px-3 py-1 text-xs rounded-full border transition-all cursor-pointer ${
                               hasSelected 
-                                ? 'bg-brand-primary border-brand-primary text-white' 
+                                ? 'bg-[#84CC16] border-[#84CC16] text-[#111111] font-bold' 
                                 : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                             }`}
                           >
@@ -672,7 +672,7 @@ print(response.json())`;
                 <div className="flex justify-end pt-2">
                   <button
                     type="submit"
-                    className="bg-brand-primary text-white font-medium px-5 py-2.5 rounded-lg flex items-center gap-2 hover:opacity-90 transition cursor-pointer"
+                    className="bg-[#84CC16] text-[#111111] font-bold px-5 py-2.5 rounded-lg flex items-center gap-2 hover:bg-[#A3E635] transition cursor-pointer"
                   >
                     <Plus className="w-4 h-4" /> Save Subscription
                   </button>
@@ -801,7 +801,7 @@ print(response.json())`;
             {/* Left Console Configuration */}
             <div className="lg:col-span-5 bg-white p-6 rounded-[20px] border border-[#E5E7EB] shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all duration-300 hover:shadow-[0_8px_16px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 space-y-4">
               <h2 className="text-lg font-bold text-[#111111] flex items-center gap-2">
-                <Terminal className="w-5 h-5 text-[#2563EB]" /> Live API Playground
+                <Terminal className="w-5 h-5 text-[#65A30D]" /> Live WVH API Playground
               </h2>
               <p className="text-xs text-[#6B7280]">
                 Invoke real sandbox REST APIs using your newly generated API credentials directly inside your browser frame.
@@ -878,7 +878,7 @@ print(response.json())`;
                 <button
                   onClick={runPlayground}
                   disabled={playgroundLoading}
-                  className="w-full bg-brand-primary text-white font-medium py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 hover:opacity-95 transition cursor-pointer"
+                  className="w-full bg-[#84CC16] text-[#111111] font-bold py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 hover:bg-[#A3E635] transition cursor-pointer"
                 >
                   <Send className="w-4 h-4" /> {playgroundLoading ? 'Sending HTTP Request...' : 'Fire API Request'}
                 </button>
@@ -927,7 +927,7 @@ print(response.json())`;
                 <div className="bg-slate-950 text-green-400 p-4 rounded-lg font-mono text-xs flex-1 overflow-y-auto max-h-96 min-h-48">
                   {playgroundLoading ? (
                     <div className="flex items-center justify-center h-full text-slate-400 gap-2">
-                      <RefreshCw className="w-4 h-4 animate-spin text-brand-primary" /> Waiting for response gateway stream...
+                      <RefreshCw className="w-4 h-4 animate-spin text-[#65A30D]" /> Waiting for response gateway stream...
                     </div>
                   ) : playgroundResponse ? (
                     <pre className="whitespace-pre-wrap">{JSON.stringify(playgroundResponse, null, 2)}</pre>
@@ -973,7 +973,7 @@ print(response.json())`;
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
                         app.enabled 
                           ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' 
-                          : 'bg-brand-primary text-white hover:opacity-90'
+                          : 'bg-[#84CC16] text-[#111111] font-bold hover:bg-[#A3E635]'
                       }`}
                     >
                       {app.enabled ? 'Disconnect App' : 'Connect & Authorize'}
@@ -1036,7 +1036,7 @@ print(response.json())`;
                 <div className="space-y-1.5 md:col-span-1">
                   <button
                     type="submit"
-                    className="w-full bg-brand-primary text-white font-medium py-2.5 rounded-lg text-xs hover:opacity-90 transition cursor-pointer"
+                    className="w-full bg-[#84CC16] text-[#111111] font-bold py-2.5 rounded-lg text-xs hover:bg-[#A3E635] transition cursor-pointer"
                   >
                     Add Trigger Rule
                   </button>
@@ -1108,7 +1108,7 @@ print(response.json())`;
                   <span className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider block">Total Requests</span>
                   <span className="text-2xl font-bold text-[#111111] mt-1">{analytics.totalRequests}</span>
                 </div>
-                <div className="p-3 bg-blue-50 rounded-lg text-blue-600"><TrendingUp className="w-5 h-5" /></div>
+                <div className="p-3 bg-[#84CC16]/10 rounded-lg text-[#65A30D]"><TrendingUp className="w-5 h-5" /></div>
               </div>
 
               <div className="bg-white p-6 rounded-[20px] border border-[#E5E7EB] shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all duration-300 hover:shadow-[0_8px_16px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 flex items-center justify-between">
@@ -1116,7 +1116,7 @@ print(response.json())`;
                   <span className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider block">Avg Latency</span>
                   <span className="text-2xl font-bold text-[#111111] mt-1">{analytics.avgLatency} ms</span>
                 </div>
-                <div className="p-3 bg-indigo-50 rounded-lg text-indigo-600"><Clock className="w-5 h-5" /></div>
+                <div className="p-3 bg-[#84CC16]/10 rounded-lg text-[#65A30D]"><Clock className="w-5 h-5" /></div>
               </div>
 
               <div className="bg-white p-6 rounded-[20px] border border-[#E5E7EB] shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all duration-300 hover:shadow-[0_8px_16px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 flex items-center justify-between">
@@ -1150,15 +1150,15 @@ print(response.json())`;
                       <AreaChart data={analytics.timelineData}>
                         <defs>
                           <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.2}/>
-                            <stop offset="95%" stopColor="#4F46E5" stopOpacity={0}/>
+                            <stop offset="5%" stopColor="#84CC16" stopOpacity={0.2}/>
+                            <stop offset="95%" stopColor="#84CC16" stopOpacity={0}/>
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                         <XAxis dataKey="time" stroke="#94A3B8" fontSize={10} />
                         <YAxis stroke="#94A3B8" fontSize={10} />
                         <Tooltip />
-                        <Area type="monotone" dataKey="requests" stroke="#4F46E5" strokeWidth={2} fillOpacity={1} fill="url(#colorRequests)" name="HTTP Requests" />
+                        <Area type="monotone" dataKey="requests" stroke="#65A30D" strokeWidth={2} fillOpacity={1} fill="url(#colorRequests)" name="HTTP Requests" />
                       </AreaChart>
                     </ResponsiveContainer>
                   ) : (
@@ -1177,7 +1177,7 @@ print(response.json())`;
                         <XAxis dataKey="time" stroke="#94A3B8" fontSize={10} />
                         <YAxis stroke="#94A3B8" fontSize={10} />
                         <Tooltip />
-                        <Bar dataKey="latency" fill="#10B981" name="Average Latency (ms)" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="latency" fill="#84CC16" name="Average Latency (ms)" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
@@ -1249,7 +1249,7 @@ print(response.json())`;
                               {log.direction === 'outbound' && log.status === 'failed' && (
                                 <button
                                   onClick={() => handleRetryWebhook(log.id)}
-                                  className="text-brand-primary hover:bg-brand-primary/5 px-2 py-1 rounded text-xs border border-brand-primary/10 transition"
+                                  className="text-[#65A30D] hover:bg-[#84CC16]/10 px-2 py-1 rounded text-xs border border-[#84CC16]/20 transition"
                                 >
                                   Retry
                                 </button>

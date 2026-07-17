@@ -223,24 +223,24 @@ export default function EventsCatalog() {
           <button
             onClick={() => setViewMode('LIST')}
             className={`pb-3 text-xs font-extrabold uppercase tracking-wider relative transition-colors ${
-              viewMode === 'LIST' ? 'text-brand-primary font-bold' : 'text-neutral-slate-400 hover:text-neutral-slate-600'
+              viewMode === 'LIST' ? 'text-[#65A30D] font-bold' : 'text-neutral-slate-400 hover:text-neutral-slate-600'
             }`}
           >
             <span>Discover Events</span>
             {viewMode === 'LIST' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#84CC16]" />
             )}
           </button>
 
           <button
             onClick={() => setViewMode('MY_REGISTRATIONS')}
             className={`pb-3 text-xs font-extrabold uppercase tracking-wider relative transition-colors ${
-              viewMode === 'MY_REGISTRATIONS' ? 'text-brand-primary font-bold' : 'text-neutral-slate-400 hover:text-neutral-slate-600'
+              viewMode === 'MY_REGISTRATIONS' ? 'text-[#65A30D] font-bold' : 'text-neutral-slate-400 hover:text-neutral-slate-600'
             }`}
           >
             <span>My Registered Tickets</span>
             {viewMode === 'MY_REGISTRATIONS' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#84CC16]" />
             )}
           </button>
 
@@ -248,12 +248,12 @@ export default function EventsCatalog() {
             <button
               onClick={() => setViewMode('ADMIN_DASHBOARD')}
               className={`pb-3 text-xs font-extrabold uppercase tracking-wider relative transition-colors ${
-                viewMode === 'ADMIN_DASHBOARD' ? 'text-brand-primary font-bold' : 'text-neutral-slate-400 hover:text-neutral-slate-600'
+                viewMode === 'ADMIN_DASHBOARD' ? 'text-[#65A30D] font-bold' : 'text-neutral-slate-400 hover:text-neutral-slate-600'
               }`}
             >
               <span>Ticketing Workspace (Admin)</span>
               {viewMode === 'ADMIN_DASHBOARD' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#84CC16]" />
               )}
             </button>
           )}
@@ -295,9 +295,9 @@ export default function EventsCatalog() {
                       setSelectedEvent(null);
                       setViewMode('CREATE');
                     }}
-                    className="text-xs h-10 font-bold bg-brand-primary"
+                    className="text-xs h-10 font-bold bg-[#84CC16] hover:bg-[#65A30D] text-[#111111]"
                   >
-                    <Plus className="w-4 h-4 mr-1.5" />
+                    <Plus className="w-4 h-4 mr-1.5 text-[#111111]" />
                     <span>Establish Event</span>
                   </Button>
                 </>
@@ -313,8 +313,8 @@ export default function EventsCatalog() {
                 <p className="font-display font-extrabold text-lg text-[#111827]">{pagination.total || 0}</p>
               </div>
               <div className="p-4 space-y-1 bg-white border border-[#E5E7EB] rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-                <span className="text-[10px] font-bold text-[#2563EB] uppercase tracking-widest">Live Pages</span>
-                <p className="font-display font-extrabold text-lg text-[#2563EB]">
+                <span className="text-[10px] font-bold text-[#65A30D] uppercase tracking-widest">Live Pages</span>
+                <p className="font-display font-extrabold text-lg text-[#65A30D]">
                   {eventsList.filter(e => e.status === EventStatus.PUBLISHED).length}
                 </p>
               </div>
@@ -440,7 +440,7 @@ export default function EventsCatalog() {
                               onClick={() => dispatch(toggleTagFilter(t))}
                               className={`px-2.5 py-1 text-[11px] font-semibold rounded-full transition-all duration-150 ${
                                 isSelected 
-                                  ? 'bg-brand-primary text-white shadow-sm' 
+                                  ? 'bg-[#84CC16] text-[#111111] shadow-sm' 
                                   : 'bg-white text-gray-600 hover:bg-neutral-slate-100 hover:bg-gray-150 border border-gray-200'
                               }`}
                             >
@@ -640,7 +640,7 @@ export default function EventsCatalog() {
               {/* Category tag */}
               <div className="absolute top-6 left-6">
                 <span className="inline-flex items-center space-x-1 px-3.5 py-1 bg-white/90 bg-white/95 backdrop-blur-md text-gray-900 text-xs font-extrabold uppercase tracking-wider rounded-full shadow-md">
-                  <Tag className="w-3.5 h-3.5 text-brand-primary" />
+                  <Tag className="w-3.5 h-3.5 text-[#65A30D]" />
                   <span>{selectedEvent.category}</span>
                 </span>
               </div>
@@ -648,7 +648,7 @@ export default function EventsCatalog() {
               {/* Title inside hero banner */}
               <div className="absolute bottom-6 left-6 right-6 text-white space-y-2">
                 <div className="flex items-center space-x-2 text-xs font-mono font-bold">
-                  <Calendar className="w-4 h-4 text-brand-primary" />
+                  <Calendar className="w-4 h-4 text-[#84CC16]" />
                   <span>
                     {new Date(selectedEvent.schedule.startDate).toLocaleDateString('en-US', {
                       weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
@@ -700,34 +700,34 @@ export default function EventsCatalog() {
                 {/* RSVP ticket block */}
                 <div className="bg-[#F9FAFB] p-5 rounded-2xl border border-neutral-slate-200/50 border-gray-200 space-y-4">
                   <h4 className="font-display font-extrabold text-sm text-gray-800 flex items-center gap-1.5">
-                    <CalendarCheck className="w-4 h-4 text-brand-primary" />
+                    <CalendarCheck className="w-4 h-4 text-[#65A30D]" />
                     <span>Seat RSVP Reservation</span>
                   </h4>
 
                   <div className="space-y-3 pt-1">
-                    <div className="flex justify-between text-xs text-neutral-slate-500">
-                      <span>Admission Limit</span>
-                      <span className="font-bold text-gray-900">
-                        {selectedEvent.capacity.isUnlimited ? 'Unlimited' : `${selectedEvent.capacity.maxCapacity} seats`}
-                      </span>
-                    </div>
+                     <div className="flex justify-between text-xs text-neutral-slate-500">
+                       <span>Admission Limit</span>
+                       <span className="font-bold text-gray-900">
+                         {selectedEvent.capacity.isUnlimited ? 'Unlimited' : `${selectedEvent.capacity.maxCapacity} seats`}
+                       </span>
+                     </div>
 
-                    <div className="flex justify-between text-xs text-neutral-slate-500">
-                      <span>Registrations</span>
-                      <span className="font-bold text-brand-primary">
-                        {selectedEvent.capacity.activeRegistrations} active
-                      </span>
-                    </div>
+                     <div className="flex justify-between text-xs text-neutral-slate-500">
+                       <span>Registrations</span>
+                       <span className="font-bold text-[#65A30D]">
+                         {selectedEvent.capacity.activeRegistrations} active
+                       </span>
+                     </div>
 
-                    <div className="flex justify-between text-xs text-neutral-slate-500">
-                      <span>Approval Setting</span>
-                      <span className="font-bold text-gray-900">
-                        {selectedEvent.registrationSettings.requiresApproval ? 'Required' : 'Instant Confirm'}
-                      </span>
-                    </div>
+                     <div className="flex justify-between text-xs text-neutral-slate-500">
+                       <span>Approval Setting</span>
+                       <span className="font-bold text-gray-900">
+                         {selectedEvent.registrationSettings.requiresApproval ? 'Required' : 'Instant Confirm'}
+                       </span>
+                     </div>
                   </div>
 
-                  <Button className="w-full text-xs font-bold py-2.5 bg-brand-primary shadow-sm" onClick={() => setViewMode('TICKET_SELECT')}>
+                  <Button className="w-full text-xs font-bold py-2.5 bg-[#84CC16] hover:bg-[#65A30D] text-[#111111] shadow-sm" onClick={() => setViewMode('TICKET_SELECT')}>
                     Reserve seat ticket
                   </Button>
                 </div>
@@ -755,7 +755,7 @@ export default function EventsCatalog() {
           <div className="bg-white rounded-3xl border border-gray-200 p-6 md:p-8 space-y-6">
             <div className="border-b pb-3 border-gray-200">
               <h3 className="font-display font-extrabold text-lg flex items-center gap-1.5">
-                <Clock3 className="w-5 h-5 text-brand-primary" />
+                <Clock3 className="w-5 h-5 text-[#65A30D]" />
                 <span>Event Sessions Agenda</span>
               </h3>
               <p className="text-xs text-neutral-slate-400 mt-1">Chronological tracks planned inside WeVentureHub's workspace.</p>
@@ -768,7 +768,7 @@ export default function EventsCatalog() {
                 <p className="text-[11px] text-neutral-slate-400 mt-1 max-w-xs mx-auto">This event is mapped as a unified single track. No multi-session schedule builder was established.</p>
               </div>
             ) : (
-              <div className="relative border-l-2 border-brand-primary/20 pl-6 ml-3 space-y-8 pt-2">
+              <div className="relative border-l-2 border-[#84CC16]/20 pl-6 ml-3 space-y-8 pt-2">
                 {selectedEvent.sessions.map((session, index) => {
                   const sStart = new Date(session.startTime);
                   const sEnd = new Date(session.endTime);
@@ -776,8 +776,8 @@ export default function EventsCatalog() {
                     <div key={index} className="relative space-y-2">
                       
                       {/* Interactive bullet */}
-                      <span className="absolute -left-[31px] top-1.5 w-4.5 h-4.5 bg-white border-2 border-brand-primary rounded-full flex items-center justify-center">
-                        <span className="w-1.5 h-1.5 bg-brand-primary rounded-full" />
+                      <span className="absolute -left-[31px] top-1.5 w-4.5 h-4.5 bg-white border-2 border-[#84CC16] rounded-full flex items-center justify-center">
+                        <span className="w-1.5 h-1.5 bg-[#84CC16] rounded-full" />
                       </span>
 
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-1.5">
@@ -891,7 +891,7 @@ export default function EventsCatalog() {
                       <tr key={log.id} className="hover:bg-gray-50 transition-colors">
                         <td className="p-4 pl-6 font-semibold text-gray-700">
                           <div className="flex items-center space-x-1.5">
-                            <Fingerprint className="w-4 h-4 text-brand-primary" />
+                            <Fingerprint className="w-4 h-4 text-[#65A30D]" />
                             <span>{log.userEmail}</span>
                           </div>
                         </td>
@@ -902,7 +902,7 @@ export default function EventsCatalog() {
                               : log.action === 'DELETE_EVENT'
                               ? 'bg-rose-50 bg-rose-50/20 text-rose-600'
                               : log.action === 'PUBLISH_EVENT'
-                              ? 'bg-brand-primary/10 text-brand-primary'
+                              ? 'bg-[#84CC16]/10 text-[#65A30D]'
                               : 'bg-indigo-50 bg-indigo-50/20 text-indigo-600'
                           }`}>
                             {log.action}

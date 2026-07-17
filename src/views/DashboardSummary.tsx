@@ -185,21 +185,21 @@ export default function DashboardSummary() {
       {/* 1. Brand Top Header with Search, Actions, Simulator Toolbar */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 border-b border-[#E5E7EB] pb-6">
         <div>
-          <span className="text-[14px] font-bold text-[#2563EB] tracking-wide uppercase">
+          <span className="text-[14px] font-bold text-[#84CC16] tracking-wide uppercase font-mono">
             Leader Hub Management Panel
           </span>
           <h1 className="font-display font-bold text-[32px] text-[#111827] tracking-tight mt-1">
             Leader Dashboard
           </h1>
           <p className="text-[14px] text-[#6B7280] mt-1">
-            Welcome back, <b className="text-[#111827]">{user?.firstName || 'Operator'}</b>! Here is the chronological operational digest for <b className="text-[#2563EB] font-bold uppercase">{activeTenantName}</b>.
+            Welcome back, <b className="text-[#111827]">{user?.firstName || 'Operator'}</b>! Here is the chronological operational digest for <b className="text-[#84CC16] font-bold uppercase">{activeTenantName}</b>.
           </p>
         </div>
 
         {/* Global Search & Action block */}
         <div className="flex flex-wrap items-center gap-4">
           
-          {/* Gray border, White background, blue focus, rounded search input */}
+          {/* Gray border, White background, lemon focus, rounded search input */}
           <div className="relative min-w-[280px]">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
               <Search className="w-4 h-4 text-[#6B7280]" />
@@ -209,13 +209,13 @@ export default function DashboardSummary() {
               placeholder="Search events, clients, members..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#FFFFFF] border border-[#E5E7EB] text-[#111827] placeholder-[#6B7280] text-[14px] rounded-[12px] pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-[#2563EB] transition-all"
+              className="w-full bg-[#FFFFFF] border border-[#E5E7EB] text-[#111827] placeholder-[#6B7280] text-[14px] rounded-[12px] pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#A3E635] focus:border-[#A3E635] transition-all"
             />
           </div>
 
           {/* Today Date Badge */}
           <div className="hidden md:flex items-center space-x-2 px-4 py-2.5 bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] text-[14px] text-[#111827] font-semibold shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
-            <Clock className="w-4 h-4 text-[#2563EB]" />
+            <Clock className="w-4 h-4 text-[#84CC16]" />
             <span>{todayStr}</span>
           </div>
 
@@ -251,7 +251,7 @@ export default function DashboardSummary() {
             disabled={isSyncing}
             className="bg-[#FFFFFF] border border-[#E5E7EB] text-[#111827] hover:bg-gray-50 h-[44px] px-4 rounded-[12px] font-semibold"
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin text-[#2563EB]' : 'text-[#6B7280]'}`} />
+            <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin text-[#84CC16]' : 'text-[#6B7280]'}`} />
             <span>{isSyncing ? 'Syncing...' : 'Sync Live'}</span>
           </Button>
         </div>
@@ -260,11 +260,11 @@ export default function DashboardSummary() {
       {/* 2. Premium Enterprise Welcome Banner (Clean White Card Layout) */}
       <div className="bg-[#FFFFFF] border border-[#E5E7EB] p-8 rounded-[20px] shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300 relative overflow-hidden">
         {/* Subtle decorative absolute gradient bar */}
-        <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-[#2563EB] to-[#60A5FA]" />
+        <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-[#A3E635] to-[#84CC16]" />
         
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="max-w-3xl">
-            <span className="inline-flex items-center space-x-1.5 px-3 py-1 bg-[#2563EB]/8 border border-[#2563EB]/20 rounded-full text-[#2563EB] text-[12px] font-semibold mb-4">
+            <span className="inline-flex items-center space-x-1.5 px-3 py-1 bg-[#A3E635]/10 border border-[#A3E635]/20 rounded-full text-[#65A30D] text-[12px] font-bold mb-4 font-mono">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Platform Standard Active</span>
             </span>
@@ -279,7 +279,7 @@ export default function DashboardSummary() {
           
           <div className="flex flex-wrap gap-3 shrink-0">
             <Link to="/dashboard/events">
-              <button className="h-[44px] px-5 rounded-[12px] text-[14px] font-bold bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] hover:opacity-90 text-[#FFFFFF] shadow-[0_2px_10px_rgba(37,99,235,0.2)] transition-all">
+              <button className="h-[44px] px-5 rounded-[12px] text-[14px] font-black bg-[#A3E635] hover:bg-[#84CC16] text-[#111111] shadow-[0_2px_10px_rgba(163,230,53,0.15)] hover:scale-[1.01] transition-all">
                 Publish Event
               </button>
             </Link>
@@ -347,7 +347,7 @@ export default function DashboardSummary() {
       {/* 5. Performance Charts Visualization Panels (Revenue, Load, Cohort) */}
       <div className="space-y-4">
         <div className="flex items-center space-x-2.5">
-          <Activity className="w-4 h-4 text-[#2563EB]" />
+          <Activity className="w-4 h-4 text-[#84CC16]" />
           <h3 className="font-display font-bold text-[14px] text-[#6B7280] uppercase tracking-wider">
             Workspace Performance Data
           </h3>
@@ -364,7 +364,7 @@ export default function DashboardSummary() {
       {/* 7. New Dynamic Operational Modules (Recent Payments, Latest Registrations, Upcoming Events, Announcements) */}
       <div className="space-y-6">
         <div className="flex items-center space-x-2.5">
-          <ShieldCheck className="w-4 h-4 text-[#2563EB]" />
+          <ShieldCheck className="w-4 h-4 text-[#84CC16]" />
           <h3 className="font-display font-bold text-[14px] text-[#6B7280] uppercase tracking-wider">
             Operational Live Ledger
           </h3>
@@ -376,8 +376,8 @@ export default function DashboardSummary() {
           <div className="bg-[#FFFFFF] border border-[#E5E7EB] p-6 rounded-[20px] shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-[#2563EB]/8 rounded-lg">
-                  <CreditCard className="w-5 h-5 text-[#2563EB]" />
+                <div className="p-2 bg-[#A3E635]/10 rounded-lg">
+                  <CreditCard className="w-5 h-5 text-[#84CC16]" />
                 </div>
                 <div>
                   <h4 className="font-display font-bold text-[18px] text-[#111827]">Recent Payments</h4>
@@ -424,22 +424,22 @@ export default function DashboardSummary() {
           <div className="bg-[#FFFFFF] border border-[#E5E7EB] p-6 rounded-[20px] shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-[#2563EB]/8 rounded-lg">
-                  <UserCheck className="w-5 h-5 text-[#2563EB]" />
+                <div className="p-2 bg-[#A3E635]/10 rounded-lg">
+                  <UserCheck className="w-5 h-5 text-[#84CC16]" />
                 </div>
                 <div>
                   <h4 className="font-display font-bold text-[18px] text-[#111827]">Latest Registrations</h4>
                   <p className="text-[14px] text-[#6B7280] mt-0.5">Attendee signups for published events</p>
                 </div>
               </div>
-              <span className="text-[12px] font-semibold text-[#2563EB]">Real-time</span>
+              <span className="text-[12px] font-bold text-[#84CC16] font-mono">Real-time</span>
             </div>
 
             <div className="space-y-4">
               {filteredRegistrations.map((r) => (
-                <div key={r.id} className="flex items-center justify-between p-3.5 border border-gray-100 rounded-xl hover:border-[#2563EB]/25 hover:bg-[#F8FAFC] transition">
+                <div key={r.id} className="flex items-center justify-between p-3.5 border border-gray-100 rounded-xl hover:border-[#A3E635]/30 hover:bg-[#F8FAFC] transition">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-[#2563EB]/8 flex items-center justify-center text-[#2563EB] font-bold text-[14px]">
+                    <div className="w-10 h-10 rounded-full bg-[#A3E635]/10 flex items-center justify-center text-[#84CC16] font-bold text-[14px] font-mono">
                       {r.name.split(' ').map(n => n[0]).join('')}
                     </div>
                     <div>
@@ -448,7 +448,7 @@ export default function DashboardSummary() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-[12px] font-semibold text-[#2563EB]">{r.event}</p>
+                    <p className="text-[12px] font-bold text-[#65A30D]">{r.event}</p>
                     <p className="text-[10px] text-[#6B7280] mt-0.5">{r.date}</p>
                   </div>
                 </div>
@@ -460,15 +460,15 @@ export default function DashboardSummary() {
           <div className="bg-[#FFFFFF] border border-[#E5E7EB] p-6 rounded-[20px] shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-[#2563EB]/8 rounded-lg">
-                  <CalendarRange className="w-5 h-5 text-[#2563EB]" />
+                <div className="p-2 bg-[#A3E635]/10 rounded-lg">
+                  <CalendarRange className="w-5 h-5 text-[#84CC16]" />
                 </div>
                 <div>
                   <h4 className="font-display font-bold text-[18px] text-[#111827]">Upcoming Events</h4>
                   <p className="text-[14px] text-[#6B7280] mt-0.5">Events published to the community feed</p>
                 </div>
               </div>
-              <Link to="/dashboard/events" className="text-[14px] font-bold text-[#2563EB] hover:underline flex items-center gap-1">
+              <Link to="/dashboard/events" className="text-[14px] font-bold text-[#65A30D] hover:underline flex items-center gap-1">
                 <span>View All</span>
                 <ChevronRight className="w-4 h-4" />
               </Link>
@@ -490,7 +490,7 @@ export default function DashboardSummary() {
                     <div className="space-y-2 mt-3">
                       <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
                         <div 
-                          className="bg-gradient-to-r from-[#2563EB] to-[#60A5FA] h-full rounded-full" 
+                          className="bg-gradient-to-r from-[#A3E635] to-[#84CC16] h-full rounded-full" 
                           style={{ width: `${ratio}%` }}
                         />
                       </div>
@@ -509,8 +509,8 @@ export default function DashboardSummary() {
           <div className="bg-[#FFFFFF] border border-[#E5E7EB] p-6 rounded-[20px] shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-[#2563EB]/8 rounded-lg">
-                  <Megaphone className="w-5 h-5 text-[#2563EB]" />
+                <div className="p-2 bg-[#A3E635]/10 rounded-lg">
+                  <Megaphone className="w-5 h-5 text-[#84CC16]" />
                 </div>
                 <div>
                   <h4 className="font-display font-bold text-[18px] text-[#111827]">Announcements Bulletin</h4>
@@ -522,10 +522,10 @@ export default function DashboardSummary() {
 
             <div className="space-y-4">
               {announcements.map((ann) => (
-                <div key={ann.id} className="p-4 bg-[#F8FAFC] border border-[#E5E7EB] rounded-xl hover:border-[#2563EB]/20 transition relative">
+                <div key={ann.id} className="p-4 bg-[#F8FAFC] border border-[#E5E7EB] rounded-xl hover:border-[#A3E635]/25 transition relative">
                   <div className="flex items-center justify-between mb-2">
                     <h5 className="font-display font-bold text-[14px] text-[#111827]">{ann.title}</h5>
-                    <span className="text-[11px] font-bold text-[#2563EB] uppercase">{ann.date}</span>
+                    <span className="text-[11px] font-bold text-[#65A30D] uppercase">{ann.date}</span>
                   </div>
                   <p className="text-[13px] text-[#6B7280] leading-relaxed">
                     {ann.content}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
+import WeVentureLogo from '../components/WeVentureLogo';
 import { 
   Building, 
   LayoutDashboard, 
@@ -131,9 +132,7 @@ export default function DashboardLayout() {
         {/* Header Branding */}
         <div className="h-16 flex items-center justify-between px-4.5 border-b border-slate-800/60">
           <Link to="/dashboard" className="flex items-center space-x-3 overflow-hidden select-none">
-            <div className="p-2 bg-[#2563EB] text-white rounded-xl shrink-0">
-              <Building className="w-5 h-5" />
-            </div>
+            <WeVentureLogo size="24" mode="dark" className="shrink-0" />
             {sidebarExpanded && (
               <span className="font-display font-bold text-lg tracking-tight select-none whitespace-nowrap text-white">
                 WeVenture<span className="text-[#2563EB]">Hub</span>
@@ -236,9 +235,7 @@ export default function DashboardLayout() {
               {/* Drawer header */}
               <div className="h-16 flex items-center justify-between px-5 border-b border-slate-800/60">
                 <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center space-x-3">
-                  <div className="p-2 bg-[#2563EB] text-white rounded-lg">
-                    <Building className="w-5 h-5" />
-                  </div>
+                  <WeVentureLogo size="24" mode="dark" className="shrink-0" />
                   <span className="font-display font-bold text-lg tracking-tight text-white">
                     WeVenture<span className="text-[#2563EB]">Hub</span>
                   </span>

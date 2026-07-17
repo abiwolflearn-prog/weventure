@@ -190,7 +190,7 @@ export default function BookingList() {
             onClick={() => setStatusFilter(st)}
             className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 ${
               statusFilter === st 
-                ? 'bg-brand-primary text-white' 
+                ? 'bg-[#84CC16] text-[#111111]' 
                 : 'bg-white border border-gray-200 text-neutral-slate-600 hover:bg-neutral-slate-50'
             }`}
           >
@@ -202,7 +202,7 @@ export default function BookingList() {
       {/* Grid List */}
       {isBookingsLoading ? (
         <div className="p-12 text-center text-neutral-slate-400">
-          <div className="animate-spin w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full mx-auto mb-4" />
+          <div className="animate-spin w-8 h-8 border-4 border-[#84CC16] border-t-transparent rounded-full mx-auto mb-4" />
           <p className="text-sm font-bold">Synchronizing reservations cache...</p>
         </div>
       ) : bookings.length === 0 ? (
@@ -267,7 +267,7 @@ export default function BookingList() {
                     {isAdminOrStaff && (
                       <div className="flex items-center space-x-2 border-t pt-2 mt-2">
                         <User className="w-4 h-4 text-neutral-slate-400 shrink-0" />
-                        <span className="font-semibold text-brand-primary">User: {bkg.userEmail}</span>
+                        <span className="font-semibold text-[#65A30D]">User: {bkg.userEmail}</span>
                       </div>
                     )}
                   </div>
@@ -344,7 +344,7 @@ export default function BookingList() {
             <div className="p-4 bg-[#F3F4F6] rounded-2xl w-48 h-48 flex items-center justify-center mx-auto shadow-inner border">
               <div className="relative">
                 <QrCode className="w-32 h-32 text-gray-900" />
-                <div className="absolute inset-0 bg-brand-primary/5 rounded-lg border border-brand-primary animate-pulse" />
+                <div className="absolute inset-0 bg-[#84CC16]/5 rounded-lg border border-[#84CC16] animate-pulse" />
               </div>
             </div>
 

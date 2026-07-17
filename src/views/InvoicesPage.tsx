@@ -17,7 +17,7 @@ export default function InvoicesPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
-        <Loader2 className="w-10 h-10 text-[#2563EB] animate-spin" />
+        <Loader2 className="w-10 h-10 text-[#84CC16] animate-spin" />
         <span className="text-xs text-[#4B5563] font-mono">Synchronizing billing records...</span>
       </div>
     );
@@ -68,7 +68,7 @@ export default function InvoicesPage() {
                       className="border-b border-[#E5E7EB] hover:bg-[#F9FAFB] transition-all"
                     >
                       <td className="py-4 px-6 font-mono font-bold text-[#111827] flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-[#2563EB]" />
+                        <FileText className="w-4 h-4 text-[#65A30D]" />
                         <span>{invoice.invoiceNumber}</span>
                       </td>
                       <td className="py-4 px-6">

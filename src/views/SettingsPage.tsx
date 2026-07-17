@@ -634,7 +634,7 @@ export default function SettingsPage() {
     setTimeout(() => setSavedSuccess(false), 2500);
   };
 
-  const activeBtnClass = "w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold bg-[#2563EB] text-white shadow-sm transition-all";
+  const activeBtnClass = "w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold bg-[#84CC16] text-[#111111] shadow-sm transition-all hover:bg-[#A3E635]";
   const inactiveBtnClass = "w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#4B5563] hover:bg-[#F3F4F6] hover:text-[#111827] transition text-left";
 
   return (
@@ -787,7 +787,7 @@ export default function SettingsPage() {
                           type="checkbox" 
                           checked={prefEmailBookings} 
                           onChange={(e) => setPrefEmailBookings(e.target.checked)} 
-                          className="w-4 h-4 rounded text-[#2563EB]" 
+                          className="w-4 h-4 rounded text-[#65A30D] focus:ring-[#84CC16]" 
                         />
                         <Mail className="w-3.5 h-3.5 text-[#4B5563]" />
                         <span className="text-xs font-semibold text-[#111827]">Email</span>
@@ -797,7 +797,7 @@ export default function SettingsPage() {
                           type="checkbox" 
                           checked={prefAppBookings} 
                           onChange={(e) => setPrefAppBookings(e.target.checked)} 
-                          className="w-4 h-4 rounded text-[#2563EB]" 
+                          className="w-4 h-4 rounded text-[#65A30D] focus:ring-[#84CC16]" 
                         />
                         <AppWindow className="w-3.5 h-3.5 text-[#4B5563]" />
                         <span className="text-xs font-semibold text-[#111827]">In-App</span>
@@ -817,7 +817,7 @@ export default function SettingsPage() {
                           type="checkbox" 
                           checked={prefEmailEvents} 
                           onChange={(e) => setPrefEmailEvents(e.target.checked)} 
-                          className="w-4 h-4 rounded text-[#2563EB]" 
+                          className="w-4 h-4 rounded text-[#65A30D] focus:ring-[#84CC16]" 
                         />
                         <Mail className="w-3.5 h-3.5 text-[#4B5563]" />
                         <span className="text-xs font-semibold text-[#111827]">Email</span>
@@ -827,7 +827,7 @@ export default function SettingsPage() {
                           type="checkbox" 
                           checked={prefAppEvents} 
                           onChange={(e) => setPrefAppEvents(e.target.checked)} 
-                          className="w-4 h-4 rounded text-[#2563EB]" 
+                          className="w-4 h-4 rounded text-[#65A30D] focus:ring-[#84CC16]" 
                         />
                         <AppWindow className="w-3.5 h-3.5 text-[#4B5563]" />
                         <span className="text-xs font-semibold text-[#111827]">In-App</span>
@@ -847,7 +847,7 @@ export default function SettingsPage() {
                           type="checkbox" 
                           checked={prefEmailPayments} 
                           onChange={(e) => setPrefEmailPayments(e.target.checked)} 
-                          className="w-4 h-4 rounded text-[#2563EB]" 
+                          className="w-4 h-4 rounded text-[#65A30D] focus:ring-[#84CC16]" 
                         />
                         <Mail className="w-3.5 h-3.5 text-[#4B5563]" />
                         <span className="text-xs font-semibold text-[#111827]">Email</span>
@@ -857,7 +857,7 @@ export default function SettingsPage() {
                           type="checkbox" 
                           checked={prefAppPayments} 
                           onChange={(e) => setPrefAppPayments(e.target.checked)} 
-                          className="w-4 h-4 rounded text-[#2563EB]" 
+                          className="w-4 h-4 rounded text-[#65A30D] focus:ring-[#84CC16]" 
                         />
                         <AppWindow className="w-3.5 h-3.5 text-[#4B5563]" />
                         <span className="text-xs font-semibold text-[#111827]">In-App</span>
@@ -877,7 +877,7 @@ export default function SettingsPage() {
                           type="checkbox" 
                           checked={prefEmailAnnouncements} 
                           onChange={(e) => setPrefEmailAnnouncements(e.target.checked)} 
-                          className="w-4 h-4 rounded text-[#2563EB]" 
+                          className="w-4 h-4 rounded text-[#65A30D] focus:ring-[#84CC16]" 
                         />
                         <Mail className="w-3.5 h-3.5 text-[#4B5563]" />
                         <span className="text-xs font-semibold text-[#111827]">Email</span>
@@ -887,7 +887,7 @@ export default function SettingsPage() {
                           type="checkbox" 
                           checked={prefAppAnnouncements} 
                           onChange={(e) => setPrefAppAnnouncements(e.target.checked)} 
-                          className="w-4 h-4 rounded text-[#2563EB]" 
+                          className="w-4 h-4 rounded text-[#65A30D] focus:ring-[#84CC16]" 
                         />
                         <AppWindow className="w-3.5 h-3.5 text-[#4B5563]" />
                         <span className="text-xs font-semibold text-[#111827]">In-App</span>
@@ -923,7 +923,7 @@ export default function SettingsPage() {
                       onClick={() => setOrgSubTab('profile')}
                       className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
                         orgSubTab === 'profile'
-                          ? 'bg-white text-[#2563EB] shadow-xs border border-[#E5E7EB]'
+                          ? 'bg-white text-[#65A30D] shadow-xs border border-[#E5E7EB]'
                           : 'text-neutral-slate-500 hover:text-neutral-slate-700 dark:hover:text-neutral-slate-300'
                       }`}
                     >
@@ -936,7 +936,7 @@ export default function SettingsPage() {
                       onClick={() => setOrgSubTab('branding')}
                       className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
                         orgSubTab === 'branding'
-                          ? 'bg-white text-[#2563EB] shadow-xs border border-[#E5E7EB]'
+                          ? 'bg-white text-[#65A30D] shadow-xs border border-[#E5E7EB]'
                           : 'text-neutral-slate-500 hover:text-neutral-slate-700 dark:hover:text-neutral-slate-300'
                       }`}
                     >
@@ -949,7 +949,7 @@ export default function SettingsPage() {
                       onClick={() => setOrgSubTab('themes')}
                       className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
                         orgSubTab === 'themes'
-                          ? 'bg-white text-[#2563EB] shadow-xs border border-[#E5E7EB]'
+                          ? 'bg-white text-[#65A30D] shadow-xs border border-[#E5E7EB]'
                           : 'text-neutral-slate-500 hover:text-neutral-slate-700 dark:hover:text-neutral-slate-300'
                       }`}
                     >
@@ -957,12 +957,12 @@ export default function SettingsPage() {
                       <span>3. Themes & Palettes</span>
                     </button>
 
-                    <button
+                     <button
                       type="button"
                       onClick={() => setOrgSubTab('typography')}
                       className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
                         orgSubTab === 'typography'
-                          ? 'bg-white text-[#2563EB] shadow-xs border border-[#E5E7EB]'
+                          ? 'bg-white text-[#65A30D] shadow-xs border border-[#E5E7EB]'
                           : 'text-neutral-slate-500 hover:text-neutral-slate-700 dark:hover:text-neutral-slate-300'
                       }`}
                     >
@@ -975,7 +975,7 @@ export default function SettingsPage() {
                       onClick={() => setOrgSubTab('email')}
                       className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
                         orgSubTab === 'email'
-                          ? 'bg-white text-[#2563EB] shadow-xs border border-[#E5E7EB]'
+                          ? 'bg-white text-[#65A30D] shadow-xs border border-[#E5E7EB]'
                           : 'text-neutral-slate-500 hover:text-neutral-slate-700 dark:hover:text-neutral-slate-300'
                       }`}
                     >
@@ -988,7 +988,7 @@ export default function SettingsPage() {
                       onClick={() => setOrgSubTab('pdf')}
                       className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
                         orgSubTab === 'pdf'
-                          ? 'bg-white text-[#2563EB] shadow-xs border border-[#E5E7EB]'
+                          ? 'bg-white text-[#65A30D] shadow-xs border border-[#E5E7EB]'
                           : 'text-neutral-slate-500 hover:text-neutral-slate-700 dark:hover:text-neutral-slate-300'
                       }`}
                     >

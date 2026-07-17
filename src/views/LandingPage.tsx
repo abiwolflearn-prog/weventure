@@ -17,8 +17,10 @@ import {
   BookOpen,
   Calendar,
   Layers,
-  Heart
+  Heart,
+  Bookmark
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '../components/Button';
 import { publicApi } from '../lib/publicApi';
 
@@ -26,6 +28,20 @@ export default function LandingPage() {
   const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
   const [contactSuccess, setContactSuccess] = useState(false);
   const [contactLoading, setContactLoading] = useState(false);
+  const [bookmarkedSpaces, setBookmarkedSpaces] = useState<Record<string, boolean>>({});
+  const [bookmarkedEvents, setBookmarkedEvents] = useState<Record<string, boolean>>({});
+
+  const toggleSpaceBookmark = (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setBookmarkedSpaces(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleEventBookmark = (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setBookmarkedEvents(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   // 1. Fetch dynamic homepage configuration settings
   const { data: homepage, isLoading: homepageLoading } = useQuery({
@@ -164,7 +180,7 @@ export default function LandingPage() {
   };
 
   // Safe Fallback content for loaders or missing DB configs
-  const displayTitle = homepage?.heroTitle || 'Where Modern Ethiopian Startups Scale and Innovate';
+  const displayTitle = homepage?.heroTitle || 'Empower Your Workspace, Simplify Your Events.';
   const displaySubtitle = homepage?.heroSubtitle || 'Instant booking for premium meeting rooms, dedicated workspaces, and world-class accelerator programs tailored to high-growth operators.';
   const displayCtaText = homepage?.heroCtaText || 'Explore Available Spaces';
   const displayCtaLink = homepage?.heroCtaLink || '/workspaces';
@@ -187,67 +203,125 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="bg-white min-h-screen text-neutral-slate-900 font-sans">
+    <div className="bg-[#111111] min-h-screen text-white font-sans overflow-x-hidden">
       
       {/* 1. HERO SECTION */}
-      <section id="home" className="relative overflow-hidden pt-24 pb-28 sm:pt-28 sm:pb-36 bg-white">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] rounded-full bg-[#2563EB]/5 filter blur-3xl pointer-events-none" />
+      <section id="home" className="relative overflow-hidden pt-24 pb-28 sm:pt-28 sm:pb-36 bg-[#111111]">
+        {/* Animated Background Mesh & Floating Blobs */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <motion.div 
+            animate={{ 
+              scale: [1, 1.15, 1],
+              x: [0, 30, 0],
+              y: [0, -20, 0]
+            }}
+            transition={{
+              duration: 12,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="absolute top-0 left-[10%] w-[500px] h-[500px] rounded-full bg-brand-primary/10 filter blur-3xl" 
+          />
+          <motion.div 
+            animate={{ 
+              scale: [1, 1.2, 1],
+              x: [0, -40, 0],
+              y: [0, 30, 0]
+            }}
+            transition={{
+              duration: 15,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="absolute bottom-10 right-[15%] w-[450px] h-[450px] rounded-full bg-brand-accent/5 filter blur-3xl" 
+          />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[500px] rounded-full bg-gradient-to-b from-brand-primary/5 to-transparent filter blur-3xl" />
+        </div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-blue-50 text-blue-600 text-xs font-semibold mb-6 border border-blue-100">
-            <Sparkles className="w-4 h-4 text-blue-600" />
-            <span>Co-working, Accelerator Programs & Dynamic Tech Portal</span>
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            className="inline-flex items-center space-x-2 px-4.5 py-2 rounded-full bg-neutral-850 text-brand-accent text-xs font-semibold mb-8 border border-neutral-800 shadow-sm backdrop-blur-sm"
+          >
+            <Sparkles className="w-4 h-4 text-brand-accent animate-pulse" />
+            <span className="tracking-wide text-neutral-200">Co-working, Accelerator Programs & Dynamic Tech Portal</span>
+          </motion.div>
 
-          <h1 className="font-sans font-bold text-4xl sm:text-6xl tracking-tight leading-none mb-6 text-gray-950">
+          <motion.h1 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            className="font-sans font-bold text-4xl sm:text-6xl tracking-tight leading-[1.1] mb-6 text-white"
+          >
             {displayTitle.split(' ').slice(0, -3).join(' ')} <br />
-            <span className="text-blue-600 font-extrabold">{displayTitle.split(' ').slice(-3).join(' ')}</span>
-          </h1>
+            <span className="bg-gradient-to-r from-brand-accent via-emerald-400 to-teal-400 bg-clip-text text-transparent font-extrabold">{displayTitle.split(' ').slice(-3).join(' ')}</span>
+          </motion.h1>
 
-          <p className="max-w-2xl mx-auto text-base sm:text-lg text-gray-600 leading-relaxed mb-10 font-medium">
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="max-w-3xl mx-auto text-base sm:text-lg text-neutral-slate-300 leading-relaxed mb-10 font-medium"
+          >
             {displaySubtitle}
-          </p>
+          </motion.p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4"
+          >
             <Link to={displayCtaLink}>
-              <Button size="lg" className="w-full sm:w-auto font-bold px-8 h-12 text-base bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm">
-                <span>{displayCtaText}</span>
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button variant="success" size="lg" className="w-full sm:w-auto font-bold px-8 h-12.5 text-base rounded-xl shadow-md shadow-brand-accent/10 transition">
+                  <span>{displayCtaText}</span>
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </motion.div>
             </Link>
             <Link to="/login">
-              <Button variant="secondary" size="lg" className="w-full sm:w-auto h-12 text-base font-bold bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 rounded-xl">
-                <span>Access Member Portal</span>
-              </Button>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button variant="secondary" size="lg" className="w-full sm:w-auto h-12.5 text-base font-bold bg-neutral-800 text-white border border-neutral-700 hover:bg-neutral-700 rounded-xl transition shadow-sm">
+                  <span>Access Member Portal</span>
+                </Button>
+              </motion.div>
             </Link>
-          </div>
+          </motion.div>
 
           {/* Beautiful Campus Image Container */}
-          <div className="mt-12 relative rounded-3xl overflow-hidden border border-gray-200/80 shadow-lg max-w-5xl mx-auto group">
+          <motion.div 
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="mt-14 relative rounded-3xl overflow-hidden border border-neutral-850 shadow-2xl max-w-5xl mx-auto group bg-neutral-900"
+          >
             <img 
               src={displayHeroImage} 
               alt="WeVentureHub Dynamic Workspace" 
-              className="w-full h-[400px] sm:h-[550px] object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+              className="w-full h-[400px] sm:h-[550px] object-cover transition-transform duration-1000 group-hover:scale-[1.03]"
               referrerPolicy="no-referrer"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
-            <div className="absolute bottom-6 left-6 md:bottom-8 md:left-8 text-left text-white z-10">
-              <span className="inline-flex items-center space-x-1 bg-blue-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider mb-2">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent pointer-events-none" />
+            <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10 text-left text-white z-10 max-w-lg">
+              <span className="inline-flex items-center space-x-1.5 bg-brand-accent text-neutral-slate-900 text-[10px] font-bold px-3 py-1 rounded-md uppercase tracking-wider mb-3 shadow-md">
                 WeVenture Hub HQ
               </span>
-              <p className="text-sm md:text-base font-semibold text-white/90 drop-shadow-sm">
+              <p className="text-base md:text-lg font-bold text-white leading-snug drop-shadow">
                 Experience our state-of-the-art incubation chapters and workspace technology arrays.
               </p>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* 2. SPONSORS ROW (DYNAMIC) */}
       {sponsors && sponsors.length > 0 && (
-        <section className="py-12 bg-gray-50 border-y border-gray-100">
+        <section className="py-12 bg-neutral-900/60 border-y border-neutral-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p className="text-[11px] font-bold text-gray-400 tracking-wider uppercase mb-6">Our Dynamic Ecosystem Sponsors</p>
+            <p className="text-[11px] font-bold text-neutral-slate-400 tracking-wider uppercase mb-6">Our Dynamic Ecosystem Sponsors</p>
             <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
               {sponsors.map((sponsor) => (
                 <a 
@@ -260,7 +334,7 @@ export default function LandingPage() {
                   <img 
                     src={sponsor.logoUrl} 
                     alt={sponsor.name} 
-                    className="h-10 object-contain rounded-lg border border-gray-200/50"
+                    className="h-10 object-contain rounded-lg border border-neutral-800"
                     referrerPolicy="no-referrer"
                   />
                 </a>
@@ -271,265 +345,421 @@ export default function LandingPage() {
       )}
 
       {/* 3. FEATURED WORKSPACES (DYNAMIC) */}
-      <section className="py-24 bg-white border-b border-gray-100">
+      <section className="py-24 bg-[#111111] border-b border-neutral-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12">
-            <div>
-              <div className="text-xs font-bold text-blue-600 tracking-wider uppercase mb-2">Live Availability</div>
-              <h2 className="font-sans text-3xl font-bold text-gray-950">Featured On-Site Spaces</h2>
-              <p className="text-sm text-gray-500 mt-2 font-medium">Bookable physical rooms and desks featuring fast infrastructure and complete tech arrays.</p>
-            </div>
-            <Link to="/workspaces" className="mt-4 sm:mt-0 inline-flex items-center text-blue-600 font-bold text-sm hover:underline">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.6 }}
+            >
+              <div className="text-xs font-bold text-brand-accent tracking-wider uppercase mb-2">Live Availability</div>
+              <h2 className="font-sans text-3xl font-bold text-white">Featured On-Site Spaces</h2>
+              <p className="text-sm text-neutral-slate-400 mt-2 font-medium">Bookable physical rooms and desks featuring fast infrastructure and complete tech arrays.</p>
+            </motion.div>
+            <Link to="/workspaces" className="mt-4 sm:mt-0 inline-flex items-center text-brand-accent font-bold text-sm hover:underline group">
               <span>View all workrooms</span>
-              <ArrowRight className="w-4 h-4 ml-1" />
+              <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            variants={{
+              hidden: {},
+              visible: { transition: { staggerChildren: 0.1 } }
+            }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-8"
+          >
             {workspacesLoading ? (
               [1, 2, 3].map((n) => (
-                <div key={n} className="bg-gray-50 border border-gray-100 rounded-2xl h-80 animate-pulse" />
+                <div key={n} className="bg-neutral-900 border border-neutral-800 rounded-3xl h-96 animate-pulse" />
               ))
             ) : workspaces && workspaces.length > 0 ? (
-              workspaces.slice(0, 3).map((space) => (
-                <div key={space.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
-                  <div className="h-48 bg-gray-50 relative border-b border-gray-100">
-                    <img 
-                      src={WORKSPACE_IMAGES[space.type] || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=600'} 
-                      alt={space.name} 
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="absolute top-4 left-4 bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded-md">
-                      {space.type.replace('_', ' ')}
+              workspaces.slice(0, 3).map((space) => {
+                const isBookmarked = !!bookmarkedSpaces[space.id];
+                return (
+                  <motion.div 
+                    key={space.id} 
+                    variants={{
+                      hidden: { opacity: 0, y: 30 },
+                      visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+                    }}
+                    whileHover={{ y: -8 }}
+                    className="bg-[#181818] rounded-3xl border border-neutral-800 overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="h-52 bg-neutral-900 relative overflow-hidden group">
+                        <img 
+                          src={space.imageUrl || WORKSPACE_IMAGES[space.type] || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=600'} 
+                          alt={space.name} 
+                          className="w-full h-full object-cover transition-transform duration-750 group-hover:scale-105"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                        
+                        {/* Glassmorphism Badge */}
+                        <div className="absolute top-4 left-4 bg-neutral-900/90 border border-neutral-800 px-3 py-1.5 rounded-full text-[10px] font-bold text-white uppercase tracking-wider shadow-sm flex items-center space-x-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-ping inline-block" />
+                          <span>{space.type.replace('_', ' ')}</span>
+                        </div>
+
+                        {/* Interactive Favorite Action */}
+                        <motion.button 
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => toggleSpaceBookmark(space.id, e)}
+                          className="absolute top-4 right-4 p-2 bg-neutral-900/90 border border-neutral-850 hover:bg-neutral-800 text-neutral-slate-300 rounded-full shadow-md backdrop-blur-sm transition-colors duration-200"
+                          title="Bookmark workspace"
+                        >
+                          <Bookmark className={`w-4 h-4 transition-colors ${isBookmarked ? 'fill-brand-accent text-brand-accent' : 'text-neutral-slate-400'}`} />
+                        </motion.button>
+                      </div>
+                      
+                      <div className="p-6">
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="font-sans font-bold text-base text-white group-hover:text-brand-accent transition-colors">{space.name}</h3>
+                          <span className="text-sm font-extrabold text-brand-accent bg-neutral-800 border border-neutral-750 px-2.5 py-0.5 rounded-full">${space.hourlyRate}/hr</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-neutral-slate-400 mb-4 font-medium">
+                          <Users className="w-3.5 h-3.5 text-neutral-slate-500" />
+                          <span>Capacity: Up to {space.capacity} persons</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {space.amenities.slice(0, 3).map((amenity: string, idx: number) => (
+                            <span key={idx} className="bg-neutral-900 border border-neutral-800 text-neutral-slate-300 text-[10px] font-bold px-2 py-1 rounded-md">
+                              {amenity}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="p-6">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-sans font-bold text-base text-gray-950">{space.name}</h3>
-                      <span className="text-sm font-extrabold text-blue-600">${space.hourlyRate}/hr</span>
+
+                    <div className="p-6 pt-0">
+                      <Link to={`/workspaces/${space.id}`} className="w-full">
+                        <Button variant="secondary" className="w-full text-xs font-bold bg-neutral-800 text-white border border-neutral-700 hover:bg-neutral-700 hover:border-brand-accent rounded-xl transition duration-200 h-10">
+                          View Availability & Book
+                        </Button>
+                      </Link>
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-4">
-                      <Users className="w-3.5 h-3.5" />
-                      <span>Capacity: Up to {space.capacity} persons</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1 mb-6">
-                      {space.amenities.slice(0, 3).map((amenity: string, idx: number) => (
-                        <span key={idx} className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded">
-                          {amenity}
-                        </span>
-                      ))}
-                    </div>
-                    <Link to={`/workspaces/${space.id}`} className="w-full">
-                      <Button variant="secondary" className="w-full text-xs font-bold bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 rounded-xl">
-                        View Availability & Book
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              ))
+                  </motion.div>
+                );
+              })
             ) : (
-              <div className="col-span-3 text-center py-12 text-gray-500 font-medium">No workspaces configured yet. Check back soon!</div>
+              <div className="col-span-3 text-center py-12 text-neutral-slate-500 font-medium">No workspaces configured yet. Check back soon!</div>
             )}
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* 4. UPCOMING EVENTS (DYNAMIC) */}
       {featuredEvents && featuredEvents.length > 0 && (
-        <section className="py-24 bg-gray-50 border-b border-gray-100">
+        <section className="py-24 bg-[#141414] border-b border-neutral-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12">
-              <div>
-                <div className="text-xs font-bold text-blue-600 tracking-wider uppercase mb-2">Accelerator Ecosystem</div>
-                <h2 className="font-sans text-3xl font-bold text-gray-950">Dynamic Featured Events</h2>
-                <p className="text-sm text-gray-500 mt-2 font-medium">Enroll in live-synchronized workshops, hackathons, and cohort days hosted at WeVentureHub.</p>
-              </div>
-              <Link to="/events" className="mt-4 sm:mt-0 inline-flex items-center text-blue-600 font-bold text-sm hover:underline">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+              >
+                <div className="text-xs font-bold text-brand-accent tracking-wider uppercase mb-2">Accelerator Ecosystem</div>
+                <h2 className="font-sans text-3xl font-bold text-white">Dynamic Featured Events</h2>
+                <p className="text-sm text-neutral-slate-400 mt-2 font-medium">Enroll in live-synchronized workshops, hackathons, and cohort days hosted at WeVentureHub.</p>
+              </motion.div>
+              <Link to="/events" className="mt-4 sm:mt-0 inline-flex items-center text-brand-accent font-bold text-sm hover:underline group">
                 <span>View all events</span>
-                <ArrowRight className="w-4 h-4 ml-1" />
+                <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {featuredEvents.slice(0, 2).map((event) => (
-                <div key={event.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex flex-col sm:flex-row">
-                  <div className="sm:w-1/3 h-48 sm:h-auto bg-gray-100 relative">
-                    <img 
-                      src={event.media.bannerUrl || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&q=80&w=400'} 
-                      alt={event.title} 
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                  </div>
-                  <div className="p-6 sm:w-2/3 flex flex-col justify-between">
-                    <div>
-                      <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
-                        {event.category}
-                      </span>
-                      <h3 className="font-sans font-bold text-lg text-gray-950 mt-2 line-clamp-1">{event.title}</h3>
-                      <p className="text-xs text-gray-500 mt-2 line-clamp-2 leading-relaxed font-medium">
-                        {event.description}
-                      </p>
+            <motion.div 
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-50px" }}
+              variants={{
+                hidden: {},
+                visible: { transition: { staggerChildren: 0.1 } }
+              }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-8"
+            >
+              {featuredEvents.slice(0, 2).map((event) => {
+                const isBookmarked = !!bookmarkedEvents[event.id];
+                return (
+                  <motion.div 
+                    key={event.id} 
+                    variants={{
+                      hidden: { opacity: 0, y: 30 },
+                      visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+                    }}
+                    whileHover={{ y: -6 }}
+                    className="bg-[#1c1c1c] rounded-3xl border border-neutral-800 overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 flex flex-col sm:flex-row"
+                  >
+                    <div className="sm:w-1/3 h-52 sm:h-auto bg-neutral-900 relative overflow-hidden group shrink-0">
+                      <img 
+                        src={event.media.bannerUrl || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&q=80&w=400'} 
+                        alt={event.title} 
+                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+                      
+                      {/* Reactive bookmark heart */}
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={(e) => toggleEventBookmark(event.id, e)}
+                        className="absolute top-3 right-3 p-2 bg-neutral-900/90 text-neutral-slate-300 rounded-full shadow-md backdrop-blur-sm transition-colors duration-200"
+                        title="Favorite Event"
+                      >
+                        <Heart className={`w-3.5 h-3.5 transition-colors ${isBookmarked ? 'fill-brand-accent text-brand-accent' : 'text-neutral-slate-400'}`} />
+                      </motion.button>
                     </div>
-                    <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                        <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                        <span>{new Date(event.schedule.startDate).toLocaleDateString()}</span>
+                    <div className="p-6 sm:w-2/3 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="bg-neutral-850 border border-neutral-800 text-brand-accent text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">
+                            {event.category}
+                          </span>
+                        </div>
+                        <h3 className="font-sans font-bold text-lg text-white mt-3 line-clamp-1 group-hover:text-brand-accent transition-colors">{event.title}</h3>
+                        <p className="text-xs text-neutral-slate-400 mt-2 line-clamp-2 leading-relaxed font-medium">
+                          {event.description}
+                        </p>
                       </div>
-                      <Link to={`/events/${event.slug}`}>
-                        <Button className="text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 px-4 rounded-lg shadow-sm">
-                          View details
-                        </Button>
-                      </Link>
+                      <div className="mt-6 pt-4 border-t border-neutral-800 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-xs text-neutral-slate-400 font-semibold">
+                          <Calendar className="w-3.5 h-3.5 text-brand-accent" />
+                          <span>{new Date(event.schedule.startDate).toLocaleDateString()}</span>
+                        </div>
+                        <Link to={`/events/${event.slug}`}>
+                          <Button variant="success" className="text-xs font-bold px-4 h-9 rounded-xl shadow-sm transition">
+                            View details
+                          </Button>
+                        </Link>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
           </div>
         </section>
       )}
 
       {/* 5. ECOSYSTEM BENTO FEATURES */}
-      <section id="features" className="py-24 border-b border-gray-100 bg-white">
+      <section id="features" className="py-24 border-b border-neutral-800 bg-[#111111]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="font-sans text-3xl sm:text-4xl font-bold tracking-tight mb-4 text-gray-950">
+            <motion.h2 
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="font-sans text-3xl sm:text-4xl font-bold tracking-tight mb-4 text-white"
+            >
               Ecosystem Platform Features
-            </h2>
-            <p className="text-sm sm:text-base text-gray-500 max-w-xl mx-auto leading-relaxed font-medium">
+            </motion.h2>
+            <p className="text-sm sm:text-base text-neutral-slate-400 max-w-xl mx-auto leading-relaxed font-medium">
               Explore how WeVentureHub’s integrated digital experience optimizes your day-to-day work, learnings, and pitch pathways.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            variants={{
+              hidden: {},
+              visible: { transition: { staggerChildren: 0.08 } }
+            }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          >
             {features.map((feat, idx) => (
-              <div key={idx} className="bg-white border border-gray-200 rounded-2xl p-8 transition-all duration-300 hover:shadow-sm">
-                <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl inline-block mb-4 shadow-sm">
+              <motion.div 
+                key={idx} 
+                variants={{
+                  hidden: { opacity: 0, y: 25 },
+                  visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+                }}
+                whileHover={{ y: -5 }}
+                className="bg-[#181818] border border-neutral-800 hover:border-brand-accent/50 rounded-2xl p-8 transition-colors duration-200 hover:shadow-lg shadow-sm"
+              >
+                <div className="p-3 bg-neutral-800 border border-neutral-700 rounded-xl inline-block mb-5 shadow-sm text-brand-accent">
                   {feat.icon}
                 </div>
-                <h3 className="font-sans font-bold text-lg text-gray-950 mb-2">{feat.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed font-medium">{feat.desc}</p>
-              </div>
+                <h3 className="font-sans font-bold text-lg text-white mb-2">{feat.title}</h3>
+                <p className="text-sm text-neutral-slate-400 leading-relaxed font-medium">{feat.desc}</p>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* 6. STARTUP ACCELERATORS (DYNAMIC) */}
-      <section className="py-24 bg-gray-50 border-b border-gray-100">
+      <section className="py-24 bg-[#141414] border-b border-neutral-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <div className="text-xs font-bold text-blue-600 tracking-wider uppercase mb-2">Venture Acceleration</div>
-            <h2 className="font-sans text-3xl sm:text-4xl font-bold tracking-tight mb-4 text-gray-950">
+            <div className="text-xs font-bold text-brand-accent tracking-wider uppercase mb-2">Venture Acceleration</div>
+            <motion.h2 
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="font-sans text-3xl sm:text-4xl font-bold tracking-tight mb-4 text-white"
+            >
               Dynamic Startup Programs
-            </h2>
-            <p className="text-sm sm:text-base text-gray-500 max-w-xl mx-auto leading-relaxed font-medium">
+            </motion.h2>
+            <p className="text-sm sm:text-base text-neutral-slate-400 max-w-xl mx-auto leading-relaxed font-medium">
               Synchronized programs to scale enterprise solutions, obtain pre-seed capital, and receive dedicated technical coaching.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={{
+              hidden: {},
+              visible: { transition: { staggerChildren: 0.1 } }
+            }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto"
+          >
             {startupPrograms.map((prog: any, idx: number) => (
-              <div key={idx} className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm flex flex-col justify-between">
+              <motion.div 
+                key={idx} 
+                variants={{
+                  hidden: { opacity: 0, y: 25 },
+                  visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 90 } }
+                }}
+                whileHover={{ y: -6 }}
+                className="bg-[#1c1c1c] border border-neutral-800 rounded-3xl p-8 shadow-sm flex flex-col justify-between hover:shadow-xl transition-shadow duration-300"
+              >
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="bg-emerald-50 border border-emerald-100 text-emerald-600 text-xs font-bold px-3 py-1 rounded-full">
-                      Cohort Size: {prog.cohortSize} teams
+                  <div className="flex items-center justify-between mb-5">
+                    <span className="bg-neutral-850 border border-neutral-800 text-brand-accent text-xs font-bold px-3 py-1 rounded-full flex items-center space-x-1">
+                      <span className="w-1.5 h-1.5 bg-brand-accent rounded-full inline-block animate-pulse" />
+                      <span>Cohort Size: {prog.cohortSize} teams</span>
                     </span>
-                    <span className="text-xs font-bold text-gray-400 uppercase">{prog.duration}</span>
+                    <span className="text-xs font-bold text-neutral-slate-400 uppercase tracking-wider">{prog.duration}</span>
                   </div>
-                  <h3 className="font-sans font-bold text-xl text-gray-950 mb-3">{prog.title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed mb-6 font-medium">
+                  <h3 className="font-sans font-bold text-xl text-white mb-3">{prog.title}</h3>
+                  <p className="text-sm text-neutral-slate-400 leading-relaxed mb-6 font-medium">
                     {prog.description}
                   </p>
                 </div>
                 <Link to="/register">
-                  <Button className="w-full font-bold bg-gray-950 hover:bg-gray-900 text-white rounded-xl">
-                    {prog.ctaText || 'Apply Cohort'}
-                  </Button>
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    <Button variant="success" className="w-full font-bold rounded-xl h-11 transition shadow-sm">
+                      {prog.ctaText || 'Apply Cohort'}
+                    </Button>
+                  </motion.div>
                 </Link>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* 7. DYNAMIC TESTIMONIALS */}
       {testimonials && testimonials.length > 0 && (
-        <section className="py-24 bg-white border-b border-gray-100">
+        <section className="py-24 bg-[#111111] border-b border-neutral-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <div className="text-xs font-bold text-blue-600 tracking-wider uppercase mb-2">Testimonials</div>
-              <h2 className="font-sans text-3xl font-bold text-gray-950">What Our Builders Say</h2>
-              <p className="text-sm text-gray-500 mt-2 font-medium">Real reviews from dynamic startup teams and remote engineers at WeVentureHub.</p>
+              <div className="text-xs font-bold text-brand-accent tracking-wider uppercase mb-2">Testimonials</div>
+              <motion.h2 
+                initial={{ opacity: 0, y: 15 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="font-sans text-3xl font-bold text-white"
+              >
+                What Our Builders Say
+              </motion.h2>
+              <p className="text-sm text-neutral-slate-400 mt-2 font-medium">Real reviews from dynamic startup teams and remote engineers at WeVentureHub.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <motion.div 
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={{
+                hidden: {},
+                visible: { transition: { staggerChildren: 0.1 } }
+              }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-8"
+            >
               {testimonials.map((test) => (
-                <div key={test.id} className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm hover:shadow-md transition-all duration-300">
-                  <div className="flex items-center gap-1 text-amber-400 mb-4">
-                    {[...Array(test.rating)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-current" />
-                    ))}
+                <motion.div 
+                  key={test.id} 
+                  variants={{
+                    hidden: { opacity: 0, y: 25 },
+                    visible: { opacity: 1, y: 0 }
+                  }}
+                  whileHover={{ y: -5 }}
+                  className="bg-[#181818] border border-neutral-800 rounded-3xl p-8 shadow-sm hover:shadow-xl transition-shadow duration-300 flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center gap-1 text-amber-400 mb-5">
+                      {[...Array(test.rating)].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 fill-current text-amber-500" />
+                      ))}
+                    </div>
+                    <p className="text-[14px] text-neutral-slate-300 leading-relaxed mb-6 font-medium italic">
+                      "{test.content}"
+                    </p>
                   </div>
-                  <p className="text-sm text-gray-600 leading-relaxed mb-6 font-medium">
-                    "{test.content}"
-                  </p>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 pt-4 border-t border-neutral-800">
                     {test.authorAvatarUrl ? (
                       <img 
                         src={test.authorAvatarUrl} 
                         alt={test.authorName} 
-                        className="w-10 h-10 rounded-full object-cover"
+                        className="w-10 h-10 rounded-full object-cover border border-neutral-800 shadow-sm"
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
+                      <div className="w-10 h-10 rounded-full bg-neutral-800 text-brand-accent flex items-center justify-center font-bold text-sm shadow-inner">
                         {test.authorName.charAt(0)}
                       </div>
                     )}
                     <div>
-                      <h4 className="text-sm font-bold text-gray-950">{test.authorName}</h4>
-                      <p className="text-xs text-gray-400">{test.authorRole}, {test.authorCompany}</p>
+                      <h4 className="text-sm font-bold text-white">{test.authorName}</h4>
+                      <p className="text-xs text-neutral-slate-400">{test.authorRole}, {test.authorCompany}</p>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         </section>
-      )}
-
-      {/* 8. PROMO ROW */}
-      <section className="py-24 bg-blue-600 text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(37,99,235,1),rgba(30,58,138,1))]" />
+      )}      {/* 8. PROMO ROW */}
+      <section className="py-24 bg-[#141414] text-white relative overflow-hidden border-b border-neutral-800">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(17,17,17,1),rgba(20,20,20,1))]" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
-              <span className="bg-white/20 text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+              <span className="bg-brand-accent/20 text-brand-accent text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                 Limited Time Promotion
               </span>
               <h2 className="font-sans text-4xl font-extrabold tracking-tight leading-tight">
                 {promoTitle}
               </h2>
-              <p className="text-base text-blue-100 max-w-lg leading-relaxed font-medium">
+              <p className="text-base text-neutral-slate-300 max-w-lg leading-relaxed font-medium">
                 {promoSubtitle}
               </p>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-black">{promoPrice}</span>
-                <span className="text-sm text-blue-200">/ exclusive billing rate</span>
+                <span className="text-5xl font-black text-brand-accent">{promoPrice}</span>
+                <span className="text-sm text-neutral-slate-400">/ exclusive billing rate</span>
               </div>
               <div className="pt-4">
                 <Link to="/register">
-                  <Button className="bg-white text-blue-600 hover:bg-blue-50 font-extrabold px-8 h-12 rounded-xl shadow-md">
+                  <Button variant="success" className="font-extrabold px-8 h-12 rounded-xl shadow-md">
                     Claim Summer Rate Now
                   </Button>
                 </Link>
               </div>
             </div>
-            <div className="rounded-2xl overflow-hidden border-4 border-white/10 shadow-xl">
+            <div className="rounded-2xl overflow-hidden border-4 border-neutral-800 shadow-xl">
               <img 
                 src={promoImage} 
                 alt="Silicon Summer Hotdesk Promo" 
@@ -543,9 +773,9 @@ export default function LandingPage() {
 
       {/* 9. PARTNERS BOARD (DYNAMIC) */}
       {partners && partners.length > 0 && (
-        <section className="py-16 bg-gray-50 border-b border-gray-100">
+        <section className="py-16 bg-[#111111] border-b border-neutral-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p className="text-[11px] font-bold text-gray-400 tracking-wider uppercase mb-6">Incubator & Innovation Partners</p>
+            <p className="text-[11px] font-bold text-neutral-slate-400 tracking-wider uppercase mb-6">Incubator & Innovation Partners</p>
             <div className="flex flex-wrap items-center justify-center gap-10 md:gap-20">
               {partners.map((partner) => (
                 <a 
@@ -558,10 +788,10 @@ export default function LandingPage() {
                   <img 
                     src={partner.logoUrl} 
                     alt={partner.name} 
-                    className="h-8 object-contain rounded-md border border-gray-200/50"
+                    className="h-8 object-contain rounded-md border border-neutral-800"
                     referrerPolicy="no-referrer"
                   />
-                  <span className="text-xs font-bold text-gray-500">{partner.name}</span>
+                  <span className="text-xs font-bold text-neutral-slate-400">{partner.name}</span>
                 </a>
               ))}
             </div>
@@ -570,43 +800,43 @@ export default function LandingPage() {
       )}
 
       {/* 10. CONTACT FORM */}
-      <section id="contact" className="py-24 bg-white">
+      <section id="contact" className="py-24 bg-[#111111]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             
             {/* Info Side */}
             <div className="space-y-6">
-              <div className="text-xs font-bold text-blue-600 tracking-wider uppercase mb-2">Need Assistance?</div>
-              <h2 className="font-sans text-3xl sm:text-4xl font-bold tracking-tight text-gray-950">
+              <div className="text-xs font-bold text-brand-accent tracking-wider uppercase mb-2">Need Assistance?</div>
+              <h2 className="font-sans text-3xl sm:text-4xl font-bold tracking-tight text-white">
                 Contact Our Site Coordinators
               </h2>
-              <p className="text-sm sm:text-base text-gray-500 leading-relaxed max-w-md font-medium">
+              <p className="text-sm sm:text-base text-neutral-slate-400 leading-relaxed max-w-md font-medium">
                 Have questions about accelerators, booking workspaces, mentoring opportunities, or sponsoring events? We’re here to help.
               </p>
 
               <div className="space-y-4 pt-4">
-                <div className="flex items-center space-x-3 text-gray-600 font-medium">
-                  <Mail className="w-5 h-5 text-blue-600" />
+                <div className="flex items-center space-x-3 text-neutral-slate-300 font-medium">
+                  <Mail className="w-5 h-5 text-brand-accent" />
                   <span className="text-sm">connect@weventurehub.com</span>
                 </div>
-                <div className="flex items-center space-x-3 text-gray-600 font-medium">
-                  <Phone className="w-5 h-5 text-blue-600" />
+                <div className="flex items-center space-x-3 text-neutral-slate-300 font-medium">
+                  <Phone className="w-5 h-5 text-brand-accent" />
                   <span className="text-sm">+1 (800) WE-VENTURE</span>
                 </div>
-                <div className="flex items-center space-x-3 text-gray-600 font-medium">
-                  <MapPin className="w-5 h-5 text-blue-600" />
+                <div className="flex items-center space-x-3 text-neutral-slate-300 font-medium">
+                  <MapPin className="w-5 h-5 text-brand-accent" />
                   <span className="text-sm">WeVentureHub Silicon Valley, California</span>
                 </div>
               </div>
             </div>
 
             {/* Form Side */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+            <div className="bg-[#181818] rounded-2xl border border-neutral-800 p-8 shadow-sm">
               <form onSubmit={handleContactSubmit} className="space-y-4">
-                <h3 className="font-sans font-bold text-lg text-gray-950 mb-2">Send an Inquiry</h3>
+                <h3 className="font-sans font-bold text-lg text-white mb-2">Send an Inquiry</h3>
                 
                 <div>
-                  <label htmlFor="contact_name" className="block text-xs font-bold text-gray-500 mb-1">Your Name</label>
+                  <label htmlFor="contact_name" className="block text-xs font-bold text-neutral-slate-400 mb-1">Your Name</label>
                   <input 
                     id="contact_name"
                     type="text" 
@@ -614,12 +844,12 @@ export default function LandingPage() {
                     value={contactForm.name}
                     onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
                     placeholder="Alex Chen"
-                    className="w-full px-4 py-2.5 text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-gray-900"
+                    className="w-full px-4 py-2.5 text-sm rounded-lg bg-neutral-900 border border-neutral-800 focus:outline-none focus:ring-2 focus:ring-brand-accent/20 focus:border-brand-accent font-medium text-white placeholder-neutral-500"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="contact_email" className="block text-xs font-bold text-gray-500 mb-1">Your Email</label>
+                  <label htmlFor="contact_email" className="block text-xs font-bold text-neutral-slate-400 mb-1">Your Email</label>
                   <input 
                     id="contact_email"
                     type="email" 
@@ -627,12 +857,12 @@ export default function LandingPage() {
                     value={contactForm.email}
                     onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
                     placeholder="alex@acme.com"
-                    className="w-full px-4 py-2.5 text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-gray-900"
+                    className="w-full px-4 py-2.5 text-sm rounded-lg bg-neutral-900 border border-neutral-800 focus:outline-none focus:ring-2 focus:ring-brand-accent/20 focus:border-brand-accent font-medium text-white placeholder-neutral-500"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="contact_message" className="block text-xs font-bold text-gray-500 mb-1">Your Message</label>
+                  <label htmlFor="contact_message" className="block text-xs font-bold text-neutral-slate-400 mb-1">Your Message</label>
                   <textarea 
                     id="contact_message"
                     required
@@ -640,19 +870,20 @@ export default function LandingPage() {
                     value={contactForm.message}
                     onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
                     placeholder="Tell us about your startup or workspace needs..."
-                    className="w-full px-4 py-2.5 text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none font-medium text-gray-900"
+                    className="w-full px-4 py-2.5 text-sm rounded-lg bg-neutral-900 border border-neutral-800 focus:outline-none focus:ring-2 focus:ring-brand-accent/20 focus:border-brand-accent resize-none font-medium text-white placeholder-neutral-500"
                   />
                 </div>
 
                 {contactSuccess && (
-                  <div className="p-3.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
+                  <div className="p-3.5 rounded-lg bg-emerald-950/50 border border-emerald-800 text-emerald-400 text-xs font-bold">
                     Thank you! Your inquiry has been received. We will respond within 24 hours.
                   </div>
                 )}
 
                 <Button 
                   type="submit" 
-                  className="w-full h-11 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm" 
+                  variant="success"
+                  className="w-full h-11 text-sm font-bold rounded-xl shadow-sm" 
                   isLoading={contactLoading}
                   disabled={!contactForm.name || !contactForm.email || !contactForm.message}
                 >

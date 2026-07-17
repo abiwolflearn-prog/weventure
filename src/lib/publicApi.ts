@@ -51,6 +51,7 @@ export interface IPublicWorkspace {
   currency: string;
   amenities: string[];
   isAvailable: boolean;
+  imageUrl?: string;
 }
 
 export interface IPublicNews {

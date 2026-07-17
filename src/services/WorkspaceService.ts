@@ -60,6 +60,7 @@ export class WorkspaceService {
         allowedDays: [0, 1, 2, 3, 4, 5, 6],
       },
       bufferTime: data.bufferTime !== undefined ? Number(data.bufferTime) : 0,
+      imageUrl: data.imageUrl,
     };
 
     const workspace = await workspaceRepository.create(payload);
@@ -94,6 +95,7 @@ export class WorkspaceService {
     if (updateData.isAvailable !== undefined) payload.isAvailable = !!updateData.isAvailable;
     if (updateData.availabilityRules !== undefined) payload.availabilityRules = updateData.availabilityRules;
     if (updateData.bufferTime !== undefined) payload.bufferTime = Number(updateData.bufferTime);
+    if (updateData.imageUrl !== undefined) payload.imageUrl = updateData.imageUrl;
 
     const updated = await workspaceRepository.update(id, tenantId, payload);
     if (!updated) {

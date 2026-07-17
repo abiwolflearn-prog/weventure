@@ -28,6 +28,7 @@ export interface IWorkspaceDocument extends Document {
     allowedDays: number[]; // e.g. [1, 2, 3, 4, 5] for Mon-Fri
   };
   bufferTime: number; // in minutes (e.g. 15 or 30 mins)
+  imageUrl?: string;
   isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -74,6 +75,7 @@ const WorkspaceSchema = new Schema<IWorkspaceDocument>(
       allowedDays: { type: [Number], default: [0, 1, 2, 3, 4, 5, 6], required: true },
     },
     bufferTime: { type: Number, default: 0, required: true },
+    imageUrl: { type: String },
     isDeleted: { type: Boolean, default: false, required: true, index: true },
   },
   {

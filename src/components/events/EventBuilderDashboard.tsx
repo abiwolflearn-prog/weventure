@@ -38,7 +38,9 @@ import {
   Tv,
   Phone,
   AppWindow,
-  Link as LinkIcon
+  Link as LinkIcon,
+  UploadCloud,
+  X
 } from 'lucide-react';
 import { Button } from '../Button';
 import { Input } from '../Input';
@@ -198,6 +200,51 @@ export const EventBuilderDashboard: React.FC<EventBuilderDashboardProps> = ({
 
   const watchIsUnlimited = watch('capacity.isUnlimited');
   const watchTitle = watch('title');
+  const watchBannerUrl = watch('media.bannerUrl');
+
+  const [dragActive, setDragActive] = useState(false);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      handleImageFile(file);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      handleImageFile(file);
+    }
+  };
+
+  const handleImageFile = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file (PNG, JPG, JPEG, or WEBP)');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setValue('media.bannerUrl', reader.result as string);
+    };
+    reader.onerror = () => {
+      alert('Failed to read file. Please try another image.');
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Local state for tags
   const [tags, setTags] = useState<string[]>(initialValues?.tags || ['networking', 'innovation']);
@@ -550,6 +597,68 @@ export const EventBuilderDashboard: React.FC<EventBuilderDashboardProps> = ({
                     <span className="text-xs text-rose-500">{errors.description.message}</span>
                   )}
                 </div>
+
+                {/* Local Event Banner Photo Dropzone Uploader */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">Event Banner Photo (Local Device)</label>
+                  <div 
+                    onDragEnter={handleDrag}
+                    onDragOver={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDrop={handleDrop}
+                    className={`border-2 border-dashed rounded-[14px] p-5 transition-all text-center flex flex-col items-center justify-center cursor-pointer ${
+                      dragActive 
+                        ? "border-[#2563EB] bg-[#EFF6FF]" 
+                        : watchBannerUrl 
+                          ? "border-emerald-200 bg-emerald-50/10" 
+                          : "border-[#E5E7EB] hover:border-[#2563EB] bg-[#F9FAFB] hover:bg-white"
+                    }`}
+                  >
+                    {watchBannerUrl ? (
+                      <div className="relative w-full max-h-48 rounded-[10px] overflow-hidden group">
+                        <img src={watchBannerUrl} alt="Event Banner Preview" className="w-full h-48 object-cover rounded-[10px]" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-[10px]">
+                          <button
+                            type="button"
+                            onClick={() => setValue('media.bannerUrl', '')}
+                            className="p-2 bg-[#EF4444] text-white rounded-full hover:bg-red-600 transition shadow-lg animate-fade-in"
+                            title="Remove Image"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer py-4">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                        <div className="p-3 bg-[#EFF6FF] text-[#2563EB] rounded-full mb-3">
+                          <UploadCloud className="w-6 h-6" />
+                        </div>
+                        <p className="text-[13px] font-bold text-gray-800">
+                          Click to upload event photo <span className="text-gray-500 font-medium">or drag & drop here</span>
+                        </p>
+                        <p className="text-[11px] text-[#6B7280] mt-1">
+                          Accepts PNG, JPG, JPEG, WEBP. Max size: 5MB
+                        </p>
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                <div className="text-center py-1">
+                  <span className="px-3 py-1 bg-[#F1F5F9] rounded-full text-[10px] font-bold text-gray-400 uppercase tracking-wider">or specify custom image URL link</span>
+                </div>
+
+                <Input
+                  label="Banner Image URL fallback"
+                  placeholder="https://images.unsplash.com/photo-..."
+                  {...register('media.bannerUrl')}
+                />
 
                 {/* Tags */}
                 <div className="flex flex-col space-y-1.5">
@@ -1052,6 +1161,68 @@ export const EventBuilderDashboard: React.FC<EventBuilderDashboardProps> = ({
                   {...register('description', { required: 'Description is required' })}
                 />
               </div>
+
+              {/* Local Event Banner Photo Dropzone Uploader */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">Event Banner Photo (Local Device)</label>
+                <div 
+                  onDragEnter={handleDrag}
+                  onDragOver={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDrop={handleDrop}
+                  className={`border-2 border-dashed rounded-[14px] p-5 transition-all text-center flex flex-col items-center justify-center cursor-pointer ${
+                    dragActive 
+                      ? "border-[#2563EB] bg-[#EFF6FF]" 
+                      : watchBannerUrl 
+                        ? "border-emerald-200 bg-emerald-50/10" 
+                        : "border-[#E5E7EB] hover:border-[#2563EB] bg-[#F9FAFB] hover:bg-white"
+                  }`}
+                >
+                  {watchBannerUrl ? (
+                    <div className="relative w-full max-h-48 rounded-[10px] overflow-hidden group">
+                      <img src={watchBannerUrl} alt="Event Banner Preview" className="w-full h-48 object-cover rounded-[10px]" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-[10px]">
+                        <button
+                          type="button"
+                          onClick={() => setValue('media.bannerUrl', '')}
+                          className="p-2 bg-[#EF4444] text-white rounded-full hover:bg-red-600 transition shadow-lg animate-fade-in"
+                          title="Remove Image"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer py-4">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                      <div className="p-3 bg-[#EFF6FF] text-[#2563EB] rounded-full mb-3">
+                        <UploadCloud className="w-6 h-6" />
+                      </div>
+                      <p className="text-[13px] font-bold text-gray-800">
+                        Click to upload event photo <span className="text-gray-500 font-medium">or drag & drop here</span>
+                      </p>
+                      <p className="text-[11px] text-[#6B7280] mt-1">
+                        Accepts PNG, JPG, JPEG, WEBP. Max size: 5MB
+                      </p>
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              <div className="text-center py-1">
+                <span className="px-3 py-1 bg-[#F1F5F9] rounded-full text-[10px] font-bold text-gray-400 uppercase tracking-wider">or specify custom image URL link</span>
+              </div>
+
+              <Input
+                label="Banner Image URL fallback"
+                placeholder="https://images.unsplash.com/photo-..."
+                {...register('media.bannerUrl')}
+              />
 
               {/* Scheduling & capacity */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">

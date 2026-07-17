@@ -94,7 +94,7 @@ export const EventCard: React.FC<EventCardProps> = ({
         <div className="absolute top-4 left-4 flex flex-wrap gap-1.5 max-w-[calc(100%-2rem)]">
           {/* Category */}
           <span className="inline-flex items-center space-x-1 px-2.5 py-1 bg-white/90 backdrop-blur-md text-neutral-slate-900 text-[10px] font-extrabold uppercase tracking-wider rounded-full shadow-sm">
-            <Tag className="w-2.5 h-2.5 text-blue-600" />
+            <Tag className="w-2.5 h-2.5 text-[#65A30D]" />
             <span>{event.category}</span>
           </span>
 
@@ -124,7 +124,7 @@ export const EventCard: React.FC<EventCardProps> = ({
               Draft
             </span>
           ) : event.status === EventStatus.PUBLISHED ? (
-            <span className="inline-flex items-center px-2.5 py-1 bg-blue-600 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg shadow-sm animate-pulse">
+            <span className="inline-flex items-center px-2.5 py-1 bg-[#84CC16] text-[#111111] text-[10px] font-bold uppercase tracking-wider rounded-lg shadow-sm animate-pulse">
               Live
             </span>
           ) : event.status === EventStatus.CANCELLED ? (
@@ -156,7 +156,7 @@ export const EventCard: React.FC<EventCardProps> = ({
         
         {/* Title & Description */}
         <div className="space-y-2">
-          <h3 className="font-display font-bold text-lg text-gray-900 line-clamp-1 leading-snug group-hover:text-blue-600 transition-colors">
+          <h3 className="font-display font-bold text-lg text-gray-900 line-clamp-1 leading-snug group-hover:text-[#65A30D] transition-colors">
             {event.title}
           </h3>
           <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">
@@ -190,7 +190,7 @@ export const EventCard: React.FC<EventCardProps> = ({
                       ? 'bg-rose-500' 
                       : capacityPercent >= 70 
                       ? 'bg-amber-500' 
-                      : 'bg-blue-600'
+                      : 'bg-[#84CC16]'
                   }`}
                   style={{ width: `${Math.min(100, capacityPercent)}%` }}
                 />
@@ -235,7 +235,7 @@ export const EventCard: React.FC<EventCardProps> = ({
                 <Button 
                   variant="secondary" 
                   size="sm" 
-                  className="flex-1 text-[11px] h-8 text-brand-primary hover:bg-brand-primary/5 font-bold border-brand-primary/20 hover:border-brand-primary"
+                  className="flex-1 text-[11px] h-8 text-[#65A30D] hover:bg-[#84CC16]/5 font-bold border-[#84CC16]/20 hover:border-[#84CC16]"
                   onClick={() => onPublish(event)}
                   isLoading={isMutating}
                 >

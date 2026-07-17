@@ -8,6 +8,18 @@ import { Booking } from '../models/Booking';
 import { Order } from '../models/Order';
 import { ValidationError, NotFoundError } from '../errors/AppError';
 
+function cleanReferenceFields(data: any): any {
+  if (!data) return data;
+  const cleaned = { ...data };
+  const keys = ['companyId', 'contactId', 'leadId'];
+  for (const key of keys) {
+    if (cleaned[key] === '') {
+      cleaned[key] = null;
+    }
+  }
+  return cleaned;
+}
+
 export class CrmService {
   // ==========================================
   // COMPANIES CRUD
@@ -69,8 +81,9 @@ export class CrmService {
     if (!data.firstName || !data.lastName || !data.email) {
       throw new ValidationError('First name, last name, and email are required');
     }
+    const cleanData = cleanReferenceFields(data);
     const contact = new Contact({
-      ...data,
+      ...cleanData,
       tenantId,
     });
     return await contact.save();
@@ -130,9 +143,10 @@ export class CrmService {
   }
 
   public async updateContact(tenantId: string, id: string, data: any): Promise<IContactDocument> {
+    const cleanData = cleanReferenceFields(data);
     const contact = await Contact.findOneAndUpdate(
       { _id: id, tenantId },
-      { $set: data },
+      { $set: cleanData },
       { new: true, runValidators: true }
     ).exec();
     if (!contact) {
@@ -174,8 +188,9 @@ export class CrmService {
     if (!data.title) {
       throw new ValidationError('Lead title is required');
     }
+    const cleanData = cleanReferenceFields(data);
     const lead = new Lead({
-      ...data,
+      ...cleanData,
       tenantId,
     });
     return await lead.save();
@@ -208,9 +223,10 @@ export class CrmService {
   }
 
   public async updateLead(tenantId: string, id: string, data: any): Promise<ILeadDocument> {
+    const cleanData = cleanReferenceFields(data);
     const lead = await Lead.findOneAndUpdate(
       { _id: id, tenantId },
-      { $set: data },
+      { $set: cleanData },
       { new: true, runValidators: true }
     ).exec();
     if (!lead) {
@@ -249,8 +265,9 @@ export class CrmService {
     if (!data.title || !data.type) {
       throw new ValidationError('Activity title and type are required');
     }
+    const cleanData = cleanReferenceFields(data);
     const activity = new CrmActivity({
-      ...data,
+      ...cleanData,
       tenantId,
     });
     return await activity.save();
