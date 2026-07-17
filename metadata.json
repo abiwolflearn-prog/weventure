@@ -1,0 +1,6 @@
+{
+  "name": "WeVentureHub Event & Workspace Management Platform",
+  "description": "An enterprise Event Management Platform for managing coworking spaces, meeting rooms, venue bookings, ticketing, and registrations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

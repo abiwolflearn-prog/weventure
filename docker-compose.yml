@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # Centralized Database services
+  mongodb:
+    image: mongo:6.0-jammy
+    container_name: weventure_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - weventure_net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Full-Stack Web Application Service
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: weventure_platform
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://mongodb:27017/weventurehub
+      - JWT_ACCESS_SECRET=your-super-secret-enterprise-access-key-minimum-32-chars
+      - JWT_REFRESH_SECRET=your-super-secret-enterprise-refresh-key-minimum-32-chars
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - weventure_net
+
+volumes:
+  mongo_data:
+
+networks:
+  weventure_net:
+    driver: bridge
