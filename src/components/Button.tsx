@@ -8,14 +8,14 @@ export interface IButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEleme
 
 export const Button = React.forwardRef<HTMLButtonElement, IButtonProps>(
   ({ className = '', variant = 'primary', size = 'md', isLoading, disabled, children, ...props }, ref) => {
-    const baseStyles = 'inline-flex items-center justify-center font-bold rounded-[14px] h-12 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#2563EB] disabled:opacity-50 disabled:pointer-events-none px-6 py-3 text-sm';
+    const baseStyles = 'inline-flex items-center justify-center font-bold rounded-[14px] h-12 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#84CC16] disabled:opacity-50 disabled:pointer-events-none px-6 py-3 text-sm';
     
     const variants = {
-      primary: 'bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] hover:from-[#1D4ED8] hover:to-[#1E40AF] text-white shadow-sm',
+      primary: 'bg-[#84CC16] hover:bg-[#65A30D] text-[#111111] shadow-sm',
       secondary: 'border border-[#111111] bg-white text-[#111111] hover:bg-neutral-50 shadow-sm',
       ghost: 'bg-transparent text-[#6B7280] hover:bg-neutral-100 hover:text-[#111111]',
       danger: 'bg-[#EF4444] hover:bg-red-600 text-white shadow-sm',
-      success: 'bg-[#A3E635] hover:bg-[#92cf2c] text-[#111111] shadow-sm',
+      success: 'bg-[#A3E635] hover:bg-[#84CC16] text-[#111111] shadow-sm',
     };
 
     return (

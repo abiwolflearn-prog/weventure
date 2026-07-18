@@ -117,7 +117,7 @@ export default function DashboardLayout() {
     : 'WeVentureHub';
 
   const sidebarBg = 'bg-[#0F172A] border-[#1E293B] text-slate-100';
-  const navItemActive = 'bg-[#2563EB] text-white shadow-[0_4px_12px_rgba(37,99,235,0.25)] font-bold';
+  const navItemActive = 'bg-[#84CC16] text-[#111111] shadow-[0_4px_12px_rgba(132,204,22,0.25)] font-bold';
   const navItemHover = 'text-slate-400 hover:bg-slate-800/60 hover:text-white transition-all duration-200';
 
   return (
@@ -135,7 +135,7 @@ export default function DashboardLayout() {
             <WeVentureLogo size="24" mode="dark" className="shrink-0" />
             {sidebarExpanded && (
               <span className="font-display font-bold text-lg tracking-tight select-none whitespace-nowrap text-white">
-                WeVenture<span className="text-[#2563EB]">Hub</span>
+                WeVenture<span className="text-[#84CC16]">Hub</span>
               </span>
             )}
           </Link>
@@ -163,7 +163,7 @@ export default function DashboardLayout() {
                   isActive ? navItemActive : navItemHover
                 }`}
               >
-                <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-[#111111]' : 'text-slate-400'}`} />
                 {sidebarExpanded && <span className="text-sm select-none truncate">{item.name}</span>}
               </Link>
             );
@@ -237,7 +237,7 @@ export default function DashboardLayout() {
                 <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center space-x-3">
                   <WeVentureLogo size="24" mode="dark" className="shrink-0" />
                   <span className="font-display font-bold text-lg tracking-tight text-white">
-                    WeVenture<span className="text-[#2563EB]">Hub</span>
+                    WeVenture<span className="text-[#84CC16]">Hub</span>
                   </span>
                 </Link>
                 <button
@@ -262,7 +262,7 @@ export default function DashboardLayout() {
                         isActive ? navItemActive : navItemHover
                       }`}
                     >
-                      <Icon className="w-5 h-5 shrink-0" />
+                      <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-[#111111]' : 'text-slate-400'}`} />
                       <span className="text-sm font-bold">{item.name}</span>
                     </Link>
                   );

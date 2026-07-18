@@ -781,7 +781,7 @@ export default function WorkspaceList() {
                   ? "border-[#84CC16] bg-[#A3E635]/15" 
                   : wsImageUrl 
                     ? "border-emerald-200 bg-emerald-50/20" 
-                    : "border-[#E5E7EB] hover:border-[#84CC16] bg-[#F9FAFB] hover:bg-white"
+                    : "border-[#E5E7EB] hover:border-[#84CC16] bg-[#F9FAFB]"
               }`}
             >
               {wsImageUrl ? (

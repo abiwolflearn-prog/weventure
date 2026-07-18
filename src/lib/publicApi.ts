@@ -188,5 +188,11 @@ export const publicApi = {
   async getTestimonials() {
     const { data } = await publicAxios.get<{ success: boolean; data: any[] }>('/testimonials');
     return data.data;
+  },
+
+  // Contact
+  async submitInquiry(payload: { name: string; email: string; message: string }) {
+    const { data } = await publicAxios.post<{ success: boolean; data: any }>('/contact', payload);
+    return data.data;
   }
 };

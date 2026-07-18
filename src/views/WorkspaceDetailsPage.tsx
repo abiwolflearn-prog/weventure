@@ -449,7 +449,8 @@ export default function WorkspaceDetailsPage() {
                     value={bookingDate}
                     onChange={(e) => setBookingDate(e.target.value)}
                     required
-                    className="w-full rounded-[10px] border-neutral-800 bg-neutral-900 text-white focus:ring-brand-accent/20 focus:border-brand-accent"
+                    labelClassName="!text-neutral-slate-300 font-bold"
+                    className="w-full rounded-[10px] !border-neutral-800 !bg-neutral-900 !text-white focus:ring-brand-accent/20 focus:border-brand-accent"
                   />
 
                   <div className="grid grid-cols-2 gap-3">
@@ -461,7 +462,8 @@ export default function WorkspaceDetailsPage() {
                       max={`${endHour.toString().padStart(2, '0')}:00`}
                       onChange={(e) => setBookingStart(e.target.value)}
                       required
-                      className="w-full rounded-[10px] border-neutral-800 bg-neutral-900 text-white focus:ring-brand-accent/20 focus:border-brand-accent"
+                      labelClassName="!text-neutral-slate-300 font-bold"
+                      className="w-full rounded-[10px] !border-neutral-800 !bg-neutral-900 !text-white focus:ring-brand-accent/20 focus:border-brand-accent"
                     />
                     <Input
                       label="End Time"
@@ -471,7 +473,8 @@ export default function WorkspaceDetailsPage() {
                       max={`${endHour.toString().padStart(2, '0')}:00`}
                       onChange={(e) => setBookingEnd(e.target.value)}
                       required
-                      className="w-full rounded-[10px] border-neutral-800 bg-neutral-900 text-white focus:ring-brand-accent/20 focus:border-brand-accent"
+                      labelClassName="!text-neutral-slate-300 font-bold"
+                      className="w-full rounded-[10px] !border-neutral-800 !bg-neutral-900 !text-white focus:ring-brand-accent/20 focus:border-brand-accent"
                     />
                   </div>
 
@@ -484,7 +487,8 @@ export default function WorkspaceDetailsPage() {
                     placeholder="e.g. Q3 Sales Sync or Deep work..."
                     value={bookingPurpose}
                     onChange={(e) => setBookingPurpose(e.target.value)}
-                    className="w-full rounded-[10px] border-neutral-800 bg-neutral-900 text-white focus:ring-brand-accent/20 focus:border-brand-accent"
+                    labelClassName="!text-neutral-slate-300 font-bold"
+                    className="w-full rounded-[10px] !border-neutral-800 !bg-neutral-900 !text-white focus:ring-brand-accent/20 focus:border-brand-accent"
                   />
 
                   {/* Pricing breakdown summary */}

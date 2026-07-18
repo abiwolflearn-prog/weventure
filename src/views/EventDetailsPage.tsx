@@ -588,7 +588,7 @@ export default function EventDetailsPage() {
             </div>
 
             {/* Organizer Profile Card */}
-            {event.organizer && (
+            {event.organizer && event.organizer.id !== 'weventurehub' && (
               <div className="bg-[#181818] border border-neutral-800 rounded-3xl p-6 shadow-2xl space-y-4">
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 rounded-2xl bg-brand-accent/10 overflow-hidden shrink-0 flex items-center justify-center text-brand-accent font-bold border border-brand-accent/20">

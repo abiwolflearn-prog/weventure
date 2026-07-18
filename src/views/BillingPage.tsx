@@ -252,7 +252,7 @@ export default function BillingPage() {
   if (isDashboardLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-32 gap-3">
-        <RefreshCw className="w-10 h-10 text-[#2563EB] animate-spin" />
+        <RefreshCw className="w-10 h-10 text-[#84CC16] animate-spin" />
         <span className="text-xs text-[#4B5563] font-mono">Loading Subscription Panel...</span>
       </div>
     );
@@ -267,7 +267,7 @@ export default function BillingPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-display font-extrabold text-2xl tracking-tight flex items-center gap-2">
-            <CreditCard className="w-6 h-6 text-[#2563EB]" />
+            <CreditCard className="w-6 h-6 text-[#84CC16]" />
             <span>Subscription & Billing Control</span>
           </h1>
           <p className="text-xs text-[#4B5563] mt-1">
@@ -290,25 +290,25 @@ export default function BillingPage() {
       <div className="flex border-b border-[#E5E7EB] gap-6 text-xs font-semibold overflow-x-auto select-none">
         <button 
           onClick={() => setActiveTab('dashboard')}
-          className={`pb-3 border-b-2 transition-all ${activeTab === 'dashboard' ? 'border-[#2563EB] text-[#2563EB] font-bold' : 'border-transparent text-[#4B5563] hover:text-neutral-slate-600'}`}
+          className={`pb-3 border-b-2 transition-all ${activeTab === 'dashboard' ? 'border-[#84CC16] text-[#65A30D] font-bold' : 'border-transparent text-[#4B5563] hover:text-neutral-slate-600'}`}
         >
           Active Dashboard
         </button>
         <button 
           onClick={() => setActiveTab('plans')}
-          className={`pb-3 border-b-2 transition-all ${activeTab === 'plans' ? 'border-[#2563EB] text-[#2563EB] font-bold' : 'border-transparent text-[#4B5563] hover:text-neutral-slate-600'}`}
+          className={`pb-3 border-b-2 transition-all ${activeTab === 'plans' ? 'border-[#84CC16] text-[#65A30D] font-bold' : 'border-transparent text-[#4B5563] hover:text-neutral-slate-600'}`}
         >
           SaaS Plans & Upgrade
         </button>
         <button 
           onClick={() => setActiveTab('features')}
-          className={`pb-3 border-b-2 transition-all ${activeTab === 'features' ? 'border-[#2563EB] text-[#2563EB] font-bold' : 'border-transparent text-[#4B5563] hover:text-neutral-slate-600'}`}
+          className={`pb-3 border-b-2 transition-all ${activeTab === 'features' ? 'border-[#84CC16] text-[#65A30D] font-bold' : 'border-transparent text-[#4B5563] hover:text-neutral-slate-600'}`}
         >
           Feature Flag Overrides
         </button>
         <button 
           onClick={() => setActiveTab('history')}
-          className={`pb-3 border-b-2 transition-all ${activeTab === 'history' ? 'border-[#2563EB] text-[#2563EB] font-bold' : 'border-transparent text-[#4B5563] hover:text-neutral-slate-600'}`}
+          className={`pb-3 border-b-2 transition-all ${activeTab === 'history' ? 'border-[#84CC16] text-[#65A30D] font-bold' : 'border-transparent text-[#4B5563] hover:text-neutral-slate-600'}`}
         >
           Subscription Ledger ({billingHistory.length})
         </button>
@@ -318,15 +318,15 @@ export default function BillingPage() {
       {activeTab === 'dashboard' && dashboard && (
         <div className="space-y-6">
           {/* Active Plan Card */}
-          <div className="bg-gradient-to-br from-brand-primary/10 via-transparent to-transparent border border-[#2563EB]/20 rounded-3xl p-6 relative overflow-hidden">
+          <div className="bg-gradient-to-br from-brand-primary/10 via-transparent to-transparent border border-[#84CC16]/20 rounded-3xl p-6 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-8 opacity-5">
-              <Shield className="w-32 h-32 text-[#2563EB]" />
+              <Shield className="w-32 h-32 text-[#84CC16]" />
             </div>
 
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] uppercase font-bold text-[#2563EB] bg-[#2563EB]/10 px-2.5 py-1 rounded-full">
+                  <span className="text-[10px] uppercase font-bold text-[#65A30D] bg-[#84CC16]/10 px-2.5 py-1 rounded-full">
                     Active Plan
                   </span>
                   {sub.isTrial && (
@@ -531,13 +531,13 @@ export default function BillingPage() {
             <div className="bg-[#F3F4F6] border border-[#E5E7EB] p-1 rounded-2xl flex gap-1 select-none text-[11px] font-bold">
               <button
                 onClick={() => setBillingInterval('monthly')}
-                className={`px-4 py-1.5 rounded-xl transition ${billingInterval === 'monthly' ? 'bg-[#2563EB] text-white shadow-xs' : 'text-[#4B5563] hover:text-neutral-slate-600'}`}
+                className={`px-4 py-1.5 rounded-xl transition ${billingInterval === 'monthly' ? 'bg-[#84CC16] text-[#111111] shadow-xs' : 'text-[#4B5563] hover:text-neutral-slate-600'}`}
               >
                 Monthly Interval
               </button>
               <button
                 onClick={() => setBillingInterval('yearly')}
-                className={`px-4 py-1.5 rounded-xl transition flex items-center gap-1 ${billingInterval === 'yearly' ? 'bg-[#2563EB] text-white shadow-xs' : 'text-[#4B5563] hover:text-neutral-slate-600'}`}
+                className={`px-4 py-1.5 rounded-xl transition flex items-center gap-1 ${billingInterval === 'yearly' ? 'bg-[#84CC16] text-[#111111] shadow-xs' : 'text-[#4B5563] hover:text-neutral-slate-600'}`}
               >
                 <span>Yearly Interval</span>
                 <span className="text-[9px] bg-emerald-500/15 text-emerald-500 dark:text-emerald-300 px-1.5 py-0.5 rounded-md font-extrabold">
@@ -565,7 +565,7 @@ export default function BillingPage() {
                   }`}
                 >
                   {isCurrent && (
-                    <div className="absolute top-0 right-0 bg-[#2563EB] text-white text-[9px] font-extrabold uppercase px-3.5 py-1 rounded-bl-2xl">
+                    <div className="absolute top-0 right-0 bg-[#84CC16] text-[#111111] text-[9px] font-extrabold uppercase px-3.5 py-1 rounded-bl-2xl">
                       Current Active Plan
                     </div>
                   )}
@@ -655,7 +655,7 @@ export default function BillingPage() {
                       <div className="flex gap-2 justify-end pt-2">
                         <button 
                           onClick={() => handleEditPlan(p)}
-                          className="p-1.5 text-[#4B5563] hover:text-[#2563EB] hover:bg-[#2563EB]/5 rounded-lg transition"
+                          className="p-1.5 text-[#4B5563] hover:text-[#65A30D] hover:bg-[#84CC16]/5 rounded-lg transition"
                           title="Edit plan configuration"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -688,7 +688,7 @@ export default function BillingPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="font-display font-extrabold text-base tracking-tight flex items-center gap-1.5">
-                  <Sliders className="w-5 h-5 text-[#2563EB]" />
+                  <Sliders className="w-5 h-5 text-[#84CC16]" />
                   <span>Tenant Feature Gates & Overrides</span>
                 </h3>
                 <p className="text-xs text-[#4B5563] mt-1">
@@ -697,7 +697,7 @@ export default function BillingPage() {
               </div>
 
               {isSuperAdmin && (
-                <span className="text-[10px] bg-[#2563EB]/10 text-[#2563EB] px-3 py-1.5 rounded-full font-bold uppercase tracking-wider select-none flex items-center gap-1">
+                <span className="text-[10px] bg-[#84CC16]/10 text-[#65A30D] px-3 py-1.5 rounded-full font-bold uppercase tracking-wider select-none flex items-center gap-1">
                   <Shield className="w-3.5 h-3.5" />
                   <span>Super Admin Mode Enabled</span>
                 </span>
@@ -750,7 +750,7 @@ export default function BillingPage() {
                           <span className="text-[10px] text-[#4B5563] font-bold">Override:</span>
                           <button
                             onClick={() => toggleFeatureOverride(def.key, overrideVal)}
-                            className={`w-9 h-5 rounded-full transition-all relative outline-hidden ${overrideVal ? 'bg-[#2563EB]' : 'bg-[#E5E7EB]'}`}
+                            className={`w-9 h-5 rounded-full transition-all relative outline-hidden ${overrideVal ? 'bg-[#84CC16]' : 'bg-[#E5E7EB]'}`}
                           >
                             <span className={`w-3.5 h-3.5 bg-white rounded-full absolute top-0.5 transition-all ${overrideVal ? 'left-4.5' : 'left-0.5'}`} />
                           </button>
@@ -776,14 +776,14 @@ export default function BillingPage() {
           <div className="bg-white border border-[#E5E7EB] rounded-3xl overflow-hidden shadow-xs">
             <div className="p-5 border-b border-[#E5E7EB]">
               <h3 className="font-display font-extrabold text-sm tracking-tight flex items-center gap-2">
-                <FileText className="w-5 h-5 text-[#2563EB]" />
+                <FileText className="w-5 h-5 text-[#84CC16]" />
                 <span>Historic Billing Ledger & Invoices</span>
               </h3>
             </div>
 
             {isHistoryLoading ? (
               <div className="flex flex-col items-center justify-center py-20 gap-3">
-                <RefreshCw className="w-8 h-8 text-[#2563EB] animate-spin" />
+                <RefreshCw className="w-8 h-8 text-[#84CC16] animate-spin" />
                 <span className="text-xs text-[#4B5563] font-mono">Retrieving billing invoices...</span>
               </div>
             ) : billingHistory.length === 0 ? (
@@ -814,7 +814,7 @@ export default function BillingPage() {
                         className="border-b border-[#E5E7EB] hover:bg-[#F9FAFB] transition-all"
                       >
                         <td className="py-4 px-6 font-mono font-bold text-[#111827] flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-[#2563EB]" />
+                          <FileText className="w-4 h-4 text-[#84CC16]" />
                           <span>{invoice.invoiceNumber}</span>
                         </td>
                         <td className="py-4 px-6">
@@ -854,7 +854,7 @@ export default function BillingPage() {
         {selectedPlanForUpgrade && (
           <div className="space-y-4 pt-1">
             <div className="bg-[#F9FAFB] border border-[#E5E7EB] p-4.5 rounded-2xl space-y-2">
-              <span className="text-[9px] uppercase font-bold text-[#2563EB] bg-[#2563EB]/10 px-2 py-0.5 rounded-md">
+              <span className="text-[9px] uppercase font-bold text-[#65A30D] bg-[#84CC16]/10 px-2 py-0.5 rounded-md">
                 Proposed Workspace Tier
               </span>
               <h4 className="font-display font-extrabold text-sm capitalize text-[#111827]">{selectedPlanForUpgrade.name}</h4>
@@ -1021,7 +1021,7 @@ export default function BillingPage() {
                   <label key={feat.key} className="flex items-center gap-2 cursor-pointer select-none">
                     <input
                       type="checkbox"
-                      className="w-4 h-4 text-[#2563EB] focus:ring-brand-primary border-neutral-slate-300 border-gray-200 rounded-sm"
+                      className="w-4 h-4 text-[#84CC16] focus:ring-brand-primary border-neutral-slate-300 border-gray-200 rounded-sm"
                       checked={isActive}
                       onChange={() => handleFeatureToggle(feat.key)}
                     />

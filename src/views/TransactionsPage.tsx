@@ -594,65 +594,122 @@ export default function TransactionsPage() {
               <p className="text-xs text-gray-600">Try adjusting your filters, clearing search inputs, or making a manual test transaction.</p>
             </div>
           ) : (
-            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-extrabold uppercase tracking-wider text-[10px] select-none">
-                      <th className="py-4.5 px-6">Entry Reference</th>
-                      <th className="py-4.5 px-6">Tenant Account</th>
-                      <th className="py-4.5 px-6">Description</th>
-                      <th className="py-4.5 px-6">Timestamp</th>
-                      <th className="py-4.5 px-6">Type</th>
-                      <th className="py-4.5 px-6">Value (ETB)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTransactions.map((txn: any) => {
-                      const isCredit = txn.amount > 0;
-                      return (
-                        <tr 
-                          key={txn.id}
-                          className="border-b border-gray-100 hover:bg-gray-50/50 transition-all"
-                        >
-                          <td className="py-4 px-6 font-mono font-bold text-gray-900">
-                            {txn.reference}
-                          </td>
-                          <td className="py-4 px-6">
-                            <div className="font-medium text-gray-900">{txn.userEmail}</div>
-                            <div className="text-[9px] text-gray-600 font-mono mt-0.5">ID: {txn.userId}</div>
-                          </td>
-                          <td className="py-4 px-6 text-gray-600 font-medium max-w-xs truncate">
-                            {txn.description}
-                          </td>
-                          <td className="py-4 px-6 text-gray-600">
-                            <div className="flex items-center gap-1.5">
-                              <Calendar className="w-3.5 h-3.5" />
-                              <span>
-                                {new Date(txn.createdAt).toLocaleDateString()} {new Date(txn.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-4 px-6">
-                            <div className="flex items-center gap-1.5">
-                              {isCredit ? (
-                                <ArrowUpRight className="w-4 h-4 text-lime-500 shrink-0" />
-                              ) : (
-                                <ArrowDownLeft className="w-4 h-4 text-[#65A30D] shrink-0" />
-                              )}
-                              <span className={`text-[10px] font-extrabold uppercase ${isCredit ? 'text-lime-500' : 'text-[#65A30D]'}`}>
-                                {txn.type}
-                              </span>
-                            </div>
-                          </td>
-                          <td className={`py-4 px-6 font-bold text-sm ${isCredit ? 'text-lime-500' : 'text-[#65A30D]'}`}>
-                            {isCredit ? '+' : ''}{txn.amount.toFixed(2)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+            <div className="space-y-4">
+              {/* Mobile view: Cards (block md:hidden) */}
+              <div className="block md:hidden space-y-4">
+                {filteredTransactions.map((txn: any) => {
+                  const isCredit = txn.amount > 0;
+                  return (
+                    <div 
+                      key={txn.id}
+                      className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3.5 shadow-xs"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="font-mono font-bold text-xs text-gray-900 truncate">
+                          {txn.reference}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {isCredit ? (
+                            <ArrowUpRight className="w-3.5 h-3.5 text-lime-500" />
+                          ) : (
+                            <ArrowDownLeft className="w-3.5 h-3.5 text-[#65A30D]" />
+                          )}
+                          <span className={`text-[9px] font-black uppercase ${isCredit ? 'text-lime-500' : 'text-[#65A30D]'}`}>
+                            {txn.type}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-neutral-slate-400">Account / Email:</span>
+                          <span className="font-semibold text-neutral-slate-800 text-right truncate max-w-[180px]">{txn.userEmail}</span>
+                        </div>
+                        <div className="flex justify-between items-start gap-4">
+                          <span className="text-neutral-slate-400 shrink-0">Description:</span>
+                          <span className="text-neutral-slate-600 font-medium text-right line-clamp-2">{txn.description}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-neutral-slate-400">Timestamp:</span>
+                          <span className="text-neutral-slate-600 font-mono text-[10px] flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {new Date(txn.createdAt).toLocaleDateString()} {new Date(txn.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-neutral-slate-100 pt-3 flex items-center justify-between">
+                        <span className="text-[10px] text-neutral-slate-400">Transaction Value</span>
+                        <div className={`font-black text-sm ${isCredit ? 'text-lime-500' : 'text-[#65A30D]'}`}>
+                          {isCredit ? '+' : ''}{txn.amount.toFixed(2)} <span className="text-[10px] font-normal text-neutral-slate-400">ETB</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop view: Traditional Table (hidden md:block) */}
+              <div className="hidden md:block bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-extrabold uppercase tracking-wider text-[10px] select-none">
+                        <th className="py-4.5 px-6">Entry Reference</th>
+                        <th className="py-4.5 px-6">Tenant Account</th>
+                        <th className="py-4.5 px-6">Description</th>
+                        <th className="py-4.5 px-6">Timestamp</th>
+                        <th className="py-4.5 px-6">Type</th>
+                        <th className="py-4.5 px-6">Value (ETB)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredTransactions.map((txn: any) => {
+                        const isCredit = txn.amount > 0;
+                        return (
+                          <tr 
+                            key={txn.id}
+                            className="border-b border-gray-100 hover:bg-gray-50/50 transition-all"
+                          >
+                            <td className="py-4 px-6 font-mono font-bold text-gray-900">
+                              {txn.reference}
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="font-medium text-gray-900">{txn.userEmail}</div>
+                              <div className="text-[9px] text-gray-600 font-mono mt-0.5">ID: {txn.userId}</div>
+                            </td>
+                            <td className="py-4 px-6 text-gray-600 font-medium max-w-xs truncate">
+                              {txn.description}
+                            </td>
+                            <td className="py-4 px-6 text-gray-600">
+                              <div className="flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5" />
+                                <span>
+                                  {new Date(txn.createdAt).toLocaleDateString()} {new Date(txn.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="flex items-center gap-1.5">
+                                {isCredit ? (
+                                  <ArrowUpRight className="w-4 h-4 text-lime-500 shrink-0" />
+                                ) : (
+                                  <ArrowDownLeft className="w-4 h-4 text-[#65A30D] shrink-0" />
+                                )}
+                                <span className={`text-[10px] font-extrabold uppercase ${isCredit ? 'text-lime-500' : 'text-[#65A30D]'}`}>
+                                  {txn.type}
+                                </span>
+                              </div>
+                            </td>
+                            <td className={`py-4 px-6 font-bold text-sm ${isCredit ? 'text-lime-500' : 'text-[#65A30D]'}`}>
+                              {isCredit ? '+' : ''}{txn.amount.toFixed(2)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}

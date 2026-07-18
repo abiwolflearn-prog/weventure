@@ -792,7 +792,7 @@ export default function CrmDashboard() {
                                   status: contact.status,
                                   ecosystemRole: contact.customFields?.ecosystemRole || 'MEMBER',
                                   leadSource: contact.leadSource || '',
-                                  companyId: typeof contact.companyId === 'object' ? contact.companyId._id : (contact.companyId || ''),
+                                  companyId: (contact.companyId && typeof contact.companyId === 'object') ? (contact.companyId._id || contact.companyId.id || '') : (contact.companyId || ''),
                                   tagsString: (contact.tags || []).join(', '),
                                   customFields: contact.customFields || {}
                                 });
@@ -1524,7 +1524,7 @@ export default function CrmDashboard() {
                     min={0}
                     value={leadForm.dealValue}
                     onChange={(e) => setLeadForm({ ...leadForm, dealValue: Number(e.target.value) })}
-                    className="w-full bg-white border border-[#E5E7EB] focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10 outline-none p-3 rounded-xl text-xs font-semibold text-[#111827] transition"
+                    className="w-full bg-white border border-[#E5E7EB] focus:border-[#84CC16] focus:ring-2 focus:ring-[#84CC16]/10 outline-none p-3 rounded-xl text-xs font-semibold text-[#111827] transition"
                   />
                 </div>
 
@@ -1533,7 +1533,7 @@ export default function CrmDashboard() {
                   <select
                     value={leadForm.pipelineStage}
                     onChange={(e) => setLeadForm({ ...leadForm, pipelineStage: e.target.value as any })}
-                    className="w-full bg-white border border-[#E5E7EB] focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10 outline-none p-3 rounded-xl text-xs font-semibold text-[#111827] transition"
+                    className="w-full bg-white border border-[#E5E7EB] focus:border-[#84CC16] focus:ring-2 focus:ring-[#84CC16]/10 outline-none p-3 rounded-xl text-xs font-semibold text-[#111827] transition"
                   >
                     <option value="NEW">New Prospect</option>
                     <option value="QUALIFIED">Qualified</option>
@@ -1550,7 +1550,7 @@ export default function CrmDashboard() {
                 <select
                   value={leadForm.status}
                   onChange={(e) => setLeadForm({ ...leadForm, status: e.target.value as any })}
-                  className="w-full bg-white border border-[#E5E7EB] focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10 outline-none p-3 rounded-xl text-xs font-semibold text-[#111827] transition"
+                  className="w-full bg-white border border-[#E5E7EB] focus:border-[#84CC16] focus:ring-2 focus:ring-[#84CC16]/10 outline-none p-3 rounded-xl text-xs font-semibold text-[#111827] transition"
                 >
                   <option value="ACTIVE">Active Negotiation</option>
                   <option value="WON">Closed Won Portfolio</option>
@@ -1563,7 +1563,7 @@ export default function CrmDashboard() {
                 <Button variant="outline" size="sm" type="button" onClick={() => setIsLeadModalOpen(false)}>
                   Cancel
                 </Button>
-                <Button size="sm" type="submit" className="bg-[#2563EB] text-white hover:bg-[#1D4ED8]">
+                <Button size="sm" type="submit" className="bg-[#84CC16] text-[#111111] hover:bg-[#65A30D]">
                   {editingLeadId ? 'Commit Changes' : 'Initialize Opportunity'}
                 </Button>
               </div>
@@ -1589,7 +1589,7 @@ export default function CrmDashboard() {
                   <select
                     value={activityForm.type}
                     onChange={(e) => setActivityForm({ ...activityForm, type: e.target.value as any })}
-                    className="w-full bg-white border border-[#E5E7EB] focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10 outline-none p-3 rounded-xl text-xs font-semibold text-[#111827] transition"
+                    className="w-full bg-white border border-[#E5E7EB] focus:border-[#84CC16] focus:ring-2 focus:ring-[#84CC16]/10 outline-none p-3 rounded-xl text-xs font-semibold text-[#111827] transition"
                   >
                     <option value="CALL">Outgoing Call</option>
                     <option value="EMAIL">Email Despatched</option>
@@ -1604,7 +1604,7 @@ export default function CrmDashboard() {
                   <select
                     value={activityForm.contactId}
                     onChange={(e) => setActivityForm({ ...activityForm, contactId: e.target.value })}
-                    className="w-full bg-white border border-[#E5E7EB] focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10 outline-none p-3 rounded-xl text-xs font-semibold text-[#111827] transition"
+                    className="w-full bg-white border border-[#E5E7EB] focus:border-[#84CC16] focus:ring-2 focus:ring-[#84CC16]/10 outline-none p-3 rounded-xl text-xs font-semibold text-[#111827] transition"
                   >
                     <option value="">No Contact Target</option>
                     {contacts.map((c) => (
@@ -1628,7 +1628,7 @@ export default function CrmDashboard() {
                   placeholder="Log core bullet points and discussion agreements..."
                   value={activityForm.description}
                   onChange={(e) => setActivityForm({ ...activityForm, description: e.target.value })}
-                  className="w-full bg-white border border-[#E5E7EB] focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10 outline-none p-3 rounded-xl text-xs font-semibold text-[#111827] transition"
+                  className="w-full bg-white border border-[#E5E7EB] focus:border-[#84CC16] focus:ring-2 focus:ring-[#84CC16]/10 outline-none p-3 rounded-xl text-xs font-semibold text-[#111827] transition"
                   rows={3}
                 />
               </div>
@@ -1652,7 +1652,7 @@ export default function CrmDashboard() {
                 <Button variant="outline" size="sm" type="button" onClick={() => setIsActivityModalOpen(false)}>
                   Cancel
                 </Button>
-                <Button size="sm" type="submit" className="bg-[#2563EB] text-white hover:bg-[#1D4ED8]">
+                <Button size="sm" type="submit" className="bg-[#84CC16] text-[#111111] hover:bg-[#65A30D]">
                   Log Action Entry
                 </Button>
               </div>

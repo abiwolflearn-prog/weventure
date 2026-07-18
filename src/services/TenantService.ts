@@ -394,7 +394,7 @@ export class TenantService {
         await tenantRepository.create({
           id: 'weventurehub',
           name: 'WeVentureHub',
-          description: 'Default Master SaaS Hub Tenant Space',
+          description: 'WeVentureHub Premier Workspace & Event Management Platform',
           status: TenantStatus.ACTIVE,
           settings: {
             language: 'en',
@@ -412,7 +412,7 @@ export class TenantService {
             },
             loginBranding: {
               title: 'WeVentureHub',
-              subtitle: 'Multi-Tenant Workspace & Event Hub',
+              subtitle: 'Premium Workspace & Event Hub',
             },
           },
           subscription: {

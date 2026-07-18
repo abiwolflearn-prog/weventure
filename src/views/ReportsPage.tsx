@@ -521,7 +521,7 @@ export default function ReportsPage() {
                 <select
                   value={reportType}
                   onChange={(e) => setReportType(e.target.value as ReportType)}
-                  className="w-full bg-[#FFFFFF] border border-[#E5E7EB] px-3.5 py-2.5 rounded-[12px] text-[13px] text-[#111827] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] shadow-sm transition"
+                  className="w-full bg-[#FFFFFF] border border-[#E5E7EB] px-3.5 py-2.5 rounded-[12px] text-[13px] text-[#111827] focus:outline-none focus:border-[#84CC16] focus:ring-1 focus:ring-[#84CC16] shadow-sm transition"
                 >
                   <option value={ReportType.EVENT}>Event Analytics & Registrations</option>
                   <option value={ReportType.WORKSPACE}>Workspace Bookings & Utilization</option>
@@ -538,7 +538,7 @@ export default function ReportsPage() {
                   <select
                     value={datePreset}
                     onChange={(e) => setDatePreset(e.target.value)}
-                    className="w-full bg-[#FFFFFF] border border-[#E5E7EB] px-3.5 py-2.5 rounded-[12px] text-[13px] text-[#111827] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] shadow-sm transition"
+                    className="w-full bg-[#FFFFFF] border border-[#E5E7EB] px-3.5 py-2.5 rounded-[12px] text-[13px] text-[#111827] focus:outline-none focus:border-[#84CC16] focus:ring-1 focus:ring-[#84CC16] shadow-sm transition"
                   >
                     <option value="7d">Last 7 Days</option>
                     <option value="30d">Last 30 Days</option>
@@ -557,7 +557,7 @@ export default function ReportsPage() {
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full bg-[#FFFFFF] border border-[#E5E7EB] px-3.5 py-2 rounded-[10px] text-[12px] text-[#111827] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
+                        className="w-full bg-[#FFFFFF] border border-[#E5E7EB] px-3.5 py-2 rounded-[10px] text-[12px] text-[#111827] focus:outline-none focus:border-[#84CC16] focus:ring-1 focus:ring-[#84CC16]"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -566,7 +566,7 @@ export default function ReportsPage() {
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full bg-[#FFFFFF] border border-[#E5E7EB] px-3.5 py-2 rounded-[10px] text-[12px] text-[#111827] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
+                        className="w-full bg-[#FFFFFF] border border-[#E5E7EB] px-3.5 py-2 rounded-[10px] text-[12px] text-[#111827] focus:outline-none focus:border-[#84CC16] focus:ring-1 focus:ring-[#84CC16]"
                       />
                     </div>
                   </div>
@@ -580,7 +580,7 @@ export default function ReportsPage() {
                   <select
                     value={selectedEventId}
                     onChange={(e) => setSelectedEventId(e.target.value)}
-                    className="w-full bg-[#FFFFFF] border border-[#E5E7EB] px-3.5 py-2.5 rounded-[12px] text-[13px] text-[#111827] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] shadow-sm transition"
+                    className="w-full bg-[#FFFFFF] border border-[#E5E7EB] px-3.5 py-2.5 rounded-[12px] text-[13px] text-[#111827] focus:outline-none focus:border-[#84CC16] focus:ring-1 focus:ring-[#84CC16] shadow-sm transition"
                   >
                     <option value="ALL">All Platform Events</option>
                     {filterEvents.map((evt) => (
@@ -597,7 +597,7 @@ export default function ReportsPage() {
                   <select
                     value={selectedWorkspaceId}
                     onChange={(e) => setSelectedWorkspaceId(e.target.value)}
-                    className="w-full bg-[#FFFFFF] border border-[#E5E7EB] px-3.5 py-2.5 rounded-[12px] text-[13px] text-[#111827] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] shadow-sm transition"
+                    className="w-full bg-[#FFFFFF] border border-[#E5E7EB] px-3.5 py-2.5 rounded-[12px] text-[13px] text-[#111827] focus:outline-none focus:border-[#84CC16] focus:ring-1 focus:ring-[#84CC16] shadow-sm transition"
                   >
                     <option value="ALL">All Hub Spaces</option>
                     {filterWorkspaces.map((space) => (
@@ -614,7 +614,7 @@ export default function ReportsPage() {
                   <select
                     value={paymentStatus}
                     onChange={(e) => setPaymentStatus(e.target.value)}
-                    className="w-full bg-[#FFFFFF] border border-[#E5E7EB] px-3.5 py-2.5 rounded-[12px] text-[13px] text-[#111827] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] shadow-sm transition"
+                    className="w-full bg-[#FFFFFF] border border-[#E5E7EB] px-3.5 py-2.5 rounded-[12px] text-[13px] text-[#111827] focus:outline-none focus:border-[#84CC16] focus:ring-1 focus:ring-[#84CC16] shadow-sm transition"
                   >
                     <option value="ALL">All Gateways</option>
                     <option value="SUCCESSFUL">Successful Gross Cashflow</option>
@@ -631,7 +631,7 @@ export default function ReportsPage() {
                   <select
                     value={registrationStatus}
                     onChange={(e) => setRegistrationStatus(e.target.value)}
-                    className="w-full bg-[#FFFFFF] border border-[#E5E7EB] px-3.5 py-2.5 rounded-[12px] text-[13px] text-[#111827] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] shadow-sm transition"
+                    className="w-full bg-[#FFFFFF] border border-[#E5E7EB] px-3.5 py-2.5 rounded-[12px] text-[13px] text-[#111827] focus:outline-none focus:border-[#84CC16] focus:ring-1 focus:ring-[#84CC16] shadow-sm transition"
                   >
                     <option value="ALL">All Registrations</option>
                     <option value="CONFIRMED">Confirmed / Active Tickets</option>
@@ -717,7 +717,7 @@ export default function ReportsPage() {
                   <div className="p-12 text-center text-[#EF4444] flex flex-col items-center">
                     <AlertCircle className="w-10 h-10 mb-3 animate-bounce" />
                     <p className="text-sm font-semibold">{previewError}</p>
-                    <Button onClick={runPreview} className="mt-4 bg-[#2563EB] text-white text-xs">Retry Aggregation</Button>
+                    <Button onClick={runPreview} className="mt-4 bg-[#84CC16] text-[#111111] hover:bg-[#65A30D] text-xs">Retry Aggregation</Button>
                   </div>
                 ) : previewData ? (
                   <div>

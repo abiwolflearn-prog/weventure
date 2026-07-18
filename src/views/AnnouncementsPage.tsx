@@ -294,11 +294,11 @@ export default function AnnouncementsPage() {
         <div className="space-y-6">
           {/* Quick Stats Bento */}
           <div className="bg-white border border-[#E5E7EB] p-6 rounded-[20px] shadow-[0_4px_12px_rgba(0,0,0,0.05)] relative overflow-hidden transition-all duration-300 hover:shadow-[0_8px_16px_rgba(0,0,0,0.08)] hover:-translate-y-0.5">
-            <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-[#2563EB] opacity-5 filter blur-2xl pointer-events-none" />
+            <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-[#84CC16] opacity-5 filter blur-2xl pointer-events-none" />
             
             <div className="relative z-10 space-y-4">
-              <span className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 bg-[#2563EB]/10 border border-[#2563EB]/20 rounded-lg text-[#2563EB] text-[10px] font-extrabold tracking-wider uppercase select-none">
-                <Sparkles className="w-3 h-3 text-[#2563EB]" />
+              <span className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 bg-[#84CC16]/10 border border-[#84CC16]/20 rounded-lg text-[#65A30D] text-[10px] font-extrabold tracking-wider uppercase select-none">
+                <Sparkles className="w-3 h-3 text-[#65A30D]" />
                 <span>Bulletin Analytics</span>
               </span>
 
@@ -306,7 +306,7 @@ export default function AnnouncementsPage() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-3 bg-neutral-50 border border-neutral-150 rounded-xl text-center">
-                  <span className="block text-xl font-extrabold text-[#2563EB]">
+                  <span className="block text-xl font-extrabold text-[#65A30D]">
                     {announcements.length}
                   </span>
                   <span className="text-[10px] text-[#6B7280] font-semibold uppercase tracking-wider block mt-1">Total Sent</span>

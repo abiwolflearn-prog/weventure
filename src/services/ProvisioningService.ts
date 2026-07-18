@@ -139,7 +139,7 @@ export class ProvisioningService {
           currency: defaultSettings.currency,
           amenities: ['TV Screen', 'Whiteboard', 'Webcam'],
           isAvailable: true,
-          availabilityRules: { startHour: 8, endHour: 20, allowedDays: [1, 2, 3, 4, 5] },
+          availabilityRules: { startHour: 8, endHour: 20, allowedDays: [0, 1, 2, 3, 4, 5, 6] },
           bufferTime: 15,
         },
         {

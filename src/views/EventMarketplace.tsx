@@ -247,7 +247,7 @@ export default function EventMarketplace() {
             <Button
               variant="secondary"
               onClick={() => setShowFilters(!showFilters)}
-              className="text-xs font-bold flex items-center space-x-2 bg-neutral-800 text-white border-neutral-700 hover:bg-neutral-700 hover:border-brand-accent"
+              className="text-xs font-bold flex items-center space-x-2 !bg-neutral-800 !text-white !border-brand-accent hover:!bg-neutral-700 hover:!border-brand-accent/80 transition-colors duration-200"
             >
               <SlidersHorizontal className="w-4 h-4 text-neutral-slate-400" />
               <span>{showFilters ? 'Hide Filters' : 'Advanced Filters'}</span>

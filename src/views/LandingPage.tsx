@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { 
@@ -18,11 +18,15 @@ import {
   Calendar,
   Layers,
   Heart,
-  Bookmark
+  Bookmark,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '../components/Button';
 import { publicApi } from '../lib/publicApi';
+// @ts-ignore
+import promoAtriumImage from '../assets/images/weventurehub_atrium_1784371642621.jpg';
 
 export default function LandingPage() {
   const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
@@ -30,6 +34,7 @@ export default function LandingPage() {
   const [contactLoading, setContactLoading] = useState(false);
   const [bookmarkedSpaces, setBookmarkedSpaces] = useState<Record<string, boolean>>({});
   const [bookmarkedEvents, setBookmarkedEvents] = useState<Record<string, boolean>>({});
+  const [activeSlide, setActiveSlide] = useState(0);
 
   const toggleSpaceBookmark = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -166,17 +171,21 @@ export default function LandingPage() {
     }
   ];
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!contactForm.name || !contactForm.email || !contactForm.message) return;
     
     setContactLoading(true);
-    setTimeout(() => {
-      setContactLoading(false);
+    try {
+      await publicApi.submitInquiry(contactForm);
       setContactSuccess(true);
       setContactForm({ name: '', email: '', message: '' });
       setTimeout(() => setContactSuccess(false), 5000);
-    }, 1000);
+    } catch (err) {
+      console.error('Failed to submit contact inquiry:', err);
+    } finally {
+      setContactLoading(false);
+    }
   };
 
   // Safe Fallback content for loaders or missing DB configs
@@ -186,9 +195,24 @@ export default function LandingPage() {
   const displayCtaLink = homepage?.heroCtaLink || '/workspaces';
   const displayHeroImage = homepage?.heroImageUrl || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1200';
 
+  const sliderImages = [
+    displayHeroImage,
+    'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&q=80&w=1200',
+    'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&q=80&w=1200',
+    'https://images.unsplash.com/photo-1517502884422-41eaaced0168?auto=format&fit=crop&q=80&w=1200',
+    'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&q=80&w=1200',
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % sliderImages.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [sliderImages.length]);
+
   const promoTitle = homepage?.promotionTitle || 'Hot Desk Summer Promo';
   const promoSubtitle = homepage?.promotionSubtitle || 'Access Silicon Core Hub 24/7 with premium coffee, high-speed fiber internet, and free meeting hours.';
-  const promoImage = homepage?.promotionImageUrl || 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&q=80&w=600';
+  const promoImage = homepage?.promotionImageUrl || promoAtriumImage;
   const promoPrice = homepage?.promotionPrice || '$110/mo';
 
   const startupPrograms = homepage?.startupPrograms || [
@@ -206,7 +230,7 @@ export default function LandingPage() {
     <div className="bg-[#111111] min-h-screen text-white font-sans overflow-x-hidden">
       
       {/* 1. HERO SECTION */}
-      <section id="home" className="relative overflow-hidden pt-24 pb-28 sm:pt-28 sm:pb-36 bg-[#111111]">
+      <section id="home" className="relative overflow-hidden pt-12 pb-24 sm:pt-14 sm:pb-32 bg-[#111111]">
         {/* Animated Background Mesh & Floating Blobs */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <motion.div 
@@ -284,28 +308,72 @@ export default function LandingPage() {
             </Link>
             <Link to="/login">
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button variant="secondary" size="lg" className="w-full sm:w-auto h-12.5 text-base font-bold bg-neutral-800 text-white border border-neutral-700 hover:bg-neutral-700 rounded-xl transition shadow-sm">
+                <Button variant="secondary" size="lg" className="w-full sm:w-auto h-12.5 text-base font-bold !bg-neutral-800 !text-white !border-neutral-700 hover:!bg-neutral-700 hover:!text-white rounded-xl transition shadow-sm">
                   <span>Access Member Portal</span>
                 </Button>
               </motion.div>
             </Link>
           </motion.div>
 
-          {/* Beautiful Campus Image Container */}
+          {/* Beautiful Campus Image Container with Image Slider */}
           <motion.div 
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-14 relative rounded-3xl overflow-hidden border border-neutral-850 shadow-2xl max-w-5xl mx-auto group bg-neutral-900"
+            className="mt-14 relative rounded-3xl overflow-hidden border border-neutral-850 shadow-2xl max-w-7xl mx-auto group bg-neutral-950 h-[400px] sm:h-[600px] w-full"
           >
-            <img 
-              src={displayHeroImage} 
-              alt="WeVentureHub Dynamic Workspace" 
-              className="w-full h-[400px] sm:h-[550px] object-cover transition-transform duration-1000 group-hover:scale-[1.03]"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent pointer-events-none" />
-            <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10 text-left text-white z-10 max-w-lg">
+            {/* Slide Images */}
+            {sliderImages.map((src, index) => (
+              <img 
+                key={index}
+                src={src} 
+                alt={`WeVentureHub Dynamic Workspace - Slide ${index + 1}`} 
+                className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-in-out transform ${
+                  index === activeSlide 
+                    ? 'opacity-100 scale-100' 
+                    : 'opacity-0 scale-105 pointer-events-none'
+                }`}
+                referrerPolicy="no-referrer"
+              />
+            ))}
+
+            {/* Gradient Overlays */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/30 pointer-events-none z-10" />
+
+            {/* Manual Controls: Arrows */}
+            <button
+              onClick={() => setActiveSlide(prev => (prev - 1 + sliderImages.length) % sliderImages.length)}
+              className="absolute left-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-black/40 hover:bg-black/60 border border-white/10 text-white/70 hover:text-white transition-all opacity-0 group-hover:opacity-100 z-20 focus:outline-none"
+              aria-label="Previous slide"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setActiveSlide(prev => (prev + 1) % sliderImages.length)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-black/40 hover:bg-black/60 border border-white/10 text-white/70 hover:text-white transition-all opacity-0 group-hover:opacity-100 z-20 focus:outline-none"
+              aria-label="Next slide"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+
+            {/* Slide Indicator Dots */}
+            <div className="absolute bottom-6 right-6 md:bottom-10 md:right-10 flex space-x-2 z-20">
+              {sliderImages.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setActiveSlide(index)}
+                  className={`w-2.5 h-2.5 rounded-full transition-all duration-350 focus:outline-none ${
+                    index === activeSlide 
+                      ? 'bg-brand-accent w-6' 
+                      : 'bg-white/40 hover:bg-white/60'
+                  }`}
+                  aria-label={`Go to slide ${index + 1}`}
+                />
+              ))}
+            </div>
+
+            {/* Slide Text Content overlay */}
+            <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10 text-left text-white z-20 max-w-lg">
               <span className="inline-flex items-center space-x-1.5 bg-brand-accent text-neutral-slate-900 text-[10px] font-bold px-3 py-1 rounded-md uppercase tracking-wider mb-3 shadow-md">
                 WeVenture Hub HQ
               </span>
@@ -440,7 +508,7 @@ export default function LandingPage() {
 
                     <div className="p-6 pt-0">
                       <Link to={`/workspaces/${space.id}`} className="w-full">
-                        <Button variant="secondary" className="w-full text-xs font-bold bg-neutral-800 text-white border border-neutral-700 hover:bg-neutral-700 hover:border-brand-accent rounded-xl transition duration-200 h-10">
+                        <Button variant="secondary" className="w-full text-xs font-bold !bg-neutral-800 !text-white !border-brand-accent hover:!bg-neutral-700 hover:!text-white hover:!border-brand-accent/80 hover:!shadow-[0_0_12px_rgba(101,163,13,0.2)] rounded-xl transition duration-200 h-10">
                           View Availability & Book
                         </Button>
                       </Link>

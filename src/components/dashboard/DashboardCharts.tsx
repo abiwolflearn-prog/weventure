@@ -41,9 +41,9 @@ const revenueData = [
 
 // Sample analytic dataset 3: Membership demographic sectors
 const memberData = [
-  { name: 'Enterprise Staff', value: 640, color: '#2563EB' },
+  { name: 'Enterprise Staff', value: 640, color: '#84CC16' },
   { name: 'Growth Members', value: 420, color: '#A3E635' },
-  { name: 'Media Creators', value: 260, color: '#60A5FA' },
+  { name: 'Media Creators', value: 260, color: '#65A30D' },
   { name: 'External Guests', value: 100, color: '#94A3B8' },
 ];
 
@@ -93,8 +93,8 @@ export default function DashboardCharts() {
       >
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-[#2563EB]/8 rounded-[12px] text-blue-600">
-              <TrendingUp className="w-5 h-5 text-[#2563EB]" />
+            <div className="p-2.5 bg-[#84CC16]/8 rounded-[12px] text-[#65A30D]">
+              <TrendingUp className="w-5 h-5 text-[#84CC16]" />
             </div>
             <div>
               <h3 className="font-display font-bold text-[18px] text-[#111827]">Workspace Load Density</h3>
@@ -111,8 +111,8 @@ export default function DashboardCharts() {
              <AreaChart data={occupancyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                <defs>
                  <linearGradient id="colorHotdesks" x1="0" y1="0" x2="0" y2="1">
-                   <stop offset="5%" stopColor="#2563EB" stopOpacity={0.25}/>
-                   <stop offset="95%" stopColor="#2563EB" stopOpacity={0.01}/>
+                   <stop offset="5%" stopColor="#84CC16" stopOpacity={0.25}/>
+                   <stop offset="95%" stopColor="#84CC16" stopOpacity={0.01}/>
                  </linearGradient>
                  <linearGradient id="colorRooms" x1="0" y1="0" x2="0" y2="1">
                    <stop offset="5%" stopColor="#A3E635" stopOpacity={0.25}/>
@@ -127,7 +127,7 @@ export default function DashboardCharts() {
                  labelClassName="font-bold mb-1"
                />
                <Legend verticalAlign="top" height={36} iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '11px' }} />
-               <Area type="monotone" name="Hot desks" dataKey="hotDesks" stroke="#2563EB" strokeWidth={2.5} fillOpacity={1} fill="url(#colorHotdesks)" />
+               <Area type="monotone" name="Hot desks" dataKey="hotDesks" stroke="#84CC16" strokeWidth={2.5} fillOpacity={1} fill="url(#colorHotdesks)" />
                <Area type="monotone" name="Meeting Rooms" dataKey="meetingRooms" stroke="#A3E635" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRooms)" />
              </AreaChart>
            </ResponsiveContainer>
@@ -141,8 +141,8 @@ export default function DashboardCharts() {
        >
          <div>
            <div className="flex items-center space-x-3 mb-5">
-             <div className="p-2.5 bg-[#2563EB]/8 rounded-[12px] text-blue-600">
-               <PieChartIcon className="w-5 h-5 text-[#2563EB]" />
+             <div className="p-2.5 bg-[#84CC16]/8 rounded-[12px] text-[#65A30D]">
+               <PieChartIcon className="w-5 h-5 text-[#84CC16]" />
              </div>
              <div>
                <h3 className="font-display font-bold text-[18px] text-[#111827]">Tenant Cohort Structure</h3>
@@ -174,7 +174,7 @@ export default function DashboardCharts() {
              
              {/* Center Summary Label */}
              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center select-none pointer-events-none">
-               <p className="font-display font-bold text-[22px] text-[#2563EB] leading-none">
+               <p className="font-display font-bold text-[22px] text-[#84CC16] leading-none">
                  1,420
                </p>
                <p className="text-[10px] text-[#6B7280] font-bold mt-1.5 uppercase tracking-wider">Members</p>
@@ -203,8 +203,8 @@ export default function DashboardCharts() {
        >
          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
            <div className="flex items-center space-x-3">
-             <div className="p-2.5 bg-[#2563EB]/8 rounded-[12px] text-blue-600">
-               <BarChart3 className="w-5 h-5 text-[#2563EB]" />
+             <div className="p-2.5 bg-[#84CC16]/8 rounded-[12px] text-[#65A30D]">
+               <BarChart3 className="w-5 h-5 text-[#84CC16]" />
              </div>
              <div>
                <h3 className="font-display font-bold text-[18px] text-[#111827]">Workspace Profit Performance</h3>
@@ -214,7 +214,7 @@ export default function DashboardCharts() {
  
            <button 
              onClick={handleOpenLedger}
-             className="text-[14px] font-bold text-[#2563EB] hover:text-blue-700 inline-flex items-center select-none hover:underline"
+             className="text-[14px] font-bold text-[#65A30D] hover:text-[#5e8b12] inline-flex items-center select-none hover:underline"
            >
              <span>Full analytics ledger</span>
              <ArrowRight className="w-3.5 h-3.5 ml-1" />
@@ -229,10 +229,10 @@ export default function DashboardCharts() {
                <YAxis stroke={labelColor} fontSize={11} tickLine={false} unit="$" />
                <Tooltip 
                  contentStyle={{ backgroundColor: tooltipBg, borderColor: tooltipBorder, borderRadius: '12px', fontSize: '11px' }}
-                 cursor={{ fill: 'rgba(37, 99, 235, 0.04)' }}
+                 cursor={{ fill: 'rgba(132, 204, 22, 0.04)' }}
                />
                <Legend verticalAlign="top" height={36} iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '11px' }} />
-               <Bar name="Actual Revenue ($)" dataKey="revenue" fill="#2563EB" radius={[4, 4, 0, 0]} maxBarSize={32} />
+               <Bar name="Actual Revenue ($)" dataKey="revenue" fill="#84CC16" radius={[4, 4, 0, 0]} maxBarSize={32} />
                <Bar name="Target Goal ($)" dataKey="target" fill="#A3E635" radius={[4, 4, 0, 0]} maxBarSize={32} />
              </BarChart>
            </ResponsiveContainer>

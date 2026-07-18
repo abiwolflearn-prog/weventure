@@ -11,7 +11,7 @@ export interface FloatingSocialLinksProps {
 export function FloatingSocialLinks({
   instagramUrl = "https://instagram.com/weventurehub",
   linkedinUrl = "https://linkedin.com/company/weventurehub",
-  telegramUrl = "https://t.me/weventurehub"
+  telegramUrl = "https://t.me/weventurehub1"
 }: FloatingSocialLinksProps) {
   const [hoveredPlatform, setHoveredPlatform] = useState<'instagram' | 'linkedin' | 'telegram' | null>(null);
 

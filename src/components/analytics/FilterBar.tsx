@@ -68,7 +68,7 @@ export default function FilterBar({
                 }}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
                   range === r.id
-                    ? 'bg-white text-[#2563EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
+                    ? 'bg-white text-[#65A30D] shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
                     : 'text-[#4B5563] hover:text-[#111827]'
                 }`}
               >
@@ -83,7 +83,7 @@ export default function FilterBar({
               }}
               className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
                 range === 'custom'
-                  ? 'bg-white text-[#2563EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
+                  ? 'bg-white text-[#65A30D] shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
                   : 'text-[#4B5563] hover:text-[#111827]'
               }`}
             >
@@ -138,7 +138,7 @@ export default function FilterBar({
                       }}
                       className="w-full text-left px-4 py-2 text-xs font-semibold text-[#374151] hover:bg-[#F9FAFB] flex items-center gap-2"
                     >
-                      <FileText className="w-3.5 h-3.5 text-[#2563EB]" />
+                      <FileText className="w-3.5 h-3.5 text-[#84CC16]" />
                       Download Schema (.json)
                     </button>
                   </motion.div>
@@ -157,7 +157,7 @@ export default function FilterBar({
           >
             <RefreshCw
               className={`w-3.5 h-3.5 mr-1.5 ${
-                isLoading || isRefetching ? 'animate-spin text-[#2563EB]' : 'text-[#6B7280]'
+                isLoading || isRefetching ? 'animate-spin text-[#84CC16]' : 'text-[#6B7280]'
               }`}
             />
             {isLoading || isRefetching ? 'Aggregating...' : 'Refresh'}
@@ -183,7 +183,7 @@ export default function FilterBar({
                   type="date"
                   value={customDates.start}
                   onChange={(e) => onCustomDatesChange({ ...customDates, start: e.target.value })}
-                  className="block border border-[#E5E7EB] bg-white rounded-xl px-3 py-1.5 text-xs text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/10 focus:border-[#2563EB]"
+                  className="block border border-[#E5E7EB] bg-white rounded-xl px-3 py-1.5 text-xs text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#84CC16]/10 focus:border-[#84CC16]"
                 />
               </div>
 
@@ -195,21 +195,21 @@ export default function FilterBar({
                   type="date"
                   value={customDates.end}
                   onChange={(e) => onCustomDatesChange({ ...customDates, end: e.target.value })}
-                  className="block border border-[#E5E7EB] bg-white rounded-xl px-3 py-1.5 text-xs text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/10 focus:border-[#2563EB]"
+                  className="block border border-[#E5E7EB] bg-white rounded-xl px-3 py-1.5 text-xs text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#84CC16]/10 focus:border-[#84CC16]"
                 />
               </div>
 
               <Button
                 size="sm"
                 onClick={() => setShowCustomPicker(false)}
-                className="font-bold text-xs h-9 rounded-xl bg-[#2563EB] text-white hover:bg-[#1D4ED8]"
+                className="font-bold text-xs h-9 rounded-xl bg-[#84CC16] text-[#111111] hover:bg-[#65A30D]"
                 disabled={!customDates.start || !customDates.end}
               >
                 Apply Custom Selection
               </Button>
 
               <p className="text-[11px] text-[#6B7280] font-medium pb-2 self-center flex items-center gap-1">
-                <Info className="w-3.5 h-3.5 text-[#2563EB]" />
+                <Info className="w-3.5 h-3.5 text-[#84CC16]" />
                 Select a valid calendar range to lock-in isolation boundaries.
               </p>
             </div>

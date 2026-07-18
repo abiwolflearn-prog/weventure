@@ -4,10 +4,11 @@ export interface IInputProps extends React.InputHTMLAttributes<HTMLInputElement>
   label?: string;
   error?: string;
   helperText?: string;
+  labelClassName?: string;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, IInputProps>(
-  ({ className = '', label, error, helperText, type = 'text', id, ...props }, ref) => {
+  ({ className = '', label, error, helperText, labelClassName = '', type = 'text', id, ...props }, ref) => {
     const uniqueId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
 
     return (
@@ -15,7 +16,7 @@ export const Input = React.forwardRef<HTMLInputElement, IInputProps>(
         {label && (
           <label 
             htmlFor={uniqueId} 
-            className="text-xs font-bold uppercase tracking-wider text-[#111111] select-none"
+            className={`text-xs font-bold uppercase tracking-wider text-[#111111] select-none ${labelClassName}`}
           >
             {label}
           </label>
@@ -30,7 +31,7 @@ export const Input = React.forwardRef<HTMLInputElement, IInputProps>(
             ${
               error 
                 ? 'border-[#EF4444] focus:ring-2 focus:ring-[#EF4444]/10' 
-                : 'border-neutral-200 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10'
+                : 'border-neutral-200 focus:border-[#84CC16] focus:ring-2 focus:ring-[#84CC16]/10'
             }
             disabled:opacity-50 disabled:bg-neutral-50
             ${className}`}

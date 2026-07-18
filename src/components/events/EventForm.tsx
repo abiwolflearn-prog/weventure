@@ -803,10 +803,10 @@ export const EventForm: React.FC<EventFormProps> = ({
                   onDrop={handleEventDrop}
                   className={`border-2 border-dashed rounded-[14px] p-5 transition-all text-center flex flex-col items-center justify-center cursor-pointer ${
                     eventDragActive 
-                      ? "border-[#2563EB] bg-[#EFF6FF]" 
+                      ? "border-[#84CC16] bg-[#A3E635]/15" 
                       : watchBannerUrl 
                         ? "border-emerald-200 bg-emerald-50/10" 
-                        : "border-[#E5E7EB] hover:border-[#2563EB] bg-[#F9FAFB] hover:bg-white"
+                        : "border-[#E5E7EB] hover:border-[#84CC16] bg-[#F9FAFB]"
                   }`}
                 >
                   {watchBannerUrl ? (
@@ -831,7 +831,7 @@ export const EventForm: React.FC<EventFormProps> = ({
                         onChange={handleEventFileChange}
                         className="hidden"
                       />
-                      <div className="p-3 bg-[#EFF6FF] text-[#2563EB] rounded-full mb-3">
+                      <div className="p-3 bg-[#A3E635]/15 text-[#65A30D] rounded-full mb-3">
                         <UploadCloud className="w-6 h-6" />
                       </div>
                       <p className="text-[13px] font-bold text-gray-800">

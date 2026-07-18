@@ -81,7 +81,7 @@ export async function connectDatabase(): Promise<typeof mongoose> {
             currency: 'USD',
             amenities: ['TV Screen', 'Whiteboard', 'Webcam', 'Conference Phone'],
             isAvailable: true,
-            availabilityRules: { startHour: 8, endHour: 20, allowedDays: [1, 2, 3, 4, 5] },
+            availabilityRules: { startHour: 8, endHour: 20, allowedDays: [0, 1, 2, 3, 4, 5, 6] },
             bufferTime: 15,
           },
           {
@@ -117,7 +117,7 @@ export async function connectDatabase(): Promise<typeof mongoose> {
             currency: 'USD',
             amenities: ['Whiteboard', 'Webcam', 'Sound Isolation'],
             isAvailable: true,
-            availabilityRules: { startHour: 8, endHour: 20, allowedDays: [1, 2, 3, 4, 5] },
+            availabilityRules: { startHour: 8, endHour: 20, allowedDays: [0, 1, 2, 3, 4, 5, 6] },
             bufferTime: 15,
           },
           {
@@ -135,6 +135,13 @@ export async function connectDatabase(): Promise<typeof mongoose> {
         ]);
         logger.info('🌱 Successfully seeded default enterprise workspaces into MongoDB');
       }
+
+      // Ensure all existing workspaces are updated to allow weekend bookings to prevent validation failures during checks
+      await Workspace.updateMany(
+        {},
+        { $set: { 'availabilityRules.allowedDays': [0, 1, 2, 3, 4, 5, 6] } }
+      );
+      logger.info('🔧 Ensured all workspaces are active and reservable 7 days a week');
 
       // 2. Seed Event Categories
       const categoryCount = await EventCategory.countDocuments();

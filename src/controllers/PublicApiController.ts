@@ -445,6 +445,49 @@ export class PublicApiController {
       next(error);
     }
   }
+
+  /**
+   * POST /api/contact
+   */
+  public async submitInquiry(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantHeader = req.headers['x-tenant-id'] || 'weventurehub';
+      const tenantId = Array.isArray(tenantHeader) ? tenantHeader[0] : tenantHeader;
+      const { name, email, message } = req.body;
+      if (!name || !email || !message) {
+        res.status(400).json({ success: false, message: 'Name, email, and message are required' });
+        return;
+      }
+
+      const nameParts = name.trim().split(/\s+/);
+      const firstName = nameParts[0] || 'Inquirer';
+      const lastName = nameParts.slice(1).join(' ') || 'Contact';
+
+      const { Contact } = await import('../models/Contact');
+      
+      const newContact = new Contact({
+        tenantId,
+        firstName,
+        lastName,
+        email,
+        status: 'LEAD',
+        leadSource: 'Landing Page Contact Form',
+        notes: [
+          {
+            author: 'System Auto-Log',
+            content: `Submitted website inquiry message: "${message}"`,
+            createdAt: new Date(),
+          }
+        ]
+      });
+
+      await newContact.save();
+
+      ApiResponse.success(res, { success: true, message: 'Inquiry saved successfully.' });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const publicApiController = new PublicApiController();

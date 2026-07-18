@@ -65,10 +65,10 @@ export function StatCard({ title, value, subtext, trend, icon, className = '' }:
     <div className={`bg-white border border-neutral-200 rounded-[20px] p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex flex-col justify-between ${className}`}>
       <div className="flex items-center justify-between">
         <span className="text-sm font-bold uppercase tracking-wider text-[#6B7280]">{title}</span>
-        {icon && <div className="p-2.5 bg-neutral-50 rounded-xl text-[#2563EB]">{icon}</div>}
+        {icon && <div className="p-2.5 bg-neutral-50 rounded-xl text-[#65A30D]">{icon}</div>}
       </div>
       <div className="mt-4">
-        <span className="text-[32px] font-bold text-[#2563EB] tracking-tight leading-none">{value}</span>
+        <span className="text-[32px] font-bold text-[#65A30D] tracking-tight leading-none">{value}</span>
         
         {(trend || subtext) && (
           <div className="flex items-center space-x-2 mt-2">
@@ -234,7 +234,7 @@ export function Select({ label, error, options, className = '', id, ...props }: 
             ${
               error 
                 ? 'border-[#EF4444] focus:ring-2 focus:ring-[#EF4444]/10' 
-                : 'border-neutral-200 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10'
+                : 'border-neutral-200 focus:border-[#84CC16] focus:ring-2 focus:ring-[#84CC16]/10'
             }
             ${className}`}
           {...props}
@@ -267,9 +267,9 @@ interface IBadgeProps {
 
 export function Badge({ children, variant = 'gray', className = '' }: IBadgeProps) {
   const styles = {
-    blue: 'bg-[#2563EB]/10 text-[#2563EB]',
+    blue: 'bg-[#84CC16]/10 text-[#65A30D]',
     'light-blue': 'bg-sky-50 text-sky-600 border border-sky-100',
-    lemon: 'bg-[#A3E635]/15 text-[#5e8b12]',
+    lemon: 'bg-[#84CC16]/15 text-[#65A30D]',
     gray: 'bg-neutral-100 text-[#6B7280]',
     red: 'bg-[#EF4444]/10 text-[#EF4444]'
   };
@@ -304,7 +304,7 @@ export function Avatar({ name, imageUrl, size = 'md', className = '' }: IAvatarP
     .slice(0, 2);
 
   return (
-    <div className={`relative shrink-0 flex items-center justify-center rounded-full bg-gradient-to-br from-[#2563EB] to-sky-500 text-white font-bold overflow-hidden select-none ${sizes[size]} ${className}`}>
+    <div className={`relative shrink-0 flex items-center justify-center rounded-full bg-gradient-to-br from-[#84CC16] to-lime-600 text-[#111111] font-bold overflow-hidden select-none ${sizes[size]} ${className}`}>
       {imageUrl ? (
         <img src={imageUrl} alt={name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
       ) : (
@@ -336,7 +336,7 @@ export function Timeline({ items }: { items: ITimelineItem[] }) {
               <div className="relative flex space-x-3">
                 <div>
                   <span className="h-8 w-8 rounded-full bg-neutral-50 border border-neutral-200 flex items-center justify-center">
-                    <span className="h-2 w-2 rounded-full bg-[#2563EB]" />
+                    <span className="h-2 w-2 rounded-full bg-[#84CC16]" />
                   </span>
                 </div>
                 <div className="flex-1 min-w-0 pt-1.5 flex justify-between space-x-4">
@@ -365,7 +365,7 @@ export function CalendarWidget({ date = new Date() }: { date?: Date }) {
 
   return (
     <div className="w-14 h-15 rounded-xl border border-neutral-200 bg-white overflow-hidden flex flex-col items-center justify-center shadow-sm shrink-0 select-none">
-      <div className="bg-[#2563EB] text-white text-[10px] font-bold w-full text-center py-0.5 tracking-wider">
+      <div className="bg-[#84CC16] text-[#111111] text-[10px] font-bold w-full text-center py-0.5 tracking-wider">
         {dayName}
       </div>
       <div className="flex-1 flex flex-col items-center justify-center leading-tight">
@@ -399,14 +399,14 @@ export function NotificationBanner({ title, message, type = 'info', onDismiss }:
     success: 'bg-[#A3E635]/10 border-[#A3E635] text-[#5e8b12]',
     warning: 'bg-amber-50 border-amber-300 text-amber-800',
     error: 'bg-[#EF4444]/10 border-[#EF4444] text-[#EF4444]',
-    info: 'bg-[#2563EB]/10 border-[#2563EB] text-[#2563EB]'
+    info: 'bg-[#84CC16]/10 border-[#84CC16] text-[#65A30D]'
   };
 
   const icons = {
-    success: <CheckCircle2 className="w-5 h-5 text-[#5e8b12] shrink-0" />,
+    success: <CheckCircle2 className="w-5 h-5 text-[#65A30D] shrink-0" />,
     warning: <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />,
     error: <AlertCircle className="w-5 h-5 text-[#EF4444] shrink-0" />,
-    info: <Bell className="w-5 h-5 text-[#2563EB] shrink-0" />
+    info: <Bell className="w-5 h-5 text-[#65A30D] shrink-0" />
   };
 
   return (
@@ -441,7 +441,7 @@ export function SearchBar({ onSearch, className = '', ...props }: ISearchBarProp
       </div>
       <input
         type="text"
-        className={`w-full h-12 pl-11 pr-4 rounded-[14px] border border-neutral-200 text-sm bg-white text-[#111111] focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10 outline-none transition-all ${className}`}
+        className={`w-full h-12 pl-11 pr-4 rounded-[14px] border border-neutral-200 text-sm bg-white text-[#111111] focus:border-[#84CC16] focus:ring-2 focus:ring-[#84CC16]/10 outline-none transition-all ${className}`}
         onChange={(e) => onSearch?.(e.target.value)}
         {...props}
       />
@@ -532,7 +532,7 @@ export function Tabs({ tabs, activeTab, onChange, className = '' }: ITabsProps) 
               onClick={() => onChange(tab.id)}
               className={`pb-4 px-1 border-b-2 font-bold text-sm flex items-center space-x-2 transition-all cursor-pointer whitespace-nowrap
                 ${isActive 
-                  ? 'border-[#2563EB] text-[#2563EB]' 
+                  ? 'border-[#84CC16] text-[#65A30D]' 
                   : 'border-transparent text-[#6B7280] hover:text-[#111111] hover:border-neutral-300'
                 }`}
             >

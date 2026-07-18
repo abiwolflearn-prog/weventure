@@ -144,7 +144,7 @@ export default function PerformanceTable<T extends Record<string, any>>({
               setSearchTerm(e.target.value);
               setCurrentPage(1);
             }}
-            className="block w-full border border-[#E5E7EB] bg-white rounded-xl pl-9 pr-8 py-2 text-xs text-[#111827] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/10 focus:border-[#2563EB] transition"
+            className="block w-full border border-[#E5E7EB] bg-white rounded-xl pl-9 pr-8 py-2 text-xs text-[#111827] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#84CC16]/10 focus:border-[#84CC16] transition"
           />
           {searchTerm && (
             <button
@@ -186,9 +186,9 @@ export default function PerformanceTable<T extends Record<string, any>>({
                         {col.header}
                         {sortKey === String(col.key) ? (
                           sortOrder === 'asc' ? (
-                            <ArrowUp className="w-3.5 h-3.5 text-[#2563EB]" />
+                            <ArrowUp className="w-3.5 h-3.5 text-[#84CC16]" />
                           ) : (
-                            <ArrowDown className="w-3.5 h-3.5 text-[#2563EB]" />
+                            <ArrowDown className="w-3.5 h-3.5 text-[#84CC16]" />
                           )
                         ) : (
                           <ArrowUpDown className="w-3.5 h-3.5 text-[#D1D5DB]" />
@@ -255,7 +255,7 @@ export default function PerformanceTable<T extends Record<string, any>>({
                 onClick={() => setCurrentPage(i + 1)}
                 className={`w-7 h-7 rounded-lg text-[11px] font-bold transition flex items-center justify-center ${
                   currentPage === i + 1
-                    ? 'bg-[#2563EB] text-white shadow-xs'
+                    ? 'bg-[#84CC16] text-[#111111] shadow-xs'
                     : 'text-[#4B5563] hover:bg-[#F3F4F6]'
                 }`}
               >
@@ -301,7 +301,7 @@ export default function PerformanceTable<T extends Record<string, any>>({
                 {/* Header inside drawer */}
                 <div className="flex items-start justify-between border-b border-[#E5E7EB] pb-4 mb-5">
                   <div>
-                    <span className="text-[9px] font-bold text-[#2563EB] uppercase bg-[#2563EB]/10 px-2 py-0.5 rounded-full">
+                    <span className="text-[9px] font-bold text-[#65A30D] uppercase bg-[#84CC16]/10 px-2 py-0.5 rounded-full">
                       Interactive Drill Down
                     </span>
                     <h3 className="font-display font-extrabold text-lg text-[#111827] mt-1.5 leading-tight">
@@ -335,10 +335,10 @@ export default function PerformanceTable<T extends Record<string, any>>({
                 <Button
                   size="sm"
                   onClick={() => {
-                    alert('Redirecting to the associated workspace profile...');
+                    console.log('Redirecting to the associated workspace profile...');
                     setSelectedRow(null);
                   }}
-                  className="font-bold rounded-xl flex items-center gap-1.5 bg-[#2563EB] text-white hover:bg-[#1D4ED8]"
+                  className="font-bold rounded-xl flex items-center gap-1.5 bg-[#84CC16] text-[#111111] hover:bg-[#65A30D]"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   Lease Record Profile
