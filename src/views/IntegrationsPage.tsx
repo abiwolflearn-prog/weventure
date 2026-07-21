@@ -29,6 +29,7 @@ import {
   Code
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { paymentApi } from '../lib/paymentApi';
 import { 
   AreaChart, 
   Area, 
@@ -45,6 +46,18 @@ export default function IntegrationsPage() {
   const [activeTab, setActiveTab] = useState<'keys' | 'webhooks' | 'inbound' | 'playground' | 'apps' | 'rules' | 'analytics'>('keys');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // ArifPay Config States
+  const [arifpayEnabled, setArifpayEnabled] = useState<boolean>(true);
+  const [arifpayMethods, setArifpayMethods] = useState<Record<string, boolean>>({
+    TELEBIRR: true,
+    CBE: true,
+    AWASH: true,
+    DASHEN: true,
+    ABYSSINIA: true
+  });
+  const [arifpaySaveSuccess, setArifpaySaveSuccess] = useState<string | null>(null);
+  const [arifpayLoadingState, setArifpayLoadingState] = useState<boolean>(false);
 
   // 1. API Keys State
   const [apiKeys, setApiKeys] = useState<any[]>([]);
@@ -105,6 +118,7 @@ export default function IntegrationsPage() {
     fetchAutomationRules();
     fetchConnectedApps();
     fetchAnalytics();
+    fetchArifPayConfig();
   }, []);
 
   // Fetch functions
@@ -150,6 +164,37 @@ export default function IntegrationsPage() {
       if (res.data?.success) setConnectedApps(res.data.data);
     } catch (err: any) {
       console.error(err);
+    }
+  };
+
+  const fetchArifPayConfig = async () => {
+    try {
+      const config = await paymentApi.getArifPayConfig();
+      if (config) {
+        setArifpayEnabled(config.enabled !== false);
+        if (config.settings) {
+          setArifpayMethods(config.settings);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching ArifPay config:', err);
+    }
+  };
+
+  const handleSaveArifPayConfig = async () => {
+    setArifpayLoadingState(true);
+    setArifpaySaveSuccess(null);
+    try {
+      await paymentApi.saveArifPayConfig({
+        enabled: arifpayEnabled,
+        settings: arifpayMethods
+      });
+      setArifpaySaveSuccess('ArifPay payment configuration saved successfully!');
+      setTimeout(() => setArifpaySaveSuccess(null), 4000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to save configuration');
+    } finally {
+      setArifpayLoadingState(false);
     }
   };
 
@@ -949,6 +994,105 @@ print(response.json())`;
               <p className="text-sm text-slate-500">
                 Instantly connect your WeVentureHub account to leading third party enterprise software suites. No coding required.
               </p>
+            </div>
+
+            {/* ArifPay Integration Panel */}
+            <div className="bg-white p-6 rounded-[20px] border border-[#E5E7EB] shadow-[0_4px_12px_rgba(0,0,0,0.05)] space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                <div className="space-y-1">
+                  <h3 className="text-base font-bold text-slate-950 flex items-center gap-2">
+                    <span className="text-2xl">💳</span> ArifPay Payment Gateway & Methods Configuration
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Manage active payment methods for your community and toggle online transaction channels dynamically.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="text-xs font-semibold text-slate-600">ArifPay Integration Status:</label>
+                  <button
+                    onClick={() => setArifpayEnabled(!arifpayEnabled)}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      arifpayEnabled ? 'bg-brand-primary' : 'bg-slate-200'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        arifpayEnabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                  <span className={`text-xs font-semibold ${arifpayEnabled ? 'text-brand-primary' : 'text-slate-400'}`}>
+                    {arifpayEnabled ? 'ENABLED' : 'DISABLED'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Individual payment methods toggle checks */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {[
+                  { id: 'TELEBIRR', name: 'Telebirr', desc: 'Ethio Telecom Mobile Money', icon: '📱' },
+                  { id: 'CBE', name: 'CBE Birr', desc: 'Commercial Bank of Ethiopia', icon: '🏦' },
+                  { id: 'AWASH', name: 'Awash Bank', desc: 'Awash Birr Wallet & Cards', icon: '💳' },
+                  { id: 'DASHEN', name: 'Dashen Amole', desc: 'Dashen Bank Amole Pay', icon: '⚡' },
+                  { id: 'ABYSSINIA', name: 'Abyssinia', desc: 'Bank of Abyssinia Apollo', icon: '💫' },
+                ].map((channel) => (
+                  <div
+                    key={channel.id}
+                    onClick={() => {
+                      if (!arifpayEnabled) return;
+                      setArifpayMethods({
+                        ...arifpayMethods,
+                        [channel.id]: !arifpayMethods[channel.id]
+                      });
+                    }}
+                    className={`p-4 rounded-xl border transition-all duration-250 cursor-pointer relative select-none flex flex-col justify-between h-28 ${
+                      !arifpayEnabled ? 'opacity-40 cursor-not-allowed border-slate-100 bg-slate-50' :
+                      arifpayMethods[channel.id]
+                        ? 'border-brand-primary bg-brand-primary/5 shadow-xs'
+                        : 'border-slate-200 hover:border-slate-350 bg-white'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <span className="text-2xl">{channel.icon}</span>
+                      <input
+                        type="checkbox"
+                        checked={arifpayEnabled && !!arifpayMethods[channel.id]}
+                        disabled={!arifpayEnabled}
+                        readOnly
+                        className="rounded text-brand-primary focus:ring-brand-primary pointer-events-none"
+                      />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-800">{channel.name}</h4>
+                      <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">{channel.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+                <div>
+                  {arifpaySaveSuccess && (
+                    <span className="text-xs font-semibold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg border border-green-200">
+                      ✓ {arifpaySaveSuccess}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveArifPayConfig}
+                  disabled={arifpayLoadingState}
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-brand-primary text-white hover:bg-brand-primary-hover shadow-md shadow-brand-primary/10 transition cursor-pointer flex items-center gap-1.5"
+                >
+                  {arifpayLoadingState ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Saving...
+                    </>
+                  ) : (
+                    <>Save Configuration</>
+                  )}
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

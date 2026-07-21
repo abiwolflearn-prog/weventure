@@ -10,6 +10,18 @@ const paymentRouter = Router();
  * Public Webhook endpoint
  */
 paymentRouter.post('/webhooks/chapa', paymentController.handleChapaWebhook);
+paymentRouter.post('/webhooks/arifpay', paymentController.handleArifPayWebhook);
+
+/**
+ * Payment Config endpoints
+ */
+paymentRouter.get('/config/arifpay', authGuard, paymentController.getPaymentConfig);
+paymentRouter.post(
+  '/config/arifpay',
+  authGuard,
+  hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN]),
+  paymentController.savePaymentConfig
+);
 
 /**
  * Secure checkout initialization

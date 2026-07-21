@@ -45,14 +45,25 @@ export const errorHandler = (
     message = 'Authentication token has expired';
   }
 
-  // Log the complete error detail
-  logger.error(`${req.method} ${req.path} failed with code ${code}`, err, {
-    traceId,
-    statusCode,
-    path: req.path,
-    query: req.query,
-    user: req.user ? req.user.id : 'anonymous',
-  });
+  // Log the complete error detail based on status severity
+  if (statusCode >= 500) {
+    logger.error(`${req.method} ${req.path} failed with code ${code}`, err, {
+      traceId,
+      statusCode,
+      path: req.path,
+      query: req.query,
+      user: req.user ? req.user.id : 'anonymous',
+    });
+  } else {
+    logger.warn(`${req.method} ${req.path} failed with code ${code}`, {
+      traceId,
+      statusCode,
+      path: req.path,
+      query: req.query,
+      user: req.user ? req.user.id : 'anonymous',
+      errorMessage: err.message || String(err),
+    });
+  }
 
   const responseBody: IApiErrorResponse = {
     success: false,

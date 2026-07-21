@@ -29,11 +29,13 @@ export class BookingRepository {
   public async update(
     id: string,
     tenantId: string,
-    updateData: Partial<any>
+    updateData: any
   ): Promise<IBookingDocument | null> {
+    const isDirectQuery = Object.keys(updateData).some(key => key.startsWith('$'));
+    const updatePayload = isDirectQuery ? updateData : { $set: updateData };
     return await Booking.findOneAndUpdate(
       { _id: id, tenantId },
-      { $set: updateData },
+      updatePayload,
       { new: true, runValidators: true }
     ).exec();
   }

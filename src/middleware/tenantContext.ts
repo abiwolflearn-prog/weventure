@@ -5,8 +5,8 @@ import { NotFoundError } from '../errors/AppError';
  * Extracts and sets tenantId from headers or subdomains
  */
 export const tenantContext = (req: Request, res: Response, next: NextFunction): void => {
-  // 1. Check for Custom Header
-  let tenantId = req.headers['x-tenant-id'] as string;
+  // 1. Check for Custom Header or Query Parameter
+  let tenantId = (req.headers['x-tenant-id'] || req.query.tenantId) as string;
 
   // 2. Subdomain resolution fallback (e.g., tenant.weventurehub.com)
   if (!tenantId && req.headers.host) {

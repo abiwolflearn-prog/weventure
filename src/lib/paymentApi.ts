@@ -3,8 +3,8 @@ import { axiosInstance } from './axiosInstance';
 export interface CreatePaymentPayload {
   amount: number;
   currency?: string;
-  provider: 'CHAPA' | 'STRIPE' | 'PAYPAL' | 'FLUTTERWAVE' | 'PAYSTACK' | 'TELEBIRR' | 'MANUAL';
-  targetType: 'ORDER' | 'BOOKING';
+  provider: 'ARIFPAY' | 'CHAPA' | 'STRIPE' | 'PAYPAL' | 'FLUTTERWAVE' | 'PAYSTACK' | 'TELEBIRR' | 'MANUAL';
+  targetType: 'ORDER' | 'BOOKING' | 'INVOICE';
   targetId: string;
   firstName?: string;
   lastName?: string;
@@ -93,6 +93,16 @@ export const paymentApi = {
 
   togglePromoCode: async (id: string, isActive: boolean) => {
     const response = await axiosInstance.patch(`/payments/promo/${id}/toggle`, { isActive });
+    return response.data.data;
+  },
+
+  getArifPayConfig: async () => {
+    const response = await axiosInstance.get('/payments/config/arifpay');
+    return response.data.data;
+  },
+
+  saveArifPayConfig: async (payload: { settings: Record<string, boolean>; enabled: boolean }) => {
+    const response = await axiosInstance.post('/payments/config/arifpay', payload);
     return response.data.data;
   },
 };

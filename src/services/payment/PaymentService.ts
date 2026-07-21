@@ -13,6 +13,7 @@ import { ticketingService } from '../TicketingService';
 import { ValidationError, NotFoundError, ConflictError } from '../../errors/AppError';
 import { logger } from '../../utils/logger';
 import { IUserIdentity, UserRole, OrderStatus, OrderType } from '../../types';
+import { ConnectedApp } from '../../models/Integration';
 
 export class PaymentService {
   /**
@@ -52,7 +53,7 @@ export class PaymentService {
     amount: number,
     currency: string,
     provider: PaymentProvider,
-    targetType: 'ORDER' | 'BOOKING',
+    targetType: 'ORDER' | 'BOOKING' | 'INVOICE',
     targetId: string,
     firstName: string,
     lastName: string,
@@ -61,20 +62,40 @@ export class PaymentService {
   ): Promise<{ payment: IPaymentDocument; paymentLink: string }> {
     logger.info(`💳 Creating ${provider} payment for ${targetType} : ${targetId} (PromoCode: ${promoCode})`);
 
+    let associatedBookingId: string | undefined = undefined;
+    let associatedOrderId: string | undefined = undefined;
+    let associatedInvoiceId: string | undefined = undefined;
+
+    if (targetType === 'ORDER') associatedOrderId = targetId;
+    if (targetType === 'BOOKING') associatedBookingId = targetId;
+    if (targetType === 'INVOICE') {
+      associatedInvoiceId = targetId;
+      const invoice = await Invoice.findOne({ _id: targetId, tenantId }).exec();
+      if (invoice) {
+        associatedBookingId = invoice.bookingId;
+        associatedOrderId = invoice.orderId;
+        if (invoice.status === InvoiceStatus.PAID) {
+          throw new ConflictError('This invoice has already been paid successfully.');
+        }
+      }
+    }
+
     // Prevent duplicate payments: Check if successful payment exists
     const query: Record<string, any> = { tenantId, status: PaymentStatus.SUCCESSFUL };
-    if (targetType === 'ORDER') query.orderId = targetId;
-    if (targetType === 'BOOKING') query.bookingId = targetId;
+    if (associatedOrderId) query.orderId = associatedOrderId;
+    if (associatedBookingId && !associatedInvoiceId) query.bookingId = associatedBookingId; // For specific invoice, allow separate cycle payments
+    if (associatedInvoiceId) query['metadata.invoiceId'] = associatedInvoiceId;
 
     const existingSuccessful = await Payment.findOne(query).exec();
     if (existingSuccessful) {
-      throw new ConflictError(`This ${targetType.toLowerCase()} has already been paid successfully.`);
+      throw new ConflictError(`This payment target has already been paid successfully.`);
     }
 
     // Check if there is already a PENDING payment
     const pendingQuery: Record<string, any> = { tenantId, status: PaymentStatus.PENDING };
-    if (targetType === 'ORDER') pendingQuery.orderId = targetId;
-    if (targetType === 'BOOKING') pendingQuery.bookingId = targetId;
+    if (associatedOrderId) pendingQuery.orderId = associatedOrderId;
+    if (associatedBookingId && !associatedInvoiceId) pendingQuery.bookingId = associatedBookingId;
+    if (associatedInvoiceId) pendingQuery['metadata.invoiceId'] = associatedInvoiceId;
 
     const existingPending = await Payment.findOne(pendingQuery).exec();
     if (existingPending && existingPending.paymentLink) {
@@ -118,6 +139,20 @@ export class PaymentService {
     const title = targetType === 'ORDER' ? 'Event Ticket Registration' : 'Professional Workspace Booking';
     const description = `WeVentureHub Reservation payment for reference ${targetId}`;
 
+    let paymentMethods: string[] | undefined = undefined;
+    if (provider === PaymentProvider.ARIFPAY) {
+      try {
+        const arifpayApp = await this.getPaymentConfig(tenantId);
+        if (arifpayApp && arifpayApp.settings) {
+          paymentMethods = Object.keys(arifpayApp.settings).filter(
+            (key) => arifpayApp.settings[key] === true
+          );
+        }
+      } catch (err) {
+        logger.warn('⚠️ Failed to load ArifPay payment methods configuration, using defaults', err);
+      }
+    }
+
     const gateway = UnifiedPaymentAdapter.getGateway(provider);
     const initialization = await gateway.initialize({
       amount: finalAmount,
@@ -130,7 +165,7 @@ export class PaymentService {
       returnUrl,
       title,
       description,
-      metadata: { tenantId, targetType, targetId },
+      metadata: { tenantId, targetType, targetId, paymentMethods },
     });
 
     if (!initialization.success || !initialization.paymentLink) {
@@ -141,8 +176,8 @@ export class PaymentService {
       tenantId,
       userId,
       userEmail,
-      orderId: targetType === 'ORDER' ? targetId : undefined,
-      bookingId: targetType === 'BOOKING' ? targetId : undefined,
+      orderId: associatedOrderId,
+      bookingId: associatedBookingId,
       amount: finalAmount,
       currency: currency || 'ETB',
       status: PaymentStatus.PENDING,
@@ -152,6 +187,7 @@ export class PaymentService {
       metadata: { 
         billingDetails, 
         targetType, 
+        invoiceId: associatedInvoiceId,
         promoCode: promoCode ? promoCode.toUpperCase() : undefined,
         calculation: calc,
         promoDetails
@@ -241,10 +277,27 @@ export class PaymentService {
         });
       }
 
-      // 4. Generate Multi-Tenant Invoice
-      const invoiceNumber = `INV-${new Date().toISOString().substring(0, 10).replace(/-/g, '')}-${Math.floor(Math.random() * 9000 + 1000)}`;
-      const existingInvoice = await Invoice.findOne({ paymentId: savedPayment.id, tenantId }).exec();
-      if (!existingInvoice) {
+      // 4. Generate Multi-Tenant Invoice or update existing
+      const invoiceId = payment.metadata?.invoiceId;
+      let existingInvoice = null;
+
+      if (invoiceId) {
+        existingInvoice = await Invoice.findOne({ _id: invoiceId, tenantId }).exec();
+      } else {
+        existingInvoice = await Invoice.findOne({ paymentId: savedPayment.id, tenantId }).exec();
+      }
+
+      if (existingInvoice) {
+        // If an existing unpaid invoice was paid, update it
+        if (existingInvoice.status !== InvoiceStatus.PAID) {
+          existingInvoice.status = InvoiceStatus.PAID;
+          existingInvoice.paymentId = savedPayment.id;
+          existingInvoice.paidAt = new Date();
+          await existingInvoice.save();
+          logger.info(`📝 Existing invoice ${existingInvoice.invoiceNumber} successfully marked as PAID.`);
+        }
+      } else {
+        const invoiceNumber = `INV-${new Date().toISOString().substring(0, 10).replace(/-/g, '')}-${Math.floor(Math.random() * 9000 + 1000)}`;
         const billingInfo = payment.metadata?.billingDetails || {
           name: `${payment.userEmail.split('@')[0]}`,
           email: payment.userEmail,
@@ -719,6 +772,46 @@ export class PaymentService {
    */
   public async getRefunds(tenantId: string): Promise<any[]> {
     return await Refund.find({ tenantId }).sort({ createdAt: -1 }).exec();
+  }
+
+  /**
+   * Get ArifPay payment methods configuration
+   */
+  public async getPaymentConfig(tenantId: string): Promise<any> {
+    let app = await ConnectedApp.findOne({ tenantId, appId: 'arifpay' }).exec();
+    if (!app) {
+      app = await ConnectedApp.create({
+        tenantId,
+        appId: 'arifpay',
+        appName: 'ArifPay Payment Gateway',
+        enabled: true,
+        settings: {
+          TELEBIRR: true,
+          CBE: true,
+          AWASH: true,
+          DASHEN: true,
+          ABYSSINIA: true
+        }
+      });
+    }
+    return app;
+  }
+
+  /**
+   * Save ArifPay payment methods configuration
+   */
+  public async savePaymentConfig(tenantId: string, settings: any, enabled: boolean): Promise<any> {
+    let app = await ConnectedApp.findOne({ tenantId, appId: 'arifpay' }).exec();
+    if (!app) {
+      app = new ConnectedApp({
+        tenantId,
+        appId: 'arifpay',
+        appName: 'ArifPay Payment Gateway',
+      });
+    }
+    app.settings = settings;
+    app.enabled = enabled;
+    return await app.save();
   }
 }
 

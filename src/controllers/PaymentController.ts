@@ -32,7 +32,7 @@ export class PaymentController {
         Number(amount),
         currency || 'ETB',
         activeProvider,
-        targetType as 'ORDER' | 'BOOKING',
+        targetType as 'ORDER' | 'BOOKING' | 'INVOICE',
         targetId,
         firstName || user.firstName,
         lastName || user.lastName,
@@ -391,6 +391,59 @@ WeVentureHub Multi-Tenant Event & Workspace Management Platform
       ApiResponse.success(res, promo, 200, { message: 'Promo code updated successfully' });
     } catch (error) {
       next(error);
+    }
+  }
+
+  /**
+   * Get ArifPay payment config
+   */
+  public async getPaymentConfig(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId || 'global';
+      const config = await paymentService.getPaymentConfig(tenantId);
+      ApiResponse.success(res, config, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Save ArifPay payment config
+   */
+  public async savePaymentConfig(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId || 'global';
+      const { settings, enabled } = req.body;
+      const config = await paymentService.savePaymentConfig(tenantId, settings, enabled);
+      ApiResponse.success(res, config, 200, { message: 'ArifPay payment configuration updated successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * ArifPay webhook listener
+   */
+  public async handleArifPayWebhook(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      logger.info('🔔 ArifPay Webhook Received:', JSON.stringify(req.body));
+      
+      const txRef = req.body?.txRef || req.body?.data?.txRef || req.body?.sessionId || req.body?.data?.sessionId;
+      const tenantId = req.body?.meta?.tenantId || req.body?.data?.meta?.tenantId || req.tenantId || 'global';
+
+      if (!txRef) {
+        logger.warn('⚠️ ArifPay webhook received but missing txRef identifier.');
+        res.status(200).json({ status: 'ignored', message: 'Missing txRef' });
+        return;
+      }
+
+      logger.info(`⚡ Processing ArifPay webhook verification for txRef: ${txRef}, tenant: ${tenantId}`);
+      await paymentService.verifyAndApplyPayment(txRef, tenantId);
+
+      res.status(200).json({ status: 'success', message: 'Webhook processed successfully' });
+    } catch (error: any) {
+      logger.error('❌ ArifPay Webhook error:', error.message);
+      res.status(200).json({ status: 'error', message: error.message });
     }
   }
 }

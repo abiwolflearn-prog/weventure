@@ -34,4 +34,38 @@ bookingRouter.post(
   bookingController.reject
 );
 
+// Renew a booking / agreement
+bookingRouter.post(
+  '/:id/renew',
+  authGuard,
+  bookingController.renew
+);
+
+// WeVentureHub Enterprise Workflows
+bookingRouter.post(
+  '/:id/generate-agreement',
+  authGuard,
+  hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF]),
+  bookingController.generateAgreement
+);
+
+bookingRouter.post(
+  '/:id/sign-agreement',
+  authGuard,
+  bookingController.signAgreement
+);
+
+bookingRouter.post(
+  '/:id/generate-invoice',
+  authGuard,
+  hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF]),
+  bookingController.generateInvoice
+);
+
+bookingRouter.get(
+  '/:id/agreement',
+  authGuard,
+  bookingController.getAgreement
+);
+
 export default bookingRouter;

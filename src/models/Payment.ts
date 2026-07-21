@@ -18,6 +18,7 @@ export enum PaymentProvider {
   AWASH = 'AWASH',
   DASHEN = 'DASHEN',
   MANUAL = 'MANUAL',
+  ARIFPAY = 'ARIFPAY',
 }
 
 export interface IPaymentDocument extends Document {

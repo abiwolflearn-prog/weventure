@@ -35,6 +35,18 @@ export interface IInvoiceDocument extends Document {
   }[];
   dueDate?: Date;
   paidAt?: Date;
+  agreementNumber?: string;
+  workspaceId?: string;
+  workspaceName?: string;
+  billingPeriod?: string;
+  invoiceDate?: Date;
+  vat?: number;
+  discount?: number;
+  deposit?: number;
+  previousBalance?: number;
+  currentBalance?: number;
+  outstandingBalance?: number;
+  qrCode?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -75,6 +87,18 @@ const InvoiceSchema = new Schema<IInvoiceDocument>(
     ],
     dueDate: { type: Date },
     paidAt: { type: Date },
+    agreementNumber: { type: String },
+    workspaceId: { type: String },
+    workspaceName: { type: String },
+    billingPeriod: { type: String },
+    invoiceDate: { type: Date },
+    vat: { type: Number, default: 0 },
+    discount: { type: Number, default: 0 },
+    deposit: { type: Number, default: 0 },
+    previousBalance: { type: Number, default: 0 },
+    currentBalance: { type: Number, default: 0 },
+    outstandingBalance: { type: Number, default: 0 },
+    qrCode: { type: String },
   },
   {
     timestamps: true,

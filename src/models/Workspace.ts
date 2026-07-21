@@ -1,5 +1,22 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface IBillingPlan {
+  id: string;
+  name: 'Hourly' | 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly';
+  price: number;
+  currency: string;
+  deposit?: number;
+  paymentDueDay?: number;
+  agreementTemplate?: string;
+  minimumDuration?: number;
+  maximumDuration?: number;
+  vat?: number;
+  discount?: number;
+  gracePeriod?: number;
+  lateFee?: number;
+  isActive: boolean;
+}
+
 export interface IWorkspaceDocument extends Document {
   id: string;
   tenantId: string;
@@ -19,6 +36,7 @@ export interface IWorkspaceDocument extends Document {
     startMonth?: number; // 1-12
     endMonth?: number;
   }[];
+  billingPlans?: IBillingPlan[];
   currency: string;
   amenities: string[];
   isAvailable: boolean;
@@ -64,6 +82,23 @@ const WorkspaceSchema = new Schema<IWorkspaceDocument>(
         endHour: { type: Number },
         startMonth: { type: Number },
         endMonth: { type: Number },
+      }
+    ],
+    billingPlans: [
+      {
+        name: { type: String, enum: ['Hourly', 'Daily', 'Weekly', 'Monthly', 'Quarterly', 'Yearly'], required: true },
+        price: { type: Number, required: true, min: 0 },
+        currency: { type: String, required: true, default: 'ETB' },
+        deposit: { type: Number, min: 0 },
+        paymentDueDay: { type: Number, min: 1, max: 31 },
+        agreementTemplate: { type: String },
+        minimumDuration: { type: Number, min: 1 },
+        maximumDuration: { type: Number, min: 1 },
+        vat: { type: Number, min: 0, default: 0 },
+        discount: { type: Number, min: 0, default: 0 },
+        gracePeriod: { type: Number, min: 0, default: 0 },
+        lateFee: { type: Number, min: 0, default: 0 },
+        isActive: { type: Boolean, default: true, required: true },
       }
     ],
     currency: { type: String, default: 'USD', required: true },

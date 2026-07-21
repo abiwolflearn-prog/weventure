@@ -70,6 +70,20 @@ export class BookingController {
     }
   }
 
+  public async renew(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId!;
+      const { id } = req.params;
+      const user = req.user as IUserIdentity;
+      const booking = await bookingService.renewBooking(id, tenantId, req.body, user);
+      ApiResponse.success(res, booking, 200, {
+        message: 'Booking reservation renewed successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   public async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const tenantId = req.tenantId!;
@@ -96,6 +110,61 @@ export class BookingController {
         hasNextPage: result.page < result.totalPages,
         hasPrevPage: result.page > 1,
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  public async generateAgreement(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId!;
+      const { id } = req.params; // bookingId
+      const user = req.user as IUserIdentity;
+      const agreement = await bookingService.generateAgreement(id, tenantId, req.body, user);
+      ApiResponse.success(res, agreement, 201, {
+        message: 'Agreement drafted and dispatched successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  public async signAgreement(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId!;
+      const { id } = req.params; // bookingId
+      const { customerName } = req.body;
+      const ipAddress = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1') as string;
+      const agreement = await bookingService.signAgreement(id, tenantId, customerName, ipAddress);
+      ApiResponse.success(res, agreement, 200, {
+        message: 'Agreement digitally signed and executed successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  public async generateInvoice(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId!;
+      const { id } = req.params; // bookingId
+      const user = req.user as IUserIdentity;
+      const invoice = await bookingService.generateBookingInvoice(id, tenantId, user);
+      ApiResponse.success(res, invoice, 201, {
+        message: 'Invoice generated and scheduled successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  public async getAgreement(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId!;
+      const { id } = req.params; // bookingId
+      const { Agreement } = require('../models/Agreement');
+      const agreement = await Agreement.findOne({ bookingId: id, tenantId }).exec();
+      ApiResponse.success(res, agreement, 200);
     } catch (error) {
       next(error);
     }

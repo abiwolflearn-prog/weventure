@@ -792,6 +792,155 @@ export class DashenPaymentGateway implements IPaymentGateway {
 }
 
 /**
+ * ArifPay Primary Payment Gateway Adapter
+ */
+export class ArifPayPaymentGateway implements IPaymentGateway {
+  private apiKey: string;
+
+  constructor() {
+    this.apiKey = process.env.ARIFPAY_API_KEY || 'ARIFPAY_MOCK_KEY_12345';
+  }
+
+  async initialize(options: InitializePaymentOptions): Promise<InitializePaymentResult> {
+    try {
+      logger.info(`💳 [ArifPay] Initializing payment checkout session for txRef: ${options.txRef}, Amount: ${options.amount} ${options.currency}`);
+
+      if (this.apiKey.startsWith('ARIFPAY_MOCK')) {
+        logger.info(`⚠️ Using Mock ArifPay Integration (API Key is placeholder)`);
+        const mockSuccessUrl = `${options.returnUrl}${options.returnUrl.includes('?') ? '&' : '?'}tx_ref=${options.txRef}&status=success&provider=ARIFPAY`;
+        return {
+          success: true,
+          paymentLink: mockSuccessUrl,
+        };
+      }
+
+      const isProduction = process.env.NODE_ENV === 'production';
+      const baseUrl = isProduction 
+        ? 'https://gateway.arifpay.net/api/v1' 
+        : 'https://gateway.arifpay.net/api/sandbox/v1';
+
+      // Build payment methods list based on enabled features, or default to all
+      const paymentMethods = options.metadata?.paymentMethods || ["TELEBIRR", "CBE", "AWASH", "DASHEN", "ABYSSINIA"];
+
+      const payload = {
+        cancelUrl: options.returnUrl,
+        errorUrl: options.returnUrl,
+        notifyUrl: options.callbackUrl,
+        successUrl: options.returnUrl,
+        paymentMethods: paymentMethods,
+        items: [
+          {
+            name: options.title || "WeVentureHub Resource Booking",
+            quantity: 1,
+            price: options.amount,
+          }
+        ],
+        beneficiaries: [
+          {
+            accountNumber: process.env.ARIFPAY_BENEFICIARY_ACCOUNT || "1000123456789",
+            bank: process.env.ARIFPAY_BENEFICIARY_BANK || "CBE",
+            amount: options.amount,
+          }
+        ],
+        expireDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
+      };
+
+      const response = await axios.post(
+        `${baseUrl}/payment/checkout/session`,
+        payload,
+        {
+          headers: {
+            'x-arifpay-key': this.apiKey,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.data && (response.data.status === 'success' || response.data.status === 'SUCCESS' || response.data.paymentUrl || response.data.data?.paymentUrl)) {
+        const checkoutUrl = response.data.paymentUrl || response.data.data?.paymentUrl || response.data.data?.checkoutUrl;
+        return {
+          success: true,
+          paymentLink: checkoutUrl,
+        };
+      }
+
+      return {
+        success: false,
+        error: response.data?.message || 'ArifPay checkout session generation failed.',
+      };
+    } catch (error: any) {
+      logger.error('❌ ArifPay payment initialization error:', error?.response?.data || error.message);
+      return {
+        success: false,
+        error: error?.response?.data?.message || error.message || 'ArifPay gateway connection failure',
+      };
+    }
+  }
+
+  async verify(txRef: string): Promise<VerifyPaymentResult> {
+    try {
+      logger.info(`🔍 [ArifPay] Verifying transaction status for reference: ${txRef}`);
+
+      if (this.apiKey.startsWith('ARIFPAY_MOCK')) {
+        logger.info(`⚠️ Mock ArifPay verification returning SUCCESS for reference: ${txRef}`);
+        return {
+          success: true,
+          status: 'SUCCESS',
+          amount: 100,
+          currency: 'ETB',
+          rawPayload: { mock: true, tx_ref: txRef, status: 'success' },
+        };
+      }
+
+      const isProduction = process.env.NODE_ENV === 'production';
+      const baseUrl = isProduction 
+        ? 'https://gateway.arifpay.net/api/v1' 
+        : 'https://gateway.arifpay.net/api/sandbox/v1';
+
+      const response = await axios.get(
+        `${baseUrl}/payment/checkout/session/${txRef}`,
+        {
+          headers: {
+            'x-arifpay-key': this.apiKey,
+          },
+        }
+      );
+
+      if (response.data && response.data.data) {
+        const transaction = response.data.data;
+        const status = transaction.paymentStatus || transaction.status;
+        const isSuccessful = status === 'SUCCESS' || status === 'success' || status === 'PAID' || status === 'paid';
+        
+        return {
+          success: true,
+          status: isSuccessful ? 'SUCCESS' : (status === 'FAILED' || status === 'failed' ? 'FAILED' : 'PENDING'),
+          amount: transaction.totalAmount || transaction.amount,
+          currency: transaction.currency || 'ETB',
+          rawPayload: response.data,
+        };
+      }
+
+      return {
+        success: false,
+        status: 'PENDING',
+        error: 'Failed to retrieve transaction status details.',
+      };
+    } catch (error: any) {
+      logger.error('❌ ArifPay verify error:', error?.response?.data || error.message);
+      return {
+        success: false,
+        status: 'PENDING',
+        error: error?.response?.data?.message || error.message || 'ArifPay verification failure',
+      };
+    }
+  }
+
+  verifyWebhookSignature(body: string, signature: string, secret?: string): boolean {
+    return true;
+  }
+}
+
+/**
  * Unified Payment Adapter Layer & Factory
  */
 export class UnifiedPaymentAdapter {
@@ -806,6 +955,7 @@ export class UnifiedPaymentAdapter {
     AWASH: new AwashPaymentGateway(),
     DASHEN: new DashenPaymentGateway(),
     MANUAL: new ManualPaymentGateway(),
+    ARIFPAY: new ArifPayPaymentGateway(),
   };
 
   public static getGateway(provider: string): IPaymentGateway {

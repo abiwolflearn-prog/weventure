@@ -14,6 +14,7 @@ import dashboardRouter from './src/routes/dashboard.routes';
 import { logger } from './src/utils/logger';
 import { notificationService } from './src/services/NotificationService';
 import { reportService } from './src/services/ReportService';
+import { billingSchedulerService } from './src/services/billing/BillingSchedulerService';
 import { tenantService } from './src/services/TenantService';
 import { subscriptionService } from './src/services/SubscriptionService';
 import { IntegrationController } from './src/controllers/IntegrationController';
@@ -96,6 +97,7 @@ async function startServer() {
     await tenantService.seedDefaultTenant();
     await subscriptionService.seedDefaultPlans();
     reportService.startScheduler();
+    billingSchedulerService.startScheduler();
   } catch (error) {
     if (env.NODE_ENV === 'production') {
       logger.error('❌ Critical database connection failure in production. Failing fast...', error);

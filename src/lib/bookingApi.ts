@@ -43,4 +43,24 @@ export const bookingApi = {
     const response = await axiosInstance.post(`/bookings/${id}/reject`);
     return response.data.data;
   },
+
+  getAgreement: async (bookingId: string) => {
+    const response = await axiosInstance.get(`/bookings/${bookingId}/agreement`);
+    return response.data.data;
+  },
+
+  generateAgreement: async (bookingId: string, payload: { rules?: any; terms: string; conditions: string }) => {
+    const response = await axiosInstance.post(`/bookings/${bookingId}/generate-agreement`, payload);
+    return response.data.data;
+  },
+
+  signAgreement: async (bookingId: string, customerName: string) => {
+    const response = await axiosInstance.post(`/bookings/${bookingId}/sign-agreement`, { customerName });
+    return response.data.data;
+  },
+
+  generateInvoice: async (bookingId: string) => {
+    const response = await axiosInstance.post(`/bookings/${bookingId}/generate-invoice`);
+    return response.data.data;
+  },
 };

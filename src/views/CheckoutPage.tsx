@@ -37,7 +37,7 @@ export default function CheckoutPage() {
 
   const { targetType, targetId, amount, title, description } = checkoutContext;
 
-  const [provider, setProvider] = useState<'CHAPA' | 'STRIPE' | 'PAYPAL' | 'FLUTTERWAVE' | 'PAYSTACK' | 'TELEBIRR' | 'MANUAL'>('CHAPA');
+  const [provider, setProvider] = useState<'ARIFPAY' | 'CHAPA' | 'STRIPE' | 'PAYPAL' | 'FLUTTERWAVE' | 'PAYSTACK' | 'TELEBIRR' | 'MANUAL'>('ARIFPAY');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
@@ -209,6 +209,30 @@ export default function CheckoutPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* ArifPay (Primary) */}
+              <button
+                type="button"
+                onClick={() => setProvider('ARIFPAY')}
+                className={`col-span-full p-4 rounded-2xl border text-left transition-all relative ${
+                  provider === 'ARIFPAY'
+                    ? 'border-brand-primary bg-brand-primary/5 bg-brand-primary/10 font-semibold text-brand-primary ring-2 ring-brand-primary/20'
+                    : 'border-gray-200 hover:bg-neutral-slate-50 dark:hover:bg-neutral-slate-950'
+                }`}
+              >
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-bold flex items-center gap-1.5">
+                    <span>ArifPay Gateway</span>
+                    <span className="text-[9px] bg-brand-primary text-white font-semibold px-1.5 py-0.5 rounded-sm uppercase tracking-wider">Primary</span>
+                  </span>
+                  <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${provider === 'ARIFPAY' ? 'border-brand-primary' : 'border-neutral-slate-400'}`}>
+                    {provider === 'ARIFPAY' && <div className="w-1.5 h-1.5 bg-brand-primary rounded-full" />}
+                  </div>
+                </div>
+                <p className="text-[10px] text-neutral-slate-400 mt-1">
+                  Supports Telebirr, Commercial Bank of Ethiopia (CBE), Awash Bank, Dashen Bank, Bank of Abyssinia, and others.
+                </p>
+              </button>
+
               {/* Chapa Pay */}
               <button
                 type="button"

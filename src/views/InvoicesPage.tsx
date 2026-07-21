@@ -11,7 +11,9 @@ export default function InvoicesPage() {
   });
 
   const handleDownload = (id: string, invoiceNumber: string) => {
-    window.open(`/api/v1/payments/invoices/${id}/download`, '_blank');
+    const token = localStorage.getItem('weventure_jwt_token');
+    const url = `/api/v1/payments/invoices/${id}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+    window.open(url, '_blank');
   };
 
   if (isLoading) {

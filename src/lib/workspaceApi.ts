@@ -1,5 +1,17 @@
 import { axiosInstance } from './axiosInstance';
 
+export interface IBillingPlan {
+  id?: string;
+  _id?: string;
+  name: 'Hourly' | 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly';
+  price: number;
+  currency: string;
+  deposit?: number;
+  paymentDueDay?: number;
+  agreementTemplate?: string;
+  isActive: boolean;
+}
+
 export interface IWorkspacePayload {
   name: string;
   type: 'HOT_DESK' | 'MEETING_ROOM' | 'EVENT_VENUE';
@@ -15,6 +27,7 @@ export interface IWorkspacePayload {
   };
   bufferTime?: number;
   imageUrl?: string;
+  billingPlans?: IBillingPlan[];
 }
 
 export const workspaceApi = {

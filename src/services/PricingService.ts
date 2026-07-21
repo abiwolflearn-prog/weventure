@@ -9,6 +9,88 @@ export interface IPricingCalculationResult {
 
 export class PricingService {
   /**
+   * Calculates dynamic unit-based pricing for WeVentureHub plans (VAT, discounts, deposits).
+   */
+  public calculatePlanUnitsAndPrice(
+    workspace: any,
+    planName: string,
+    startTime: Date,
+    endTime: Date
+  ): { units: number; pricePerUnit: number; totalAmount: number; breakdown: string } {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const durationMs = end.getTime() - start.getTime();
+    
+    const activePlan = workspace.billingPlans?.find(
+      (p: any) => p.name.toLowerCase() === planName.toLowerCase() && p.isActive
+    );
+
+    if (!activePlan) {
+      // Fallback to legacy hourly calculation
+      const durationHours = Math.max(0.5, durationMs / (1000 * 60 * 60));
+      const price = workspace.hourlyRate || 0;
+      const total = durationHours * price;
+      return {
+        units: durationHours,
+        pricePerUnit: price,
+        totalAmount: Math.round(total * 100) / 100,
+        breakdown: `Hourly Rate: ${durationHours.toFixed(1)} hours @ ${price} ETB/hr.`
+      };
+    }
+
+    const pricePerUnit = activePlan.price;
+    const currency = activePlan.currency || 'ETB';
+    let units = 1;
+    let breakdown = '';
+
+    if (planName === 'Hourly') {
+      units = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60)));
+      breakdown = `Hourly Plan: ${units} hour(s) @ ${pricePerUnit} ${currency}/hr.`;
+    } else if (planName === 'Daily') {
+      units = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60 * 24)));
+      breakdown = `Daily Plan: ${units} day(s) @ ${pricePerUnit} ${currency}/day.`;
+    } else if (planName === 'Weekly') {
+      units = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60 * 24 * 7)));
+      breakdown = `Weekly Plan: ${units} week(s) @ ${pricePerUnit} ${currency}/week.`;
+    } else if (planName === 'Monthly') {
+      const monthsDiff = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+      units = Math.max(1, monthsDiff === 0 ? 1 : monthsDiff);
+      breakdown = `Monthly Plan: ${units} month(s) @ ${pricePerUnit} ${currency}/month.`;
+    } else if (planName === 'Quarterly') {
+      const monthsDiff = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+      units = Math.max(1, Math.ceil(monthsDiff / 3));
+      breakdown = `Quarterly Plan: ${units} quarter(s) @ ${pricePerUnit} ${currency}/quarter.`;
+    } else if (planName === 'Yearly') {
+      const yearsDiff = end.getFullYear() - start.getFullYear();
+      units = Math.max(1, yearsDiff === 0 ? 1 : yearsDiff);
+      breakdown = `Yearly Plan: ${units} year(s) @ ${pricePerUnit} ${currency}/year.`;
+    }
+
+    // Apply VAT and Discount
+    const vatPercent = activePlan.vat || 0;
+    const discountPercent = activePlan.discount || 0;
+    const deposit = activePlan.deposit || 0;
+
+    const baseTotal = units * pricePerUnit;
+    const discountAmount = (baseTotal * discountPercent) / 100;
+    const taxableAmount = baseTotal - discountAmount;
+    const vatAmount = (taxableAmount * vatPercent) / 100;
+    const finalAmount = taxableAmount + vatAmount + deposit;
+
+    breakdown += ` Base: ${baseTotal} ${currency}.`;
+    if (discountPercent > 0) breakdown += ` Discount (${discountPercent}%): -${discountAmount} ${currency}.`;
+    if (vatPercent > 0) breakdown += ` VAT (${vatPercent}%): +${vatAmount} ${currency}.`;
+    if (deposit > 0) breakdown += ` Security Deposit: +${deposit} ${currency}.`;
+
+    return {
+      units,
+      pricePerUnit,
+      totalAmount: Math.round(finalAmount * 100) / 100,
+      breakdown
+    };
+  }
+
+  /**
    * Calculates the booking price for a workspace, taking into account hourly, daily,
    * package pricing, and dynamic rules.
    */

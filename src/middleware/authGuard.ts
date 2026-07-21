@@ -25,6 +25,11 @@ export const authGuard = (req: Request, res: Response, next: NextFunction): void
       token = cookies['jwt_access_token'] || null;
     }
 
+    // 3. Fallback to query parameters (useful for direct file downloads)
+    if (!token && req.query.token) {
+      token = req.query.token as string;
+    }
+
     if (!token) {
       throw new UnauthorizedError('Access token is missing');
     }
