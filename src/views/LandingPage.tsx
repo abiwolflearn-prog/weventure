@@ -189,11 +189,18 @@ export default function LandingPage() {
   };
 
   // Safe Fallback content for loaders or missing DB configs
-  const displayTitle = homepage?.heroTitle || 'Empower Your Workspace, Simplify Your Events.';
-  const displaySubtitle = homepage?.heroSubtitle || 'Instant booking for premium meeting rooms, dedicated workspaces, and world-class accelerator programs tailored to high-growth operators.';
+  const rawTitle = homepage?.heroTitle?.trim();
+  const displayTitle = rawTitle && rawTitle.length > 0 ? rawTitle : 'Empower Your Workspace, Simplify Your Events.';
+  const rawSubtitle = homepage?.heroSubtitle?.trim();
+  const displaySubtitle = rawSubtitle && rawSubtitle.length > 0 ? rawSubtitle : 'Instant booking for premium meeting rooms, dedicated workspaces, and world-class accelerator programs tailored to high-growth operators.';
   const displayCtaText = homepage?.heroCtaText || 'Explore Available Spaces';
   const displayCtaLink = homepage?.heroCtaLink || '/workspaces';
   const displayHeroImage = homepage?.heroImageUrl || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1200';
+
+  // Format title words safely
+  const titleWords = displayTitle.split(/\s+/);
+  const mainTitleWords = titleWords.length > 3 ? titleWords.slice(0, -3).join(' ') : titleWords.slice(0, Math.max(1, titleWords.length - 1)).join(' ');
+  const highlightTitleWords = titleWords.length > 3 ? titleWords.slice(-3).join(' ') : titleWords.slice(Math.max(1, titleWords.length - 1)).join(' ');
 
   const sliderImages = [
     displayHeroImage,
@@ -279,8 +286,10 @@ export default function LandingPage() {
             transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
             className="font-sans font-bold text-4xl sm:text-6xl tracking-tight leading-[1.1] mb-6 text-white"
           >
-            {displayTitle.split(' ').slice(0, -3).join(' ')} <br />
-            <span className="bg-gradient-to-r from-brand-accent via-emerald-400 to-teal-400 bg-clip-text text-transparent font-extrabold">{displayTitle.split(' ').slice(-3).join(' ')}</span>
+            {mainTitleWords}{' '}
+            <span className="text-brand-accent bg-gradient-to-r from-brand-accent via-emerald-400 to-teal-400 bg-clip-text [-webkit-background-clip:text] sm:text-transparent font-extrabold inline-block">
+              {highlightTitleWords}
+            </span>
           </motion.h1>
 
           <motion.p 
@@ -386,31 +395,37 @@ export default function LandingPage() {
       </section>
 
       {/* 2. SPONSORS ROW (DYNAMIC) */}
-      {sponsors && sponsors.length > 0 && (
-        <section className="py-12 bg-neutral-900/60 border-y border-neutral-800">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p className="text-[11px] font-bold text-neutral-slate-400 tracking-wider uppercase mb-6">Our Dynamic Ecosystem Sponsors</p>
-            <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
-              {sponsors.map((sponsor) => (
-                <a 
-                  key={sponsor.id} 
-                  href={sponsor.websiteUrl || '#'} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="transition-opacity duration-300 hover:opacity-100 opacity-60"
-                >
-                  <img 
-                    src={sponsor.logoUrl} 
-                    alt={sponsor.name} 
-                    className="h-10 object-contain rounded-lg border border-neutral-800"
-                    referrerPolicy="no-referrer"
-                  />
-                </a>
-              ))}
-            </div>
+      <section className="py-12 bg-neutral-900/60 border-y border-neutral-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <p className="text-[11px] font-bold text-neutral-slate-400 tracking-wider uppercase mb-6">Our Dynamic Ecosystem Sponsor</p>
+          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
+            {(sponsors && sponsors.length > 0
+              ? sponsors.filter(s => s.name.toLowerCase().includes('arifpay'))
+              : [{ id: 'arifpay', name: 'ArifPay', logoUrl: 'https://arifpay.net/wp-content/uploads/2021/08/arifpay-logo.png', websiteUrl: 'https://arifpay.net' }]
+            ).concat(
+              (!sponsors || !sponsors.some(s => s.name.toLowerCase().includes('arifpay')))
+                ? [{ id: 'arifpay', name: 'ArifPay', logoUrl: 'https://arifpay.net/wp-content/uploads/2021/08/arifpay-logo.png', websiteUrl: 'https://arifpay.net' }]
+                : []
+            ).slice(0, 1).map((sponsor) => (
+              <a 
+                key={sponsor.id || sponsor.name} 
+                href={sponsor.websiteUrl || 'https://arifpay.net'} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center space-x-3 px-6 py-3 bg-neutral-800/80 border border-neutral-700/80 rounded-2xl hover:border-brand-accent/60 transition-all duration-300 group shadow-md"
+              >
+                <span className="w-3 h-3 rounded-full bg-brand-accent animate-pulse" />
+                <span className="font-extrabold text-white text-lg tracking-wide group-hover:text-brand-accent transition-colors">
+                  {sponsor.name}
+                </span>
+                <span className="text-xs text-neutral-400 font-semibold px-2 py-0.5 rounded-md bg-neutral-900 border border-neutral-700">
+                  Official Payment Partner
+                </span>
+              </a>
+            ))}
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
       {/* 3. FEATURED WORKSPACES (DYNAMIC) */}
       <section className="py-24 bg-[#111111] border-b border-neutral-800">
@@ -885,15 +900,15 @@ export default function LandingPage() {
               <div className="space-y-4 pt-4">
                 <div className="flex items-center space-x-3 text-neutral-slate-300 font-medium">
                   <Mail className="w-5 h-5 text-brand-accent" />
-                  <span className="text-sm">connect@weventurehub.com</span>
+                  <span className="text-sm">info@weventurehub.com</span>
                 </div>
                 <div className="flex items-center space-x-3 text-neutral-slate-300 font-medium">
                   <Phone className="w-5 h-5 text-brand-accent" />
-                  <span className="text-sm">+1 (800) WE-VENTURE</span>
+                  <span className="text-sm">091 124 3503</span>
                 </div>
                 <div className="flex items-center space-x-3 text-neutral-slate-300 font-medium">
                   <MapPin className="w-5 h-5 text-brand-accent" />
-                  <span className="text-sm">WeVentureHub Silicon Valley, California</span>
+                  <span className="text-sm">Airport Road, Sur Construction second floor, Addis Ababa</span>
                 </div>
               </div>
             </div>

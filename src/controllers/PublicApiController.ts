@@ -415,7 +415,19 @@ export class PublicApiController {
    */
   public async getSponsors(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const sponsors = await Sponsor.find({ isPublished: true } as any).sort({ tier: 1 }).exec();
+      await Sponsor.deleteMany({ name: { $ne: 'ArifPay' } });
+      let sponsors = await Sponsor.find({ isPublished: true, name: 'ArifPay' } as any).exec();
+      if (!sponsors || sponsors.length === 0) {
+        const created = await Sponsor.create({
+          tenantId: 'weventurehub',
+          name: 'ArifPay',
+          logoUrl: 'https://arifpay.net/wp-content/uploads/2021/08/arifpay-logo.png',
+          websiteUrl: 'https://arifpay.net',
+          tier: 'Platinum',
+          isPublished: true
+        });
+        sponsors = [created as any];
+      }
       ApiResponse.success(res, sponsors);
     } catch (error) {
       next(error);
@@ -506,13 +518,13 @@ export class PublicApiController {
           companyName: 'WeVentureHub',
           tagline: 'The Premier Entrepreneurship & Coworking Hub in Addis Ababa',
           description: 'WeVentureHub empowers African startups, founders, and enterprises with world-class workspaces and event acceleration.',
-          phoneNumbers: ['+251 911 234 567', '+251 116 890 123'],
-          emailAddresses: ['info@weventurehub.com', 'support@weventurehub.com'],
-          officeAddress: 'Bole Road, Next to Sunshine Building, Floor 4, Addis Ababa, Ethiopia',
+          phoneNumbers: ['091 124 3503'],
+          emailAddresses: ['info@weventurehub.com'],
+          officeAddress: 'Airport Road, Sur Construction second floor, Addis Ababa',
           city: 'Addis Ababa',
           country: 'Ethiopia',
           workingHours: 'Mon - Sat: 8:00 AM - 10:00 PM | Sun: Closed',
-          emergencyContact: '+251 911 000 000',
+          emergencyContact: '091 124 3503',
           googleMapEmbedUrl: 'https://maps.google.com',
           socialMediaLinks: {
             facebook: 'https://facebook.com/weventurehub',

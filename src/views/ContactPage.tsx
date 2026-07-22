@@ -67,11 +67,11 @@ export default function ContactPage() {
               <div className="space-y-4 text-[13px] text-neutral-slate-300">
                 <div className="flex items-start space-x-3.5">
                   <MapPin className="w-5 h-5 text-brand-accent shrink-0 mt-0.5" />
-                  <span>{companyInfo?.officeAddress || 'Bole Road, Next to Sunshine Building, Addis Ababa, Ethiopia'}</span>
+                  <span>{companyInfo?.officeAddress || 'Airport Road, Sur Construction second floor, Addis Ababa'}</span>
                 </div>
                 <div className="flex items-center space-x-3.5">
                   <Phone className="w-5 h-5 text-brand-accent shrink-0" />
-                  <span>{companyInfo?.phoneNumbers?.[0] || '+251 911 234 567'}</span>
+                  <span>{companyInfo?.phoneNumbers?.[0] || '091 124 3503'}</span>
                 </div>
                 <div className="flex items-center space-x-3.5">
                   <Mail className="w-5 h-5 text-brand-accent shrink-0" />
@@ -87,7 +87,7 @@ export default function ContactPage() {
             </div>
 
             <div className="p-4 bg-[#111111] border border-neutral-800 rounded-[14px] text-[12px] text-neutral-slate-300 leading-relaxed font-semibold">
-              💡 <span className="text-brand-accent font-bold">Emergency Line:</span> {companyInfo?.emergencyContact || '+251 911 000 000'}
+              💡 <span className="text-brand-accent font-bold">Emergency Line:</span> {companyInfo?.emergencyContact || '091 124 3503'}
             </div>
           </div>
 

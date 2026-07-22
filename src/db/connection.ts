@@ -156,17 +156,21 @@ export async function connectDatabase(): Promise<typeof mongoose> {
         logger.info('🌱 Seeded default Event Categories');
       }
 
-      // 3. Seed Sponsors
+      // 3. Seed Sponsors (Exclusive Sponsor: ArifPay)
+      await Sponsor.deleteMany({ name: { $ne: 'ArifPay' } });
       const sponsorCount = await Sponsor.countDocuments();
       if (sponsorCount === 0) {
         await Sponsor.create([
-          { name: 'Ethiopian Airlines', logoUrl: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&q=80&w=200', websiteUrl: 'https://www.ethiopianairlines.com', tier: 'Platinum' },
-          { name: 'Safarisom', logoUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=200', websiteUrl: 'https://www.safaricom.co.et', tier: 'Platinum' },
-          { name: 'Commercial Bank of Ethiopia', logoUrl: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=200', websiteUrl: 'https://www.combanketh.et', tier: 'Gold' },
-          { name: 'Awash Bank', logoUrl: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&q=80&w=200', websiteUrl: 'https://awashbank.com', tier: 'Gold' },
-          { name: 'Dashen Bank', logoUrl: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=200', websiteUrl: 'https://dashenbanksc.com', tier: 'Silver' }
+          {
+            tenantId: 'weventurehub',
+            name: 'ArifPay',
+            logoUrl: 'https://arifpay.net/wp-content/uploads/2021/08/arifpay-logo.png',
+            websiteUrl: 'https://arifpay.net',
+            tier: 'Platinum',
+            isPublished: true
+          }
         ]);
-        logger.info('🌱 Seeded Sponsors');
+        logger.info('🌱 Seeded Exclusive Sponsor: ArifPay');
       }
 
       // 4. Seed Partners

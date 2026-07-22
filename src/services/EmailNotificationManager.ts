@@ -370,7 +370,7 @@ class EmailNotificationManager {
     const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Attendee';
     const eventTitle = event.title || 'WeVentureHub Event';
     const dateRange = event.schedule?.startDate ? new Date(event.schedule.startDate).toLocaleString() : 'Today';
-    const location = event.location?.name || 'WeVentureHub Event Hall, Bole Road';
+    const location = event.location?.name || 'WeVentureHub Event Hall, Airport Road, Sur Construction 2nd Floor, Addis Ababa';
     const organizerName = event.organizer?.name || 'WeVentureHub Team';
 
     await emailService.enqueueEmail({

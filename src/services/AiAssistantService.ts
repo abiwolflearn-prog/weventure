@@ -43,10 +43,10 @@ export class AiAssistantService {
     const context: any = {
       weventureInfo: {
         name: 'WeVentureHub Event & Workspace Management Platform',
-        address: 'Bole Road, Near Friendship Building, Addis Ababa, Ethiopia',
-        email: 'info@weventurehub.et',
-        phone: '+251 911 234 567 / +251 116 789 012',
-        workingHours: 'Monday - Saturday: 7:30 AM - 10:00 PM | Sunday: 9:00 AM - 6:00 PM',
+        address: 'Airport Road, Sur Construction second floor, Addis Ababa',
+        email: 'info@weventurehub.com',
+        phone: '091 124 3503',
+        workingHours: 'Mon - Sat: 8:00 AM - 10:00 PM | Sun: Closed',
         amenities: [
           'High-speed Fiber Wi-Fi (100 Mbps+)',
           'Barista Coffee & Refreshment Lounge',

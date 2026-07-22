@@ -15,9 +15,9 @@ export const DEFAULT_BRANDING: IEmailBranding = {
   buttonTextColor: '#ffffff',
   fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   companyName: 'WeVentureHub',
-  companyAddress: 'Bole Road, Mega Building 4th Floor, Addis Ababa, Ethiopia',
-  supportEmail: 'support@weventurehub.com',
-  supportPhone: '+251 911 234 567',
+  companyAddress: 'Airport Road, Sur Construction second floor, Addis Ababa',
+  supportEmail: 'info@weventurehub.com',
+  supportPhone: '091 124 3503',
   footerText: 'You are receiving this automated email as a valued member, workspace client, or community partner of WeVentureHub.',
   signatureText: 'Warm regards,\nThe WeVentureHub Operations Team',
 };
