@@ -24,7 +24,8 @@ import {
   Cpu,
   Bot,
   Mail,
-  Globe
+  Globe,
+  Rocket
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store';
 import { logout } from '../store/authSlice';
@@ -101,6 +102,7 @@ export default function DashboardLayout() {
     { name: 'System Settings', path: '/dashboard/settings', icon: Settings, requiredPermission: Permission.SETTINGS_UPDATE },
     { name: 'Email Center', path: '/dashboard/emails', icon: Mail },
     { name: 'Website CMS', path: '/dashboard/cms', icon: Globe, requiredPermission: Permission.SETTINGS_UPDATE },
+    { name: 'Startup Programs', path: '/dashboard/startups', icon: Rocket },
     { name: 'Integrations & API', path: '/dashboard/integrations', icon: Cpu },
   ];
 

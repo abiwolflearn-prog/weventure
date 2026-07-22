@@ -20,6 +20,7 @@ import integrationRouter from './integration.routes';
 import assistantRouter from './assistant.routes';
 import { emailRouter } from './email.routes';
 import { cmsRouter } from './cms.routes';
+import startupRouter from './startup.routes';
 
 const apiRouter = Router();
 
@@ -80,6 +81,9 @@ apiRouter.use('/emails', emailRouter);
 
 // Mount CMS & content management module
 apiRouter.use('/cms', cmsRouter);
+
+// Mount Startup Programs & Applications module
+apiRouter.use('/startups', startupRouter);
 
 /**
  * @route   GET /api/v1/health

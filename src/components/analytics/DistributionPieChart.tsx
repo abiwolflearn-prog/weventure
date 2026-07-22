@@ -21,7 +21,7 @@ interface DistributionPieChartProps {
 }
 
 export default function DistributionPieChart({
-  data,
+  data = [],
   title,
   description,
   centerLabel,

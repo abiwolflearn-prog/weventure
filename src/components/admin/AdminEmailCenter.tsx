@@ -81,11 +81,6 @@ export const AdminEmailCenter: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const getAuthHeader = () => ({
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${localStorage.getItem('token')}`,
-  });
-
   useEffect(() => {
     if (activeTab === 'analytics') fetchAnalytics();
     if (activeTab === 'templates') fetchTemplates();
@@ -118,16 +113,18 @@ export const AdminEmailCenter: React.FC = () => {
     setLoading(true);
     try {
       const res = await axiosInstance.get('/emails/admin/templates');
-      if (res.data?.data) {
-        const list = res.data.data.templates || [];
-        setTemplates(list);
-        if (list.length > 0 && !selectedTemplateKey) {
-          setSelectedTemplateKey(list[0].templateKey);
-          setEditingTemplate({ ...list[0] });
-        }
+      const data = res.data?.data;
+      const list = Array.isArray(data)
+        ? data
+        : (data?.templates && Array.isArray(data.templates) ? data.templates : []);
+      setTemplates(list);
+      if (list.length > 0 && !selectedTemplateKey) {
+        setSelectedTemplateKey(list[0].templateKey);
+        setEditingTemplate({ ...list[0] });
       }
     } catch (err) {
       console.error(err);
+      setTemplates([]);
     } finally {
       setLoading(false);
     }
@@ -136,18 +133,12 @@ export const AdminEmailCenter: React.FC = () => {
   const fetchQueue = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        status: queueFilter,
-        search: queueSearch,
-        page: String(queuePage),
-        limit: '20',
+      const res = await axiosInstance.get('/emails/admin/queue', {
+        params: { status: queueFilter, search: queueSearch, page: queuePage },
       });
-      const res = await axiosInstance.get(`/emails/admin/queue?${params}`);
       if (res.data?.data) {
-        setQueueItems(res.data.data.items || []);
-        if (res.data.data.pagination) {
-          setQueueTotalPages(res.data.data.pagination.totalPages || 1);
-        }
+        setQueueItems(Array.isArray(res.data.data.items) ? res.data.data.items : []);
+        setQueueTotalPages(res.data.data.pagination?.totalPages || res.data.data.totalPages || 1);
       }
     } catch (err) {
       console.error(err);
@@ -160,8 +151,8 @@ export const AdminEmailCenter: React.FC = () => {
     setLoading(true);
     try {
       const res = await axiosInstance.get('/emails/admin/settings');
-      if (res.data?.data?.settings) {
-        setSettingsData(res.data.data.settings);
+      if (res.data?.data) {
+        setSettingsData(res.data.data);
       }
     } catch (err) {
       console.error(err);
@@ -175,7 +166,7 @@ export const AdminEmailCenter: React.FC = () => {
     try {
       const res = await axiosInstance.get('/emails/admin/smtp');
       if (res.data?.data) {
-        setSmtpConfig(res.data.data.smtp);
+        setSmtpConfig(res.data.data);
       }
     } catch (err) {
       console.error(err);
@@ -210,6 +201,7 @@ export const AdminEmailCenter: React.FC = () => {
       showToast(err?.message || 'Error re-sending email');
     }
   };
+
   const handleSaveTemplate = async () => {
     if (!editingTemplate) return;
     try {
@@ -250,77 +242,77 @@ export const AdminEmailCenter: React.FC = () => {
   };
 
   return (
-    <div className="bg-slate-900 text-slate-100 rounded-2xl border border-slate-800 shadow-xl p-6 space-y-6 min-h-[600px]">
+    <div className="bg-white text-slate-900 rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6 min-h-[600px]">
       {/* Toast Alert */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-blue-600 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2 text-sm font-semibold animate-in fade-in slide-in-from-bottom-3">
-          <Sparkles className="w-4 h-4 text-emerald-300" />
-          {toastMessage}
+        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-bold animate-bounce">
+          <CheckCircle2 className="w-5 h-5" />
+          <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Header & Tabs */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <Mail className="w-6 h-6 text-blue-400" />
-            <h2 className="text-xl font-bold text-white tracking-tight">Enterprise Automated Email System</h2>
-            <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full">
+            <Mail className="w-6 h-6 text-brand-primary" />
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Enterprise Automated Email System</h2>
+            <span className="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full">
               Production
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-600 mt-1">
             Automated email queue processor, template builder, delivery tracking & SMTP settings for WeVentureHub.
           </p>
         </div>
 
-        <div className="flex items-center gap-1.5 bg-slate-800/80 p-1.5 rounded-xl border border-slate-700/50">
+        <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
           <button
             onClick={() => setActiveTab('analytics')}
-            className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
               activeTab === 'analytics'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                ? 'bg-brand-primary text-white shadow-sm'
+                : 'text-slate-700 hover:text-slate-900 hover:bg-slate-200'
             }`}
           >
             <BarChart3 className="w-3.5 h-3.5" /> Analytics
           </button>
           <button
             onClick={() => setActiveTab('templates')}
-            className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
               activeTab === 'templates'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                ? 'bg-brand-primary text-white shadow-sm'
+                : 'text-slate-700 hover:text-slate-900 hover:bg-slate-200'
             }`}
           >
             <FileCode className="w-3.5 h-3.5" /> Template Builder
           </button>
           <button
             onClick={() => setActiveTab('queue')}
-            className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
               activeTab === 'queue'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                ? 'bg-brand-primary text-white shadow-sm'
+                : 'text-slate-700 hover:text-slate-900 hover:bg-slate-200'
             }`}
           >
             <Layers className="w-3.5 h-3.5" /> Queue & Logs
           </button>
           <button
             onClick={() => setActiveTab('settings')}
-            className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
               activeTab === 'settings'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                ? 'bg-brand-primary text-white shadow-sm'
+                : 'text-slate-700 hover:text-slate-900 hover:bg-slate-200'
             }`}
           >
             <Settings className="w-3.5 h-3.5" /> Admin Email Settings
           </button>
           <button
             onClick={() => setActiveTab('smtp')}
-            className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
               activeTab === 'smtp'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                ? 'bg-brand-primary text-white shadow-sm'
+                : 'text-slate-700 hover:text-slate-900 hover:bg-slate-200'
             }`}
           >
             <Server className="w-3.5 h-3.5" /> SMTP Server
@@ -332,41 +324,41 @@ export const AdminEmailCenter: React.FC = () => {
       {activeTab === 'analytics' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 space-y-1">
-              <span className="text-xs text-slate-400 font-medium">Total Emails Delivered</span>
-              <div className="text-2xl font-black text-white">{analytics?.totalSent ?? '---'}</div>
-              <p className="text-[11px] text-emerald-400 font-medium flex items-center gap-1">
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-1">
+              <span className="text-xs text-slate-500 font-medium">Total Emails Delivered</span>
+              <div className="text-2xl font-black text-slate-900">{analytics?.totalSent ?? '---'}</div>
+              <p className="text-[11px] text-emerald-700 font-medium flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" /> {analytics?.deliveryRate ?? 98.4}% Success Rate
               </p>
             </div>
 
-            <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 space-y-1">
-              <span className="text-xs text-slate-400 font-medium">Est. Recipient Open Rate</span>
-              <div className="text-2xl font-black text-blue-400">{analytics?.openRate ?? 84.2}%</div>
-              <p className="text-[11px] text-slate-400 font-medium">Based on HTML pixel tracking</p>
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-1">
+              <span className="text-xs text-slate-500 font-medium">Est. Recipient Open Rate</span>
+              <div className="text-2xl font-black text-blue-600">{analytics?.openRate ?? 84.2}%</div>
+              <p className="text-[11px] text-slate-500 font-medium">Based on HTML pixel tracking</p>
             </div>
 
-            <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 space-y-1">
-              <span className="text-xs text-slate-400 font-medium">Queue Pending Batch</span>
-              <div className="text-2xl font-black text-amber-400">{analytics?.queueStatus?.pending ?? 0}</div>
-              <p className="text-[11px] text-slate-400 font-medium">Processing every 5 sec</p>
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-1">
+              <span className="text-xs text-slate-500 font-medium">Queue Pending Batch</span>
+              <div className="text-2xl font-black text-amber-600">{analytics?.queueStatus?.pending ?? 0}</div>
+              <p className="text-[11px] text-slate-500 font-medium">Processing every 5 sec</p>
             </div>
 
-            <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 space-y-1">
-              <span className="text-xs text-slate-400 font-medium">Automated Reminders</span>
-              <div className="text-2xl font-black text-emerald-400">{analytics?.reminderSuccessRate ?? 96.8}%</div>
-              <p className="text-[11px] text-slate-400 font-medium">Payment & renewal conversions</p>
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-1">
+              <span className="text-xs text-slate-500 font-medium">Automated Reminders</span>
+              <div className="text-2xl font-black text-emerald-600">{analytics?.reminderSuccessRate ?? 96.8}%</div>
+              <p className="text-[11px] text-slate-500 font-medium">Payment & renewal conversions</p>
             </div>
           </div>
 
           {/* Top Templates List */}
-          <div className="bg-slate-800/40 border border-slate-800 rounded-xl p-5 space-y-3">
-            <h3 className="text-sm font-semibold text-slate-200">Most Frequently Dispatched Templates</h3>
-            <div className="divide-y divide-slate-800">
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-3">
+            <h3 className="text-sm font-semibold text-slate-900">Most Frequently Dispatched Templates</h3>
+            <div className="divide-y divide-slate-200">
               {analytics?.topTemplates?.map((t: any) => (
                 <div key={t.key} className="py-2.5 flex items-center justify-between text-xs">
-                  <span className="font-mono text-blue-400">{t.key}</span>
-                  <span className="bg-slate-800 px-2.5 py-1 rounded-md text-slate-300 font-semibold">{t.count} sent</span>
+                  <span className="font-mono text-blue-600 font-semibold">{t.key}</span>
+                  <span className="bg-white border border-slate-200 px-2.5 py-1 rounded-md text-slate-700 font-semibold">{t.count} sent</span>
                 </div>
               ))}
             </div>
@@ -378,10 +370,10 @@ export const AdminEmailCenter: React.FC = () => {
       {activeTab === 'templates' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Template Selector */}
-          <div className="bg-slate-800/50 border border-slate-800 rounded-xl p-4 space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">System Template Registry</h3>
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">System Template Registry</h3>
             <div className="space-y-1 max-h-[500px] overflow-y-auto pr-1">
-              {templates.map((tpl) => (
+              {(Array.isArray(templates) ? templates : []).map((tpl) => (
                 <button
                   key={tpl.templateKey}
                   onClick={() => {
@@ -390,12 +382,12 @@ export const AdminEmailCenter: React.FC = () => {
                   }}
                   className={`w-full text-left p-3 rounded-xl border text-xs transition-all ${
                     selectedTemplateKey === tpl.templateKey
-                      ? 'bg-blue-600/20 border-blue-500 text-white font-semibold'
-                      : 'bg-slate-800/30 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                      ? 'bg-blue-50 border-blue-300 text-slate-900 font-bold shadow-sm'
+                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
                   }`}
                 >
-                  <div className="font-medium text-slate-200">{tpl.name || tpl.templateKey}</div>
-                  <div className="text-[11px] text-slate-400 truncate mt-0.5">{tpl.subject}</div>
+                  <div className="font-bold text-slate-900">{tpl.name || tpl.templateKey}</div>
+                  <div className="text-[11px] text-slate-500 truncate mt-0.5">{tpl.subject}</div>
                 </button>
               ))}
             </div>
@@ -405,28 +397,28 @@ export const AdminEmailCenter: React.FC = () => {
           <div className="lg:col-span-2 space-y-4">
             {editingTemplate ? (
               <div className="space-y-4">
-                <div className="flex items-center justify-between bg-slate-800/80 p-3 rounded-xl border border-slate-700">
-                  <span className="text-xs font-mono font-bold text-blue-400">{editingTemplate.templateKey}</span>
+                <div className="flex items-center justify-between bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                  <span className="text-xs font-mono font-bold text-brand-primary">{editingTemplate.templateKey}</span>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setTemplatePreviewMode('editor')}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg ${
-                        templatePreviewMode === 'editor' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+                      className={`px-3 py-1.5 text-xs font-bold rounded-lg ${
+                        templatePreviewMode === 'editor' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-200'
                       }`}
                     >
                       Editor
                     </button>
                     <button
                       onClick={() => setTemplatePreviewMode('preview')}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg ${
-                        templatePreviewMode === 'preview' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+                      className={`px-3 py-1.5 text-xs font-bold rounded-lg ${
+                        templatePreviewMode === 'preview' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-200'
                       }`}
                     >
                       <Eye className="w-3.5 h-3.5 inline mr-1" /> Live Preview
                     </button>
                     <button
                       onClick={handleSaveTemplate}
-                      className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg shadow-md transition-all flex items-center gap-1"
+                      className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1"
                     >
                       <Save className="w-3.5 h-3.5" /> Save Changes
                     </button>
@@ -436,18 +428,18 @@ export const AdminEmailCenter: React.FC = () => {
                 {templatePreviewMode === 'editor' ? (
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1">Subject Line</label>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Subject Line</label>
                       <input
                         type="text"
                         value={editingTemplate.subject || ''}
                         onChange={(e) => setEditingTemplate({ ...editingTemplate, subject: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-blue-500"
+                        className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1">Primary Color</label>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Primary Color</label>
                         <input
                           type="color"
                           value={editingTemplate.branding?.primaryColor || '#3b82f6'}
@@ -457,11 +449,11 @@ export const AdminEmailCenter: React.FC = () => {
                               branding: { ...editingTemplate.branding, primaryColor: e.target.value },
                             })
                           }
-                          className="w-full h-10 bg-slate-950 border border-slate-800 rounded-xl p-1 cursor-pointer"
+                          className="w-full h-10 bg-white border border-slate-300 rounded-xl p-1 cursor-pointer"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1">Custom Header Logo URL</label>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Custom Header Logo URL</label>
                         <input
                           type="text"
                           value={editingTemplate.branding?.logoUrl || ''}
@@ -471,19 +463,19 @@ export const AdminEmailCenter: React.FC = () => {
                               branding: { ...editingTemplate.branding, logoUrl: e.target.value },
                             })
                           }
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-blue-500"
+                          className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary"
                           placeholder="https://weventurehub.com/logo.png"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1">HTML Template Body</label>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">HTML Template Body</label>
                       <textarea
                         rows={12}
                         value={editingTemplate.bodyHtml || ''}
                         onChange={(e) => setEditingTemplate({ ...editingTemplate, bodyHtml: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-emerald-400 focus:outline-none focus:border-blue-500"
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs font-mono text-emerald-400 focus:outline-none focus:border-brand-primary"
                       />
                     </div>
                   </div>
@@ -494,7 +486,7 @@ export const AdminEmailCenter: React.FC = () => {
                 )}
               </div>
             ) : (
-              <div className="text-center py-20 text-slate-500 text-sm">Select a template to view or edit.</div>
+              <div className="text-center py-20 text-slate-500 text-sm font-medium">Select a template to view or edit.</div>
             )}
           </div>
         </div>
@@ -506,20 +498,20 @@ export const AdminEmailCenter: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <div className="relative flex-1 sm:w-64">
-                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3" />
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
                 <input
                   type="text"
                   placeholder="Search recipient, subject..."
                   value={queueSearch}
                   onChange={(e) => setQueueSearch(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                  className="w-full bg-white border border-slate-300 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-brand-primary"
                 />
               </div>
 
               <select
                 value={queueFilter}
                 onChange={(e) => setQueueFilter(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none"
+                className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium focus:outline-none"
               >
                 <option value="ALL">All Statuses</option>
                 <option value="pending">Pending</option>
@@ -531,35 +523,35 @@ export const AdminEmailCenter: React.FC = () => {
 
             <button
               onClick={() => handleRetryQueueItem(undefined, true)}
-              className="px-3.5 py-2 bg-amber-600/20 text-amber-400 border border-amber-500/30 hover:bg-amber-600/30 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5"
+              className="px-3.5 py-2 bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
             >
               <RefreshCw className="w-3.5 h-3.5" /> Retry All Failed Items
             </button>
           </div>
 
-          <div className="border border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-800">
+          <div className="border border-slate-200 rounded-2xl overflow-hidden divide-y divide-slate-200 bg-white shadow-sm">
             {queueItems.length === 0 ? (
-              <div className="text-center py-12 text-slate-500 text-xs">No queue items match your filter.</div>
+              <div className="text-center py-12 text-slate-500 text-xs font-medium">No queue items match your filter.</div>
             ) : (
               queueItems.map((item) => (
-                <div key={item._id} className="p-3.5 bg-slate-950/40 hover:bg-slate-800/40 transition-colors flex items-center justify-between gap-3 text-xs">
+                <div key={item._id} className="p-3.5 hover:bg-slate-50 transition-colors flex items-center justify-between gap-3 text-xs">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-white">{item.recipientEmail}</span>
-                      <span className="text-slate-400 font-mono text-[11px]">{item.templateKey}</span>
+                      <span className="font-bold text-slate-900">{item.recipientEmail}</span>
+                      <span className="text-slate-500 font-mono text-[11px]">{item.templateKey}</span>
                     </div>
-                    <p className="text-slate-400 text-[11px]">{item.subject}</p>
-                    {item.lastError && <p className="text-rose-400 text-[10px] font-mono">{item.lastError}</p>}
+                    <p className="text-slate-600 text-[11px] font-medium">{item.subject}</p>
+                    {item.lastError && <p className="text-rose-600 text-[10px] font-mono">{item.lastError}</p>}
                   </div>
 
                   <div className="flex items-center gap-3">
                     <span
-                      className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase ${
+                      className={`px-2.5 py-1 text-[10px] font-bold rounded-full uppercase ${
                         item.status === 'sent'
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                           : item.status === 'failed'
-                          ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                          : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                          ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                          : 'bg-amber-100 text-amber-800 border border-amber-200'
                       }`}
                     >
                       {item.status}
@@ -569,13 +561,13 @@ export const AdminEmailCenter: React.FC = () => {
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => handleRetryQueueItem(item._id)}
-                          className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium rounded-lg"
+                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold rounded-lg border border-slate-300"
                         >
                           Retry Queue
                         </button>
                         <button
                           onClick={() => handleResendFailedLog(item._id)}
-                          className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-medium rounded-lg flex items-center gap-1"
+                          className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold rounded-lg flex items-center gap-1 shadow-sm"
                         >
                           <Send className="w-3 h-3" /> Resend Direct
                         </button>
@@ -592,19 +584,19 @@ export const AdminEmailCenter: React.FC = () => {
       {/* 4. ADMIN EMAIL SETTINGS TAB */}
       {activeTab === 'settings' && (
         <div className="space-y-6 max-w-4xl">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-4">
             <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Settings className="w-5 h-5 text-blue-400" /> Admin Email & Sender Configuration
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Settings className="w-5 h-5 text-brand-primary" /> Admin Email & Sender Configuration
               </h3>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-slate-600 mt-1 font-medium">
                 Configure primary/secondary admin recipients and dynamic sender addresses without editing application code.
               </p>
             </div>
             <button
               onClick={handleSaveSettings}
               disabled={isSavingSettings}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl shadow-lg transition-all flex items-center gap-2 disabled:opacity-50"
+              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-2 disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
               {isSavingSettings ? 'Saving...' : 'Save Settings'}
@@ -613,15 +605,15 @@ export const AdminEmailCenter: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Section 1: Admin Recipient Addresses */}
-            <div className="bg-slate-800/40 border border-slate-800 rounded-2xl p-5 space-y-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-blue-400 flex items-center gap-2">
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-brand-primary flex items-center gap-2">
                 <Mail className="w-4 h-4" /> Admin Notification Recipients
               </h4>
 
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">
-                    Primary Admin Email <span className="text-rose-400">*</span>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Primary Admin Email <span className="text-rose-600">*</span>
                   </label>
                   <input
                     type="email"
@@ -633,13 +625,13 @@ export const AdminEmailCenter: React.FC = () => {
                       })
                     }
                     placeholder="admin@weventurehub.com"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary"
                   />
-                  <span className="text-[10px] text-slate-500 mt-0.5 block">Receives user registrations, bookings, and agreement alerts.</span>
+                  <span className="text-[10px] text-slate-500 mt-0.5 block font-medium">Receives user registrations, bookings, and agreement alerts.</span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Secondary Admin Email</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Secondary Admin Email</label>
                   <input
                     type="email"
                     value={settingsData.adminEmails?.secondaryAdminEmail || ''}
@@ -650,12 +642,12 @@ export const AdminEmailCenter: React.FC = () => {
                       })
                     }
                     placeholder="operations@weventurehub.com"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Billing & Finance Admin Email</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Billing & Finance Admin Email</label>
                   <input
                     type="email"
                     value={settingsData.adminEmails?.billingEmail || ''}
@@ -666,13 +658,13 @@ export const AdminEmailCenter: React.FC = () => {
                       })
                     }
                     placeholder="billing@weventurehub.com"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary"
                   />
-                  <span className="text-[10px] text-slate-500 mt-0.5 block">Receives payment receipts, failed payments, and overdue invoice alerts.</span>
+                  <span className="text-[10px] text-slate-500 mt-0.5 block font-medium">Receives payment receipts, failed payments, and overdue invoice alerts.</span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Support & Escalations Admin Email</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Support & Escalations Admin Email</label>
                   <input
                     type="email"
                     value={settingsData.adminEmails?.supportEmail || ''}
@@ -683,13 +675,13 @@ export const AdminEmailCenter: React.FC = () => {
                       })
                     }
                     placeholder="support@weventurehub.com"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary"
                   />
-                  <span className="text-[10px] text-slate-500 mt-0.5 block">Receives AI chatbot escalation requests and support tickets.</span>
+                  <span className="text-[10px] text-slate-500 mt-0.5 block font-medium">Receives AI chatbot escalation requests and support tickets.</span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Contact Desk Admin Email</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Contact Desk Admin Email</label>
                   <input
                     type="email"
                     value={settingsData.adminEmails?.contactEmail || ''}
@@ -700,22 +692,22 @@ export const AdminEmailCenter: React.FC = () => {
                       })
                     }
                     placeholder="contact@weventurehub.com"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary"
                   />
-                  <span className="text-[10px] text-slate-500 mt-0.5 block">Receives public website contact form submissions.</span>
+                  <span className="text-[10px] text-slate-500 mt-0.5 block font-medium">Receives public website contact form submissions.</span>
                 </div>
               </div>
             </div>
 
             {/* Section 2: Configurable Sender Addresses */}
-            <div className="bg-slate-800/40 border border-slate-800 rounded-2xl p-5 space-y-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-2">
                 <Send className="w-4 h-4" /> Configurable Outgoing Sender Addresses
               </h4>
 
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
                     Noreply / Default Sender Address
                   </label>
                   <input
@@ -728,13 +720,13 @@ export const AdminEmailCenter: React.FC = () => {
                       })
                     }
                     placeholder="WeVentureHub <noreply@weventurehub.com>"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
+                    className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary font-mono"
                   />
-                  <span className="text-[10px] text-slate-500 mt-0.5 block">Used for standard system notifications and workspace bookings.</span>
+                  <span className="text-[10px] text-slate-500 mt-0.5 block font-medium">Used for standard system notifications and workspace bookings.</span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Support Sender Address</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Support Sender Address</label>
                   <input
                     type="text"
                     value={settingsData.senders?.supportSender || ''}
@@ -745,13 +737,13 @@ export const AdminEmailCenter: React.FC = () => {
                       })
                     }
                     placeholder="WeVentureHub Support <support@weventurehub.com>"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
+                    className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary font-mono"
                   />
-                  <span className="text-[10px] text-slate-500 mt-0.5 block">Used for support ticket notifications and customer inquiries.</span>
+                  <span className="text-[10px] text-slate-500 mt-0.5 block font-medium">Used for support ticket notifications and customer inquiries.</span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Billing Sender Address</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Billing Sender Address</label>
                   <input
                     type="text"
                     value={settingsData.senders?.billingSender || ''}
@@ -762,13 +754,13 @@ export const AdminEmailCenter: React.FC = () => {
                       })
                     }
                     placeholder="WeVentureHub Billing <billing@weventurehub.com>"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
+                    className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary font-mono"
                   />
-                  <span className="text-[10px] text-slate-500 mt-0.5 block">Used for invoices, payment reminders, and payment receipts.</span>
+                  <span className="text-[10px] text-slate-500 mt-0.5 block font-medium">Used for invoices, payment reminders, and payment receipts.</span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Notifications Sender Address</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Notifications Sender Address</label>
                   <input
                     type="text"
                     value={settingsData.senders?.notificationsSender || ''}
@@ -779,9 +771,9 @@ export const AdminEmailCenter: React.FC = () => {
                       })
                     }
                     placeholder="WeVentureHub Notifications <notifications@weventurehub.com>"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
+                    className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary font-mono"
                   />
-                  <span className="text-[10px] text-slate-500 mt-0.5 block">Used for welcome emails, password resets, and verification codes.</span>
+                  <span className="text-[10px] text-slate-500 mt-0.5 block font-medium">Used for welcome emails, password resets, and verification codes.</span>
                 </div>
               </div>
             </div>
@@ -789,50 +781,50 @@ export const AdminEmailCenter: React.FC = () => {
         </div>
       )}
 
-      {/* 4. SMTP SETTINGS TAB */}
+      {/* 5. SMTP SETTINGS TAB */}
       {activeTab === 'smtp' && (
         <div className="max-w-2xl space-y-6">
-          <div className="bg-slate-800/50 border border-slate-800 rounded-xl p-5 space-y-4">
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-              <Server className="w-4 h-4 text-blue-400" /> Active Nodemailer SMTP Credentials
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <Server className="w-4 h-4 text-brand-primary" /> Active Nodemailer SMTP Credentials
             </h3>
 
-            <div className="space-y-3 text-xs">
-              <div className="flex justify-between py-2 border-b border-slate-800">
-                <span className="text-slate-400">SMTP Host:</span>
-                <span className="font-mono text-white">{smtpConfig?.host || 'smtp.gmail.com'}</span>
+            <div className="space-y-3 text-xs font-medium">
+              <div className="flex justify-between py-2 border-b border-slate-200">
+                <span className="text-slate-500">SMTP Host:</span>
+                <span className="font-mono text-slate-900 font-bold">{smtpConfig?.host || 'smtp.gmail.com'}</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-slate-800">
-                <span className="text-slate-400">SMTP Port:</span>
-                <span className="font-mono text-white">{smtpConfig?.port || 587}</span>
+              <div className="flex justify-between py-2 border-b border-slate-200">
+                <span className="text-slate-500">SMTP Port:</span>
+                <span className="font-mono text-slate-900 font-bold">{smtpConfig?.port || 587}</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-slate-800">
-                <span className="text-slate-400">From Address:</span>
-                <span className="font-mono text-white">{smtpConfig?.from || 'WeVentureHub <noreply@weventurehub.com>'}</span>
+              <div className="flex justify-between py-2 border-b border-slate-200">
+                <span className="text-slate-500">From Address:</span>
+                <span className="font-mono text-slate-900 font-bold">{smtpConfig?.from || 'WeVentureHub <noreply@weventurehub.com>'}</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-slate-800">
-                <span className="text-slate-400">SMTP User Configured:</span>
-                <span className={`font-semibold ${smtpConfig?.hasUser ? 'text-emerald-400' : 'text-slate-400'}`}>
+              <div className="flex justify-between py-2 border-b border-slate-200">
+                <span className="text-slate-500">SMTP User Configured:</span>
+                <span className={`font-bold ${smtpConfig?.hasUser ? 'text-emerald-700' : 'text-slate-600'}`}>
                   {smtpConfig?.hasUser ? 'Yes (Encrypted)' : 'No (Fallback mode)'}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-800/30 border border-slate-800 rounded-xl p-5 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">Dispatch Live Test Email</h4>
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">Dispatch Live Test Email</h4>
             <div className="flex gap-2">
               <input
                 type="email"
                 value={testEmailInput}
                 onChange={(e) => setTestEmailInput(e.target.value)}
                 placeholder="Enter email address (e.g. admin@weventurehub.com)"
-                className="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-blue-500"
+                className="flex-1 bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary"
               />
               <button
                 onClick={handleTestSmtp}
                 disabled={isTestingSmtp}
-                className="px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl shadow-md transition-all flex items-center gap-1.5 disabled:opacity-50"
+                className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
               >
                 <Send className="w-3.5 h-3.5" />
                 {isTestingSmtp ? 'Sending...' : 'Send Test'}

@@ -17,6 +17,7 @@ import {
   Building2,
   HelpCircle,
   FileText,
+  Rocket,
   Headphones,
   RefreshCw,
   MessageSquare,
@@ -511,11 +512,11 @@ export default function WeVentureAssistant() {
                   Events
                 </button>
                 <button
-                  onClick={() => handleSendMessage('Explain membership plans and pricing')}
+                  onClick={() => handleSendMessage('Explain startup programs and incubation tracks')}
                   className="px-2.5 py-1 bg-neutral-slate-100 hover:bg-neutral-slate-200 text-neutral-slate-700 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors shrink-0 cursor-pointer"
                 >
-                  <FileText className="w-3 h-3 text-brand-primary" />
-                  Membership
+                  <Rocket className="w-3 h-3 text-brand-primary" />
+                  Startups
                 </button>
                 {isAuthenticated && (
                   <button

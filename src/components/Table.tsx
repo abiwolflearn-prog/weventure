@@ -13,7 +13,7 @@ export interface ITableProps<T> {
   emptyMessage?: string;
 }
 
-export function Table<T>({ columns, data, isLoading, emptyMessage = 'No matching records found.' }: ITableProps<T>) {
+export function Table<T>({ columns, data = [], isLoading, emptyMessage = 'No matching records found.' }: ITableProps<T>) {
   return (
     <div className="w-full overflow-hidden border border-[#E5E7EB] rounded-2xl bg-white shadow-sm">
       <div className="w-full overflow-x-auto">

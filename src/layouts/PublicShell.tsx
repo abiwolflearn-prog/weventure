@@ -23,7 +23,7 @@ export default function PublicShell() {
     { name: 'Home', path: '/' },
     { name: 'Discover Events', path: '/events' },
     { name: 'Find Workspace', path: '/workspaces' },
-    { name: 'Membership', path: '/pricing' },
+    { name: 'Startup', path: '/startup' },
     { name: 'About', path: '/about' },
     { name: 'Contact', path: '/contact' },
   ];

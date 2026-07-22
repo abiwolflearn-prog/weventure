@@ -33,7 +33,7 @@ interface LeaseBarChartProps {
 }
 
 export default function LeaseBarChart({
-  data,
+  data = [],
   title,
   description,
   primaryKey,

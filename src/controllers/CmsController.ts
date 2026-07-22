@@ -206,7 +206,7 @@ export class CmsController {
           items: [
             { label: 'Workspaces', path: '/workspaces', sortOrder: 1, isVisible: true },
             { label: 'Events', path: '/events', sortOrder: 2, isVisible: true },
-            { label: 'Membership Plans', path: '/pricing', sortOrder: 3, isVisible: true },
+            { label: 'Startup Programs', path: '/startup', sortOrder: 3, isVisible: true },
             { label: 'News & Blog', path: '/news', sortOrder: 4, isVisible: true },
             { label: 'About Us', path: '/about', sortOrder: 5, isVisible: true },
             { label: 'Contact', path: '/contact', sortOrder: 6, isVisible: true },

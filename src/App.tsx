@@ -19,7 +19,7 @@ import WorkspaceMarketplace from './views/WorkspaceMarketplace';
 import WorkspaceDetailsPage from './views/WorkspaceDetailsPage';
 import OrganizerProfilePage from './views/OrganizerProfilePage';
 import AboutPage from './views/AboutPage';
-import PricingPage from './views/PricingPage';
+import StartupPage from './views/StartupPage';
 import ContactPage from './views/ContactPage';
 import LoginPage from './views/LoginPage';
 import RegisterPage from './views/RegisterPage';
@@ -42,6 +42,7 @@ import BillingPage from './views/BillingPage';
 import IntegrationsPage from './views/IntegrationsPage';
 import EmailCenterPage from './views/EmailCenterPage';
 import CmsManagementPage from './views/CmsManagementPage';
+import StartupManagementPage from './views/StartupManagementPage';
 import AssistantAdminDashboard from './components/assistant/AssistantAdminDashboard';
 
 /**
@@ -71,7 +72,8 @@ export default function App() {
               <Route path="/workspaces/:id" element={<WorkspaceDetailsPage />} />
               <Route path="/organizers/:id" element={<OrganizerProfilePage />} />
               <Route path="/about" element={<AboutPage />} />
-              <Route path="/pricing" element={<PricingPage />} />
+              <Route path="/startup" element={<StartupPage />} />
+              <Route path="/pricing" element={<StartupPage />} />
               <Route path="/contact" element={<ContactPage />} />
             </Route>
 
@@ -108,6 +110,7 @@ export default function App() {
               <Route path="integrations" element={<IntegrationsPage />} />
               <Route path="emails" element={<EmailCenterPage />} />
               <Route path="cms" element={<CmsManagementPage />} />
+              <Route path="startups" element={<StartupManagementPage />} />
               <Route path="assistant" element={<AssistantAdminDashboard />} />
             </Route>
 
