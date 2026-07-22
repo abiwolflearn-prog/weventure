@@ -71,7 +71,7 @@ export function FloatingSocialLinks({
 
   return (
     <motion.div
-      className="fixed z-40 flex flex-col gap-3 md:gap-4 bottom-6 right-6 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:right-5 items-end pointer-events-none"
+      className="fixed z-40 flex flex-col gap-2.5 md:gap-4 bottom-6 left-4 md:left-auto md:right-5 md:top-1/2 md:-translate-y-1/2 md:bottom-auto items-start md:items-end pointer-events-none"
       initial="hidden"
       animate="visible"
       variants={containerVariants}

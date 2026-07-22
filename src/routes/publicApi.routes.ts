@@ -23,6 +23,12 @@ router.get('/news', (req, res, next) => publicApiController.getNews(req, res, ne
 
 // Other assets
 router.get('/homepage', (req, res, next) => publicApiController.getHomepage(req, res, next));
+router.get('/about', (req, res, next) => publicApiController.getAbout(req, res, next));
+router.get('/faqs', (req, res, next) => publicApiController.getFaqs(req, res, next));
+router.get('/company-info', (req, res, next) => publicApiController.getCompanyInfo(req, res, next));
+router.get('/navigation', (req, res, next) => publicApiController.getNavigation(req, res, next));
+router.get('/plans', (req, res, next) => publicApiController.getPlans(req, res, next));
+router.get('/galleries', (req, res, next) => publicApiController.getGalleries(req, res, next));
 router.post('/contact', (req, res, next) => publicApiController.submitInquiry(req, res, next));
 router.get('/sponsors', (req, res, next) => publicApiController.getSponsors(req, res, next));
 router.get('/partners', (req, res, next) => publicApiController.getPartners(req, res, next));

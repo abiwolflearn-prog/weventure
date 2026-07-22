@@ -4,6 +4,8 @@ import { ApiResponse } from '../utils/response';
 import { env } from '../config/env';
 import { IUserIdentity, UserRole, Permission } from '../types';
 import { ValidationError, UnauthorizedError } from '../errors/AppError';
+import { emailNotificationManager } from '../services/EmailNotificationManager';
+import { User } from '../models/User';
 
 // Centralized mapping of Roles to Enterprise Permissions
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
@@ -77,14 +79,30 @@ export class AuthController {
       }
 
       const permissions = ROLE_PERMISSIONS[userRole] || [];
+      const cleanEmail = email.toLowerCase().trim();
+
+      // Ensure user stored in MongoDB
+      const dbUser = await (User as any).findOneAndUpdate(
+        { email: cleanEmail, tenantId: activeTenant },
+        {
+          $setOnInsert: {
+            email: cleanEmail,
+            tenantId: activeTenant,
+            firstName,
+            lastName,
+            role: userRole,
+          },
+        },
+        { upsert: true, new: true }
+      );
 
       const userIdentity: IUserIdentity = {
-        id: `usr_${Math.random().toString(36).substring(2, 8)}`,
+        id: dbUser._id ? dbUser._id.toString() : `usr_${Math.random().toString(36).substring(2, 8)}`,
         tenantId: activeTenant,
-        email,
-        firstName,
-        lastName,
-        role: userRole,
+        email: cleanEmail,
+        firstName: dbUser.firstName || firstName,
+        lastName: dbUser.lastName || lastName,
+        role: dbUser.role || userRole,
         permissions,
       };
 
@@ -111,6 +129,77 @@ export class AuthController {
       }, 200, {
         message: 'Authentication successful',
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Register a new user account and trigger Welcome & Verification Email
+   */
+  public async register(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { email, firstName, lastName, password } = req.body;
+      if (!email || !password) {
+        throw new ValidationError('Email and password are required');
+      }
+
+      const activeTenant = req.tenantId || 'weventurehub';
+      const cleanEmail = email.toLowerCase().trim();
+
+      // Store / Update user in MongoDB User Collection
+      let dbUser = await (User as any).findOneAndUpdate(
+        { email: cleanEmail, tenantId: activeTenant },
+        {
+          $set: {
+            email: cleanEmail,
+            tenantId: activeTenant,
+            firstName: firstName || 'New',
+            lastName: lastName || 'Member',
+            name: `${firstName || 'New'} ${lastName || 'Member'}`,
+            role: UserRole.HUB_MEMBER,
+          },
+        },
+        { upsert: true, new: true }
+      );
+
+      const user = {
+        id: dbUser._id ? dbUser._id.toString() : `usr_${Math.random().toString(36).substring(2, 8)}`,
+        tenantId: activeTenant,
+        email: cleanEmail,
+        firstName: dbUser.firstName,
+        lastName: dbUser.lastName,
+        name: dbUser.name,
+        role: UserRole.HUB_MEMBER,
+        permissions: ROLE_PERMISSIONS[UserRole.HUB_MEMBER],
+      };
+
+      // Trigger Welcome Email & Verification OTP via Email Notification Manager
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      await emailNotificationManager.sendWelcomeEmail(user);
+      await emailNotificationManager.sendEmailVerification(user, otpCode, 15);
+      await emailNotificationManager.sendNewUserRegistrationAdminAlert(user);
+
+      ApiResponse.success(res, { user, otpRequired: true }, 201, { message: 'Registration successful. Welcome and verification emails sent!' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Request Password Reset and trigger Reset Email
+   */
+  public async requestPasswordReset(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        throw new ValidationError('Email is required');
+      }
+
+      const resetToken = `rst_${Math.random().toString(36).substring(2, 12)}`;
+      await emailNotificationManager.sendPasswordReset({ email, firstName: 'Member' }, resetToken, 30);
+
+      ApiResponse.success(res, { sent: true }, 200, { message: 'Password reset instructions sent to email' });
     } catch (error) {
       next(error);
     }

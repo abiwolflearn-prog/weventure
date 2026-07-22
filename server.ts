@@ -17,6 +17,9 @@ import { reportService } from './src/services/ReportService';
 import { billingSchedulerService } from './src/services/billing/BillingSchedulerService';
 import { tenantService } from './src/services/TenantService';
 import { subscriptionService } from './src/services/SubscriptionService';
+import { emailTemplateService } from './src/services/EmailTemplateService';
+import { emailQueueProcessor } from './src/services/EmailQueueProcessor';
+import { emailCronScheduler } from './src/services/EmailCronScheduler';
 import { IntegrationController } from './src/controllers/IntegrationController';
 import { tenantContext } from './src/middleware/tenantContext';
 
@@ -96,8 +99,11 @@ async function startServer() {
     await connectDatabase();
     await tenantService.seedDefaultTenant();
     await subscriptionService.seedDefaultPlans();
+    await emailTemplateService.seedDefaultTemplates();
     reportService.startScheduler();
     billingSchedulerService.startScheduler();
+    emailQueueProcessor.start(5000);
+    emailCronScheduler.start(15);
   } catch (error) {
     if (env.NODE_ENV === 'production') {
       logger.error('❌ Critical database connection failure in production. Failing fast...', error);

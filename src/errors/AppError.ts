@@ -21,6 +21,12 @@ export class ValidationError extends AppError {
   }
 }
 
+export class BadRequestError extends AppError {
+  constructor(message: string, details?: IApiErrorDetails[]) {
+    super(message, 400, 'BAD_REQUEST', details);
+  }
+}
+
 export class UnauthorizedError extends AppError {
   constructor(message: string = 'Access token is missing, expired, or malformed') {
     super(message, 401, 'UNAUTHORIZED');

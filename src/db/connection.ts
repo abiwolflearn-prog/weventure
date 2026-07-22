@@ -27,6 +27,7 @@ const defaultOptions: IMongoConnectionOptions = {
 let mongoServer: MongoMemoryServer | null = null;
 
 export async function connectDatabase(): Promise<typeof mongoose> {
+  mongoose.set('bufferCommands', false);
   let uri = env.MONGODB_URI;
 
   if (env.NODE_ENV !== 'production' && (uri.includes('127.0.0.1:27017') || uri.includes('localhost:27017'))) {

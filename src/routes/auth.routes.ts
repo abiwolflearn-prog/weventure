@@ -12,6 +12,24 @@ const authRouter = Router();
 authRouter.post('/login', authController.login);
 
 /**
+ * @route   POST /api/v1/auth/register
+ * @desc    Register new user account and trigger welcome & OTP email
+ * @access  Public
+ */
+authRouter.post('/register', (req, res, next) => {
+  authController.register(req, res, next);
+});
+
+/**
+ * @route   POST /api/v1/auth/forgot-password
+ * @desc    Request password reset email
+ * @access  Public
+ */
+authRouter.post('/forgot-password', (req, res, next) => {
+  authController.requestPasswordReset(req, res, next);
+});
+
+/**
  * @route   POST /api/v1/auth/logout
  * @desc    Logout user and clear cookie
  * @access  Public

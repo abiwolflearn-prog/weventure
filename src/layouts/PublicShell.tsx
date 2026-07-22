@@ -1,21 +1,39 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Building, Globe, Menu, X, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FloatingSocialLinks } from '../components/FloatingSocialLinks';
 import WeVentureLogo from '../components/WeVentureLogo';
+import WeVentureAssistant from '../components/assistant/WeVentureAssistant';
+import { publicApi } from '../lib/publicApi';
 
 export default function PublicShell() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
-  const navLinks = [
+  const { data: navMenus } = useQuery({
+    queryKey: ['publicNavigationMenus'],
+    queryFn: publicApi.getNavigation,
+  });
+
+  const headerMenu = navMenus?.find((m: any) => m.menuLocation === 'header');
+
+  const defaultNavLinks = [
     { name: 'Home', path: '/' },
     { name: 'Discover Events', path: '/events' },
     { name: 'Find Workspace', path: '/workspaces' },
+    { name: 'Membership', path: '/pricing' },
     { name: 'About', path: '/about' },
     { name: 'Contact', path: '/contact' },
   ];
+
+  const navLinks = (headerMenu?.items && headerMenu.items.length > 0)
+    ? headerMenu.items.filter((item: any) => item.isVisible).map((item: any) => ({
+        name: item.label,
+        path: item.path,
+      }))
+    : defaultNavLinks;
 
   return (
     <div className="min-h-screen flex flex-col bg-[#111111]">
@@ -190,6 +208,9 @@ export default function PublicShell() {
 
       {/* Premium Floating Social Media Links Action Bar */}
       <FloatingSocialLinks />
+
+      {/* Enterprise AI Virtual Assistant Widget */}
+      <WeVentureAssistant />
     </div>
   );
 }

@@ -1,12 +1,35 @@
 import nodemailer from 'nodemailer';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
+import { EmailLog } from '../models/EmailLog';
+import { EmailQueue, QueuePriority } from '../models/EmailQueue';
+import { EmailPreference } from '../models/EmailPreference';
+import { SystemEmailSettings, ISystemEmailSettings } from '../models/SystemEmailSettings';
+import { emailTemplateService } from './EmailTemplateService';
+
+export function isValidEmail(email: string): boolean {
+  if (!email || typeof email !== 'string') return false;
+  const trimmed = email.trim();
+  if (trimmed.length < 5 || trimmed.length > 254) return false;
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+  return emailRegex.test(trimmed);
+}
 
 export interface EmailPayload {
   to: string;
+  recipientName?: string;
   subject: string;
   html: string;
   text?: string;
+  category?: string;
+  templateKey?: string;
+  tenantId?: string;
+  attachments?: Array<{
+    filename: string;
+    content?: any;
+    path?: string;
+    contentType?: string;
+  }>;
 }
 
 class EmailService {
@@ -16,58 +39,202 @@ class EmailService {
     this.initTransporter();
   }
 
-  private initTransporter() {
+  public async getSystemEmailSettings(tenantId = 'weventurehub'): Promise<ISystemEmailSettings> {
     try {
-      // Lazy-load SMTP configuration
+      const settings = await (SystemEmailSettings as any).findOne({ tenantId }).lean();
+      if (settings && settings.adminEmails && settings.senders) {
+        return settings;
+      }
+      return {
+        tenantId,
+        adminEmails: {
+          primaryAdminEmail: env.ADMIN_EMAIL || 'admin@weventurehub.com',
+          secondaryAdminEmail: 'operations@weventurehub.com',
+          billingEmail: 'billing@weventurehub.com',
+          supportEmail: 'support@weventurehub.com',
+          contactEmail: 'contact@weventurehub.com',
+        },
+        senders: {
+          defaultSender: env.SMTP_FROM || 'WeVentureHub <noreply@weventurehub.com>',
+          supportSender: 'WeVentureHub Support <support@weventurehub.com>',
+          billingSender: 'WeVentureHub Billing <billing@weventurehub.com>',
+          notificationsSender: 'WeVentureHub Notifications <notifications@weventurehub.com>',
+        },
+      };
+    } catch (err) {
+      return {
+        tenantId,
+        adminEmails: {
+          primaryAdminEmail: env.ADMIN_EMAIL || 'admin@weventurehub.com',
+          secondaryAdminEmail: 'operations@weventurehub.com',
+          billingEmail: 'billing@weventurehub.com',
+          supportEmail: 'support@weventurehub.com',
+          contactEmail: 'contact@weventurehub.com',
+        },
+        senders: {
+          defaultSender: env.SMTP_FROM || 'WeVentureHub <noreply@weventurehub.com>',
+          supportSender: 'WeVentureHub Support <support@weventurehub.com>',
+          billingSender: 'WeVentureHub Billing <billing@weventurehub.com>',
+          notificationsSender: 'WeVentureHub Notifications <notifications@weventurehub.com>',
+        },
+      };
+    }
+  }
+
+  public initTransporter(customConfig?: { host?: string; port?: number; user?: string; pass?: string; from?: string }) {
+    try {
+      const host = customConfig?.host || env.SMTP_HOST;
+      const port = customConfig?.port || env.SMTP_PORT;
+      const user = customConfig?.user || env.SMTP_USER;
+      const pass = customConfig?.pass || env.SMTP_PASS;
+
       const config = {
-        host: env.SMTP_HOST,
-        port: env.SMTP_PORT,
-        secure: env.SMTP_PORT === 465, // true for 465, false for other ports
-        auth: env.SMTP_USER && env.SMTP_PASS ? {
-          user: env.SMTP_USER,
-          pass: env.SMTP_PASS,
-        } : undefined,
+        host,
+        port,
+        secure: port === 465,
+        auth: user && pass ? { user, pass } : undefined,
       };
 
       this.transporter = nodemailer.createTransport(config);
-      logger.info(`📧 Email Service transport initialized with SMTP: ${env.SMTP_HOST}:${env.SMTP_PORT}`);
+      logger.info(`📧 Email Service transport initialized with SMTP: ${host}:${port}`);
     } catch (error) {
-      logger.error('❌ Failed to initialize Nodemailer SMTP transport, emails will operate in logging fallback mode', error);
+      logger.error('❌ Failed to initialize Nodemailer SMTP transport, emails will operate in fallback mode', error);
     }
   }
 
   /**
-   * Send mail with retries and exponential backoff
+   * Check user notification preferences before sending
+   */
+  public async isEmailAllowed(recipientEmail: string, category: string): Promise<boolean> {
+    try {
+      if (!recipientEmail) return false;
+      const pref = await (EmailPreference as any).findOne({ userEmail: recipientEmail.toLowerCase() }).lean();
+      if (!pref) return true; // Default allowed if no preference document exists yet
+
+      switch (category) {
+        case 'auth':
+          return true; // Always send auth & security emails
+        case 'invoice':
+        case 'renewal':
+          return pref.paymentReminders;
+        case 'booking':
+          return pref.bookingAlerts;
+        case 'event':
+          return pref.eventUpdates;
+        case 'support':
+        case 'admin':
+          return true;
+        default:
+          return pref.marketingEmails;
+      }
+    } catch (err) {
+      return true; // Default allow on error
+    }
+  }
+
+  /**
+   * Send email immediately with logging to EmailLog DB
    */
   public async sendEmail(payload: EmailPayload, retries = 3, delay = 1000): Promise<boolean> {
-    const fromAddress = env.SMTP_FROM || 'WeVentureHub <noreply@weventurehub.com>';
-    
+    const tenantId = payload.tenantId || 'weventurehub';
+    const category = payload.category || 'booking';
+    const templateKey = payload.templateKey || 'generic_notification';
+
+    // Validate email format
+    if (!isValidEmail(payload.to)) {
+      const errMsg = `Invalid recipient email address format: "${payload.to}"`;
+      logger.error(`❌ [EMAIL REJECTED] ${errMsg}`);
+      await (EmailLog as any).create({
+        tenantId,
+        recipientEmail: payload.to || 'invalid@address',
+        recipientName: payload.recipientName,
+        subject: payload.subject,
+        category,
+        templateKey,
+        status: 'failed',
+        sentAt: new Date(),
+        errorMessage: errMsg,
+      });
+      return false;
+    }
+
+    // Determine configurable sender address based on category
+    const systemSettings = await this.getSystemEmailSettings(tenantId);
+    let fromAddress = systemSettings.senders.defaultSender;
+    if (category === 'billing' || category === 'invoice' || templateKey.includes('payment') || templateKey.includes('invoice')) {
+      fromAddress = systemSettings.senders.billingSender;
+    } else if (category === 'support' || templateKey.includes('support') || templateKey.includes('contact')) {
+      fromAddress = systemSettings.senders.supportSender;
+    } else if (category === 'notification' || category === 'auth' || templateKey.includes('welcome') || templateKey.includes('verification') || templateKey.includes('reset')) {
+      fromAddress = systemSettings.senders.notificationsSender;
+    }
+
+    // Check user preferences
+    const allowed = await this.isEmailAllowed(payload.to, category);
+    if (!allowed) {
+      logger.info(`🚫 [EMAIL SUPPRESSED] Recipient ${payload.to} opted out of ${category} notifications.`);
+      return false;
+    }
+
+    let lastErrorMessage = '';
+    let messageId = '';
+
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
         if (!this.transporter) {
-          throw new Error('Email transport is offline');
+          throw new Error('SMTP Transport offline');
         }
 
-        // Send mail using initialized transporter
         const info = await this.transporter.sendMail({
           from: fromAddress,
           to: payload.to,
           subject: payload.subject,
           html: payload.html,
-          text: payload.text || 'View this email in an HTML-compatible client',
+          text: payload.text || 'View this email in an HTML-compatible email reader',
+          attachments: payload.attachments,
         });
 
-        logger.info(`📧 [EMAIL DELIVERED] ID: ${info.messageId} | Target: ${payload.to} | Subject: "${payload.subject}"`);
+        messageId = info.messageId;
+        logger.info(`📧 [EMAIL DELIVERED] ID: ${messageId} | Target: ${payload.to} | Subject: "${payload.subject}"`);
+
+        // Log successful delivery
+        await (EmailLog as any).create({
+          tenantId,
+          recipientEmail: payload.to.toLowerCase(),
+          recipientName: payload.recipientName,
+          subject: payload.subject,
+          category,
+          templateKey,
+          status: 'delivered',
+          sentAt: new Date(),
+          messageId,
+        });
+
         return true;
-      } catch (error) {
-        logger.warn(`⚠️ [EMAIL FAILURE] Attempt ${attempt}/${retries} to ${payload.to} failed. Error: ${error instanceof Error ? error.message : error}`);
-        
+      } catch (error: any) {
+        lastErrorMessage = error instanceof Error ? error.message : String(error);
+        logger.warn(`⚠️ [EMAIL FAILURE] Attempt ${attempt}/${retries} to ${payload.to} failed: ${lastErrorMessage}`);
+
         if (attempt === retries) {
-          logger.error(`❌ [EMAIL PERMANENT FAILURE] Delivery to ${payload.to} abandoned after ${retries} attempts.`);
+          logger.error(`❌ [EMAIL PERMANENT FAILURE] Delivery to ${payload.to} failed after ${retries} attempts.`);
+
+          // Log failure
+          await (EmailLog as any).create({
+            tenantId,
+            recipientEmail: payload.to.toLowerCase(),
+            recipientName: payload.recipientName,
+            subject: payload.subject,
+            category,
+            templateKey,
+            status: 'failed',
+            sentAt: new Date(),
+            errorMessage: lastErrorMessage,
+          });
+
           return false;
         }
 
-        // Exponential backoff sleep
+        // Exponential backoff
         await new Promise((resolve) => setTimeout(resolve, delay * attempt));
       }
     }
@@ -75,8 +242,51 @@ class EmailService {
   }
 
   /**
-   * Generates a beautifully-styled enterprise HTML template for Event registrations
+   * Enqueue email into EmailQueue DB for async or scheduled processing
    */
+  public async enqueueEmail(params: {
+    tenantId?: string;
+    templateKey: string;
+    recipientEmail: string;
+    recipientName?: string;
+    variables: Record<string, any>;
+    priority?: QueuePriority;
+    scheduledFor?: Date;
+    metadata?: Record<string, any>;
+  }): Promise<string> {
+    try {
+      const tenantId = params.tenantId || 'weventurehub';
+
+      if (!isValidEmail(params.recipientEmail)) {
+        logger.error(`❌ [ENQUEUE REJECTED] Invalid recipient email address: "${params.recipientEmail}"`);
+        throw new Error(`Invalid email address format: ${params.recipientEmail}`);
+      }
+
+      const rendered = await emailTemplateService.renderTemplate(params.templateKey, params.variables);
+
+      const queueItem = await EmailQueue.create({
+        tenantId,
+        templateKey: params.templateKey,
+        recipientEmail: params.recipientEmail.toLowerCase(),
+        recipientName: params.recipientName || params.variables.userName,
+        subject: rendered.subject,
+        bodyHtml: rendered.html,
+        variables: params.variables,
+        priority: params.priority || 'normal',
+        status: 'pending',
+        scheduledFor: params.scheduledFor || new Date(),
+        metadata: params.metadata,
+      });
+
+      logger.info(`📥 [EMAIL QUEUED] Key: ${params.templateKey} | Recipient: ${params.recipientEmail} | QueueId: ${queueItem.id}`);
+      return queueItem.id;
+    } catch (error) {
+      logger.error('❌ Failed to enqueue email:', error);
+      throw error;
+    }
+  }
+
+  // --- COMPATIBILITY METHODS FOR EXISTING APP ---
   public getEventRegistrationTemplate(params: {
     userName: string;
     eventTitle: string;
@@ -85,59 +295,23 @@ class EmailService {
     location: string;
     amount: string;
   }): string {
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: 'Inter', system-ui, sans-serif; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 20px; }
-            .card { max-width: 600px; margin: 0 auto; background: white; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
-            .header { background: #3b82f6; padding: 24px; text-align: center; color: white; }
-            .header h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.025em; }
-            .content { padding: 24px; line-height: 1.6; }
-            .meta-box { background: #f1f5f9; border-radius: 12px; padding: 16px; margin: 20px 0; border: 1px solid #e2e8f0; }
-            .meta-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
-            .meta-item:last-child { margin-bottom: 0; border-top: 1px dashed #cbd5e1; pt-8px; margin-top: 8px; font-weight: bold; }
-            .footer { background: #f8fafc; padding: 16px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; }
-            .btn { display: inline-block; padding: 10px 20px; background: #3b82f6; color: white !important; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 13px; margin-top: 12px; }
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <div class="header">
-              <h1>Admission Pass Confirmed</h1>
-            </div>
-            <div class="content">
-              <p>Hello <strong>${params.userName}</strong>,</p>
-              <p>Your registration for <strong>${params.eventTitle}</strong> is successfully verified. We have provisioned your active entry credential ticket below:</p>
-              
-              <div class="meta-box">
-                <div class="meta-item"><span>Ticket Number</span> <strong>${params.ticketNumber}</strong></div>
-                <div class="meta-item"><span>Event Title</span> <strong>${params.eventTitle}</strong></div>
-                <div class="meta-item"><span>Date / Time</span> <span>${params.dateRange}</span></div>
-                <div class="meta-item"><span>Location</span> <span>${params.location}</span></div>
-                <div class="meta-item"><span>Charge Amount</span> <strong>${params.amount}</strong></div>
-              </div>
-              
-              <p>Please present this confirmation email or download your digital QR ticket from the dashboard when checking in at the venue entrance.</p>
-              
-              <div style="text-align: center;">
-                <a href="${env.APP_URL}/dashboard/events" class="btn">View Event in Dashboard</a>
-              </div>
-            </div>
-            <div class="card footer">
-              &copy; ${new Date().getFullYear()} WeVentureHub Ltd. All Rights Reserved. Co-working & Event Incubation Center.
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
+    return emailTemplateService.wrapInMasterLayout(`
+      <h2>Admission Pass Confirmed</h2>
+      <p>Hello <strong>${params.userName}</strong>,</p>
+      <p>Your registration for <strong>${params.eventTitle}</strong> is successfully verified.</p>
+      <table class="meta-table">
+        <tr><td class="meta-label">Ticket Ref</td><td class="meta-value">${params.ticketNumber}</td></tr>
+        <tr><td class="meta-label">Event</td><td class="meta-value">${params.eventTitle}</td></tr>
+        <tr><td class="meta-label">Schedule</td><td class="meta-value">${params.dateRange}</td></tr>
+        <tr><td class="meta-label">Venue Location</td><td class="meta-value">${params.location}</td></tr>
+        <tr><td class="meta-label">Amount Paid</td><td class="meta-value">${params.amount}</td></tr>
+      </table>
+      <div class="btn-container">
+        <a href="${env.APP_URL}/dashboard/events" class="btn">View Event Ticket</a>
+      </div>
+    `, undefined, 'Admission Pass Confirmed');
   }
 
-  /**
-   * Generates a beautifully-styled enterprise HTML template for Workspace Bookings
-   */
   public getBookingConfirmationTemplate(params: {
     userName: string;
     spaceName: string;
@@ -146,102 +320,33 @@ class EmailService {
     totalAmount: string;
     bookingId: string;
   }): string {
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: 'Inter', system-ui, sans-serif; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 20px; }
-            .card { max-width: 600px; margin: 0 auto; background: white; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
-            .header { background: #10b981; padding: 24px; text-align: center; color: white; }
-            .header h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.025em; }
-            .content { padding: 24px; line-height: 1.6; }
-            .meta-box { background: #f1f5f9; border-radius: 12px; padding: 16px; margin: 20px 0; border: 1px solid #e2e8f0; }
-            .meta-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
-            .meta-item:last-child { margin-bottom: 0; border-top: 1px dashed #cbd5e1; pt-8px; margin-top: 8px; font-weight: bold; }
-            .footer { background: #f8fafc; padding: 16px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; }
-            .btn { display: inline-block; padding: 10px 20px; background: #10b981; color: white !important; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 13px; margin-top: 12px; }
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <div class="header">
-              <h1>Workspace Reservation Verified</h1>
-            </div>
-            <div class="content">
-              <p>Hello <strong>${params.userName}</strong>,</p>
-              <p>Your workspace reservation has been successfully booked and confirmed. Your session parameters are documented below:</p>
-              
-              <div class="meta-box">
-                <div class="meta-item"><span>Reservation ID</span> <strong>${params.bookingId}</strong></div>
-                <div class="meta-item"><span>Reserved Space</span> <strong>${params.spaceName}</strong></div>
-                <div class="meta-item"><span>Start Date/Time</span> <span>${params.startTime}</span></div>
-                <div class="meta-item"><span>End Date/Time</span> <span>${params.endTime}</span></div>
-                <div class="meta-item"><span>Charged Total</span> <strong>${params.totalAmount}</strong></div>
-              </div>
-              
-              <p>If you need to make any adjustments, cancel your reservation, or add custom catering/amenities, navigate to the WeVentureHub portal bookings tab.</p>
-              
-              <div style="text-align: center;">
-                <a href="${env.APP_URL}/dashboard/bookings" class="btn">Manage Your Bookings</a>
-              </div>
-            </div>
-            <div class="card footer">
-              &copy; ${new Date().getFullYear()} WeVentureHub Ltd. All Rights Reserved. Co-working & Event Incubation Center.
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
+    return emailTemplateService.wrapInMasterLayout(`
+      <h2>Workspace Reservation Confirmed</h2>
+      <p>Hello <strong>${params.userName}</strong>,</p>
+      <p>Your workspace reservation has been successfully confirmed.</p>
+      <table class="meta-table">
+        <tr><td class="meta-label">Reservation Ref</td><td class="meta-value">#${params.bookingId}</td></tr>
+        <tr><td class="meta-label">Reserved Space</td><td class="meta-value">${params.spaceName}</td></tr>
+        <tr><td class="meta-label">Start Time</td><td class="meta-value">${params.startTime}</td></tr>
+        <tr><td class="meta-label">End Time</td><td class="meta-value">${params.endTime}</td></tr>
+        <tr><td class="meta-label">Total Amount</td><td class="meta-value">${params.totalAmount}</td></tr>
+      </table>
+      <div class="btn-container">
+        <a href="${env.APP_URL}/dashboard/bookings" class="btn">Manage Your Bookings</a>
+      </div>
+    `, undefined, 'Workspace Reservation Confirmed');
   }
 
-  /**
-   * Generates HTML template for general system alerts / global announcements
-   */
-  public getAnnouncementTemplate(params: {
-    title: string;
-    content: string;
-  }): string {
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: 'Inter', system-ui, sans-serif; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 20px; }
-            .card { max-width: 600px; margin: 0 auto; background: white; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
-            .header { background: #6366f1; padding: 24px; text-align: center; color: white; }
-            .header h1 { margin: 0; font-size: 20px; font-weight: 800; }
-            .content { padding: 24px; line-height: 1.6; font-size: 14px; }
-            .footer { background: #f8fafc; padding: 16px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; }
-            .btn { display: inline-block; padding: 10px 20px; background: #6366f1; color: white !important; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 13px; margin-top: 12px; }
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <div class="header">
-              <h1>${params.title}</h1>
-            </div>
-            <div class="content">
-              <p>${params.content.replace(/\n/g, '<br>')}</p>
-              
-              <div style="text-align: center;">
-                <a href="${env.APP_URL}/dashboard" class="btn">Open WeVentureHub</a>
-              </div>
-            </div>
-            <div class="card footer">
-              You are receiving this notification because you are a registered member of WeVentureHub.<br>
-              &copy; ${new Date().getFullYear()} WeVentureHub Ltd. Co-working Hub.
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
+  public getAnnouncementTemplate(params: { title: string; content: string }): string {
+    return emailTemplateService.wrapInMasterLayout(`
+      <h2>${params.title}</h2>
+      <p>${params.content.replace(/\n/g, '<br>')}</p>
+      <div class="btn-container">
+        <a href="${env.APP_URL}/dashboard" class="btn">Open WeVentureHub</a>
+      </div>
+    `, undefined, params.title);
   }
-  /**
-   * Generates a beautifully-styled HTML template for Pending Approval registrations
-   */
+
   public getPendingApprovalTemplate(params: {
     userName: string;
     eventTitle: string;
@@ -249,138 +354,36 @@ class EmailService {
     dateRange: string;
     location: string;
   }): string {
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: 'Inter', system-ui, sans-serif; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 20px; }
-            .card { max-width: 600px; margin: 0 auto; background: white; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
-            .header { background: #eab308; padding: 24px; text-align: center; color: white; }
-            .header h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.025em; }
-            .content { padding: 24px; line-height: 1.6; }
-            .meta-box { background: #f1f5f9; border-radius: 12px; padding: 16px; margin: 20px 0; border: 1px solid #e2e8f0; }
-            .meta-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
-            .meta-item:last-child { margin-bottom: 0; border-top: 1px dashed #cbd5e1; pt-8px; margin-top: 8px; font-weight: bold; }
-            .footer { background: #f8fafc; padding: 16px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; }
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <div class="header">
-              <h1>Registration Pending Approval</h1>
-            </div>
-            <div class="content">
-              <p>Hello <strong>${params.userName}</strong>,</p>
-              <p>We have received your registration for <strong>${params.eventTitle}</strong>. Since this event requires organizer approval, your ticket is currently in a <strong>pending approval queue</strong>.</p>
-              
-              <div class="meta-box">
-                <div class="meta-item"><span>Pending Ticket</span> <strong>${params.ticketNumber}</strong></div>
-                <div class="meta-item"><span>Event Title</span> <strong>${params.eventTitle}</strong></div>
-                <div class="meta-item"><span>Date / Time</span> <span>${params.dateRange}</span></div>
-                <div class="meta-item"><span>Location</span> <span>${params.location}</span></div>
-              </div>
-              
-              <p>The organizing team will review your application shortly. Once approved, you will receive your official admission ticket with QR code validation via email.</p>
-            </div>
-            <div class="card footer">
-              &copy; ${new Date().getFullYear()} WeVentureHub Ltd. All Rights Reserved. Co-working & Event Incubation Center.
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
+    return emailTemplateService.wrapInMasterLayout(`
+      <h2>Registration Pending Approval</h2>
+      <p>Hello <strong>${params.userName}</strong>,</p>
+      <p>Your registration request for <strong>${params.eventTitle}</strong> is pending review by the event organizers.</p>
+      <table class="meta-table">
+        <tr><td class="meta-label">Ticket Ref</td><td class="meta-value">${params.ticketNumber}</td></tr>
+        <tr><td class="meta-label">Event Name</td><td class="meta-value">${params.eventTitle}</td></tr>
+        <tr><td class="meta-label">Schedule</td><td class="meta-value">${params.dateRange}</td></tr>
+        <tr><td class="meta-label">Location</td><td class="meta-value">${params.location}</td></tr>
+      </table>
+    `, undefined, 'Registration Pending Approval');
   }
 
-  /**
-   * Generates a beautifully-styled HTML template for Rejected registrations
-   */
-  public getApprovalRejectedTemplate(params: {
-    userName: string;
-    eventTitle: string;
-    ticketNumber: string;
-  }): string {
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: 'Inter', system-ui, sans-serif; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 20px; }
-            .card { max-width: 600px; margin: 0 auto; background: white; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
-            .header { background: #ef4444; padding: 24px; text-align: center; color: white; }
-            .header h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.025em; }
-            .content { padding: 24px; line-height: 1.6; }
-            .footer { background: #f8fafc; padding: 16px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; }
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <div class="header">
-              <h1>Registration Update</h1>
-            </div>
-            <div class="content">
-              <p>Hello <strong>${params.userName}</strong>,</p>
-              <p>Thank you for your interest in <strong>${params.eventTitle}</strong>.</p>
-              <p>Unfortunately, the organizing team was unable to approve your registration request for this specific session. Your pending application with reference ID <strong>${params.ticketNumber}</strong> has been cancelled.</p>
-              <p>Please browse other available events on the platform or reach out to our support channel if you have any questions.</p>
-            </div>
-            <div class="card footer">
-              &copy; ${new Date().getFullYear()} WeVentureHub Ltd. All Rights Reserved. Co-working & Event Incubation Center.
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
+  public getApprovalRejectedTemplate(params: { userName: string; eventTitle: string; ticketNumber: string }): string {
+    return emailTemplateService.wrapInMasterLayout(`
+      <h2>Registration Status Update</h2>
+      <p>Hello <strong>${params.userName}</strong>,</p>
+      <p>Your application for <strong>${params.eventTitle}</strong> (#${params.ticketNumber}) could not be approved at this time.</p>
+    `, undefined, 'Registration Status Update');
   }
 
-  /**
-   * Generates a beautifully-styled HTML template for Event Invitations
-   */
-  public getEventInvitationTemplate(params: {
-    userName: string;
-    eventTitle: string;
-    invitationUrl: string;
-  }): string {
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: 'Inter', system-ui, sans-serif; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 20px; }
-            .card { max-width: 600px; margin: 0 auto; background: white; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
-            .header { background: #6366f1; padding: 24px; text-align: center; color: white; }
-            .header h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.025em; }
-            .content { padding: 24px; line-height: 1.6; }
-            .footer { background: #f8fafc; padding: 16px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; }
-            .btn { display: inline-block; padding: 12px 24px; background: #6366f1; color: white !important; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; margin-top: 16px; }
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <div class="header">
-              <h1>Exclusive Event Invitation</h1>
-            </div>
-            <div class="content">
-              <p>Hello <strong>${params.userName}</strong>,</p>
-              <p>You have been exclusively invited to register for the upcoming private event: <strong>${params.eventTitle}</strong>.</p>
-              <p>This session is invite-only, and your spot has been pre-reserved under your email. Click the link below to view details and complete your registration form:</p>
-              
-              <div style="text-align: center; margin: 24px 0;">
-                <a href="${params.invitationUrl}" class="btn">Register Now</a>
-              </div>
-              
-              <p>We look forward to hosting you!</p>
-            </div>
-            <div class="card footer">
-              &copy; ${new Date().getFullYear()} WeVentureHub Ltd. All Rights Reserved. Co-working & Event Incubation Center.
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
+  public getEventInvitationTemplate(params: { userName: string; eventTitle: string; invitationUrl: string }): string {
+    return emailTemplateService.wrapInMasterLayout(`
+      <h2>Exclusive Event Invitation</h2>
+      <p>Hello <strong>${params.userName}</strong>,</p>
+      <p>You have been invited to register for private event: <strong>${params.eventTitle}</strong>.</p>
+      <div class="btn-container">
+        <a href="${params.invitationUrl}" class="btn">Register Spot Now</a>
+      </div>
+    `, undefined, 'Exclusive Event Invitation');
   }
 }
 

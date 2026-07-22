@@ -6,6 +6,7 @@ import { Review } from '../models/Review';
 import { Workspace } from '../models/Workspace';
 import { ApiResponse } from '../utils/response';
 import { EventStatus, EventVisibility, TicketStatus, TenantStatus } from '../types';
+import { emailNotificationManager } from '../services/EmailNotificationManager';
 
 export class PublicMarketplaceController {
   /**
@@ -701,6 +702,31 @@ export class PublicMarketplaceController {
       };
 
       res.status(200).json(jsonLd);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Submit public contact form inquiry
+   */
+  public async submitContact(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { name, email, phone, subject, message } = req.body;
+      if (!email || !message) {
+        res.status(400).json({ success: false, message: 'Email and message are required fields.' });
+        return;
+      }
+
+      await emailNotificationManager.sendContactFormNotification({
+        customerName: name || 'Valued Visitor',
+        customerEmail: email.toLowerCase(),
+        customerPhone: phone,
+        subject: subject || 'Inquiry regarding WeVentureHub Workspaces/Events',
+        message,
+      });
+
+      ApiResponse.success(res, { submitted: true }, 200, { message: 'Your message has been received! Confirmation email sent.' });
     } catch (error) {
       next(error);
     }

@@ -21,12 +21,16 @@ import {
   BarChart3,
   FileSpreadsheet,
   Users,
-  Cpu
+  Cpu,
+  Bot,
+  Mail,
+  Globe
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store';
 import { logout } from '../store/authSlice';
 import { toggleSidebar, toggleTheme } from '../store/uiSlice';
 import { motion, AnimatePresence } from 'motion/react';
+import WeVentureAssistant from '../components/assistant/WeVentureAssistant';
 
 // Subcomponents imports
 import Breadcrumbs from '../components/dashboard/Breadcrumbs';
@@ -85,7 +89,8 @@ export default function DashboardLayout() {
 
   const sidebarItems: SidebarItem[] = [
     { name: 'Overview', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'CRM & Contacts', path: '/dashboard/crm', icon: Users, requiredPermission: Permission.ANALYTICS_READ },
+    {name: 'CRM & Contacts', path: '/dashboard/crm', icon: Users, requiredPermission: Permission.ANALYTICS_READ },
+    { name: 'AI Assistant Desk', path: '/dashboard/assistant', icon: Bot, requiredPermission: Permission.ANALYTICS_READ },
     { name: 'Analytics', path: '/dashboard/analytics', icon: BarChart3, requiredPermission: Permission.ANALYTICS_READ },
     { name: 'Reports & Exports', path: '/dashboard/reports', icon: FileSpreadsheet, requiredPermission: Permission.ANALYTICS_READ },
     { name: 'Workspaces', path: '/dashboard/workspaces', icon: Building, requiredPermission: Permission.WORKSPACES_READ },
@@ -94,6 +99,8 @@ export default function DashboardLayout() {
     { name: 'Invoices', path: '/dashboard/invoices', icon: Receipt },
     { name: 'Ledger Logs', path: '/dashboard/transactions', icon: TrendingUp },
     { name: 'System Settings', path: '/dashboard/settings', icon: Settings, requiredPermission: Permission.SETTINGS_UPDATE },
+    { name: 'Email Center', path: '/dashboard/emails', icon: Mail },
+    { name: 'Website CMS', path: '/dashboard/cms', icon: Globe, requiredPermission: Permission.SETTINGS_UPDATE },
     { name: 'Integrations & API', path: '/dashboard/integrations', icon: Cpu },
   ];
 
@@ -371,6 +378,9 @@ export default function DashboardLayout() {
           </footer>
         </main>
       </div>
+
+      {/* Floating AI Virtual Assistant Widget */}
+      <WeVentureAssistant />
     </div>
   );
 }

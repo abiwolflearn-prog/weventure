@@ -190,6 +190,42 @@ export const publicApi = {
     return data.data;
   },
 
+  // About CMS
+  async getAbout() {
+    const { data } = await publicAxios.get<{ success: boolean; data: any }>('/about');
+    return data.data;
+  },
+
+  // FAQs
+  async getFaqs() {
+    const { data } = await publicAxios.get<{ success: boolean; data: any[] }>('/faqs');
+    return data.data;
+  },
+
+  // Company Info
+  async getCompanyInfo() {
+    const { data } = await publicAxios.get<{ success: boolean; data: any }>('/company-info');
+    return data.data;
+  },
+
+  // Navigation Menu
+  async getNavigation() {
+    const { data } = await publicAxios.get<{ success: boolean; data: any[] }>('/navigation');
+    return data.data;
+  },
+
+  // Membership Plans
+  async getPlans() {
+    const { data } = await publicAxios.get<{ success: boolean; data: any[] }>('/plans');
+    return data.data;
+  },
+
+  // Galleries
+  async getGalleries() {
+    const { data } = await publicAxios.get<{ success: boolean; data: any[] }>('/galleries');
+    return data.data;
+  },
+
   // Contact
   async submitInquiry(payload: { name: string; email: string; message: string }) {
     const { data } = await publicAxios.post<{ success: boolean; data: any }>('/contact', payload);

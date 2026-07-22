@@ -11,6 +11,15 @@ const publicRouter = Router();
 publicRouter.get('/events', publicMarketplaceController.getEvents);
 
 /**
+ * @route   POST /api/v1/public/contact
+ * @desc    Submit public contact form inquiry
+ * @access  Public
+ */
+publicRouter.post('/contact', (req, res, next) => {
+  publicMarketplaceController.submitContact(req, res, next);
+});
+
+/**
  * @route   GET /api/v1/public/events/categories
  * @desc    Fetch unique categories across published events
  * @access  Public

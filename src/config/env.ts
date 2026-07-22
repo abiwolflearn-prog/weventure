@@ -5,10 +5,6 @@ import { z } from 'zod';
 // Load .env file
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
-console.log("ENV FILE PATH:", path.resolve(process.cwd(), '.env'));
-console.log("MONGODB_URI:", process.env.MONGODB_URI);
-console.log("MONGO_URI:", process.env.MONGO_URI);
-
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(3000),
@@ -26,6 +22,7 @@ const envSchema = z.object({
   SMTP_USER: z.string().default(''),
   SMTP_PASS: z.string().default(''),
   SMTP_FROM: z.string().default('WeVentureHub <noreply@weventurehub.com>'),
+  ADMIN_EMAIL: z.string().default('admin@weventurehub.com'),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

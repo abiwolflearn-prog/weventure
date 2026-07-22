@@ -447,6 +447,130 @@ export class PublicApiController {
   }
 
   /**
+   * GET /api/about
+   */
+  public async getAbout(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { AboutPage } = await import('../models/AboutPage');
+      let about = await (AboutPage as any).findOne({ tenantId: 'weventurehub' }).lean();
+      if (!about) {
+        about = {
+          mission: 'To foster high-impact entrepreneurship across East Africa by uniting founders, workspace resources, and capital.',
+          vision: 'To build Africa\'s premier interconnected ecosystem for technological innovation and collaborative workspaces.',
+          companyDescription: 'WeVentureHub is an elite innovation & coworking space located in the heart of Addis Ababa.',
+          history: 'Founded in 2024, WeVentureHub has scaled from a single coworking floor into a full-scale accelerator and event hub.',
+          coreValues: [
+            { title: 'Integrity & Trust', description: 'Excellence in service and transparent operations.' },
+            { title: 'Community First', description: 'Collaborative growth over isolated hustle.' },
+            { title: 'Innovation Driven', description: 'Leveraging cutting-edge tech and automation.' }
+          ],
+          teamMembers: [
+            { name: 'Dr. Yonas Alemu', role: 'Chief Executive Officer', bio: 'Tech visionary with 15+ years experience in African venture building.' },
+            { name: 'Bethlehem Tadesse', role: 'Head of Operations', bio: 'Community architect dedicated to startup growth.' }
+          ],
+          timeline: [
+            { year: '2024', title: 'Hub Launched', description: 'Opened Bole Silicon Center floor.' },
+            { year: '2025', title: 'Accelerator Cohort 1', description: 'Graduated 12 high-growth startups.' },
+            { year: '2026', title: 'Enterprise Expansion', description: 'Integrated dynamic workspace booking engine.' }
+          ]
+        };
+      }
+      ApiResponse.success(res, about);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/faqs
+   */
+  public async getFaqs(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { Faq } = await import('../models/Faq');
+      const faqs = await (Faq as any).find({ isPublished: true, isDeleted: { $ne: true } }).sort({ sortOrder: 1, createdAt: -1 }).exec();
+      ApiResponse.success(res, faqs);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/company-info
+   */
+  public async getCompanyInfo(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { CompanyInfo } = await import('../models/CompanyInfo');
+      let info = await (CompanyInfo as any).findOne({ tenantId: 'weventurehub' }).lean();
+      if (!info) {
+        info = {
+          companyName: 'WeVentureHub',
+          tagline: 'The Premier Entrepreneurship & Coworking Hub in Addis Ababa',
+          description: 'WeVentureHub empowers African startups, founders, and enterprises with world-class workspaces and event acceleration.',
+          phoneNumbers: ['+251 911 234 567', '+251 116 890 123'],
+          emailAddresses: ['info@weventurehub.com', 'support@weventurehub.com'],
+          officeAddress: 'Bole Road, Next to Sunshine Building, Floor 4, Addis Ababa, Ethiopia',
+          city: 'Addis Ababa',
+          country: 'Ethiopia',
+          workingHours: 'Mon - Sat: 8:00 AM - 10:00 PM | Sun: Closed',
+          emergencyContact: '+251 911 000 000',
+          googleMapEmbedUrl: 'https://maps.google.com',
+          socialMediaLinks: {
+            facebook: 'https://facebook.com/weventurehub',
+            twitter: 'https://twitter.com/weventurehub',
+            linkedin: 'https://linkedin.com/company/weventurehub',
+            instagram: 'https://instagram.com/weventurehub',
+            telegram: 'https://t.me/weventurehub',
+          },
+          logoUrl: '/logo.png',
+          footerText: '© 2026 WeVentureHub. All rights reserved.'
+        };
+      }
+      ApiResponse.success(res, info);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/navigation
+   */
+  public async getNavigation(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { NavigationMenu } = await import('../models/NavigationMenu');
+      const menus = await (NavigationMenu as any).find({ tenantId: 'weventurehub' }).exec();
+      ApiResponse.success(res, menus);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/plans
+   */
+  public async getPlans(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { Plan } = await import('../models/Plan');
+      const plans = await Plan.find({ isCustom: false }).exec();
+      ApiResponse.success(res, plans);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/galleries
+   */
+  public async getGalleries(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { Gallery } = await import('../models/Gallery');
+      const galleries = await (Gallery as any).find({ isPublished: true }).sort({ createdAt: -1 }).exec();
+      ApiResponse.success(res, galleries);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * POST /api/contact
    */
   public async submitInquiry(req: Request, res: Response, next: NextFunction): Promise<void> {

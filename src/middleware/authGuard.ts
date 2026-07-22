@@ -60,3 +60,43 @@ export const authGuard = (req: Request, res: Response, next: NextFunction): void
     next(new UnauthorizedError(error instanceof Error ? error.message : undefined));
   }
 };
+
+export const optionalAuthGuard = (req: Request, res: Response, next: NextFunction): void => {
+  try {
+    let token: string | null = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    }
+    if (!token && req.headers.cookie) {
+      const cookies = Object.fromEntries(
+        req.headers.cookie.split(';').map((cookie) => {
+          const [key, ...value] = cookie.trim().split('=');
+          return [key, value.join('=')];
+        })
+      );
+      token = cookies['jwt_access_token'] || null;
+    }
+    if (!token && req.query.token) {
+      token = req.query.token as string;
+    }
+
+    if (token) {
+      const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET, { ignoreExpiration: true }) as any;
+      if (decoded) {
+        req.user = {
+          id: decoded.id,
+          tenantId: decoded.tenantId,
+          email: decoded.email,
+          firstName: decoded.firstName,
+          lastName: decoded.lastName,
+          role: decoded.role,
+          permissions: decoded.permissions || [],
+        };
+      }
+    }
+  } catch (_) {
+    // Ignore invalid tokens for optional auth
+  }
+  next();
+};

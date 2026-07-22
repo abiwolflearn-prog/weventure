@@ -17,6 +17,9 @@ import onboardingRouter from './onboarding.routes';
 import publicRouter from './public.routes';
 import crmRouter from './crm.routes';
 import integrationRouter from './integration.routes';
+import assistantRouter from './assistant.routes';
+import { emailRouter } from './email.routes';
+import { cmsRouter } from './cms.routes';
 
 const apiRouter = Router();
 
@@ -68,6 +71,15 @@ apiRouter.use('/communications', notificationRouter);
 
 // Mount enterprise integrations platform module
 apiRouter.use('/integrations', integrationRouter);
+
+// Mount WeVenture Assistant AI virtual assistant module
+apiRouter.use('/assistant', assistantRouter);
+
+// Mount automated email notification management system
+apiRouter.use('/emails', emailRouter);
+
+// Mount CMS & content management module
+apiRouter.use('/cms', cmsRouter);
 
 /**
  * @route   GET /api/v1/health

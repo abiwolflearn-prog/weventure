@@ -40,6 +40,9 @@ import AnalyticsDashboard from './views/AnalyticsDashboard';
 import ReportsPage from './views/ReportsPage';
 import BillingPage from './views/BillingPage';
 import IntegrationsPage from './views/IntegrationsPage';
+import EmailCenterPage from './views/EmailCenterPage';
+import CmsManagementPage from './views/CmsManagementPage';
+import AssistantAdminDashboard from './components/assistant/AssistantAdminDashboard';
 
 /**
  * Access Guard to restrict access to authenticated tenant members
@@ -103,6 +106,9 @@ export default function App() {
               <Route path="transactions" element={<TransactionsPage />} />
               <Route path="announcements" element={<AnnouncementsPage />} />
               <Route path="integrations" element={<IntegrationsPage />} />
+              <Route path="emails" element={<EmailCenterPage />} />
+              <Route path="cms" element={<CmsManagementPage />} />
+              <Route path="assistant" element={<AssistantAdminDashboard />} />
             </Route>
 
             {/* Global Fallback Route */}

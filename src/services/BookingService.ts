@@ -8,6 +8,7 @@ import { IUserIdentity, UserRole } from '../types';
 import { ValidationError, NotFoundError, ConflictError, ForbiddenError } from '../errors/AppError';
 import { notificationService, NotificationCategory } from './NotificationService';
 import { emailService } from './EmailService';
+import { emailNotificationManager } from './EmailNotificationManager';
 import { pricingService } from './PricingService';
 
 export class BookingService {
@@ -213,23 +214,11 @@ export class BookingService {
       details: { spaceName: workspace.name, totalAmount, status },
     });
 
-    // Send instant transactional email confirmation if the reservation is pre-approved
+    // Send transactional email notifications
     if (status === 'CONFIRMED') {
-      const emailHtml = emailService.getBookingConfirmationTemplate({
-        userName: `${user.firstName} ${user.lastName}`,
-        spaceName: workspace.name,
-        startTime: start.toLocaleString(),
-        endTime: end.toLocaleString(),
-        totalAmount: `${totalAmount} ETB`,
-        bookingId: booking.id,
-      });
-      emailService.sendEmail({
-        to: user.email,
-        subject: `[WeVentureHub] Workspace Booking Verified!`,
-        html: emailHtml,
-      }).catch((err) => {
-        console.error('Failed to dispatch booking confirmation email:', err);
-      });
+      emailNotificationManager.sendBookingApproved(booking, { email: user.email, name: `${user.firstName} ${user.lastName}` }, workspace.name).catch(console.error);
+    } else {
+      emailNotificationManager.sendBookingReceived(booking, { email: user.email, name: `${user.firstName} ${user.lastName}` }, workspace.name).catch(console.error);
     }
 
     return booking;
@@ -317,6 +306,10 @@ export class BookingService {
       userEmail: booking.userEmail,
     });
 
+    // Trigger HTML Email
+    const workspace = await workspaceRepository.findById(booking.spaceId, tenantId);
+    emailNotificationManager.sendBookingApproved(updated, { email: booking.userEmail, name: booking.billingDetails?.name }, workspace?.name || 'Workspace').catch(console.error);
+
     // Record timeline activity
     await notificationService.trackActivity({
       tenantId,
@@ -358,6 +351,10 @@ export class BookingService {
       category: NotificationCategory.BOOKING,
       link: '/dashboard/bookings',
     });
+
+    // Trigger HTML Email
+    const workspace = await workspaceRepository.findById(booking.spaceId, tenantId);
+    emailNotificationManager.sendBookingRejected(updated, { email: booking.userEmail, name: booking.billingDetails?.name }, workspace?.name || 'Workspace').catch(console.error);
 
     // Record timeline activity
     await notificationService.trackActivity({
