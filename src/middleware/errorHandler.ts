@@ -43,6 +43,20 @@ export const errorHandler = (
     statusCode = 401;
     code = 'UNAUTHORIZED';
     message = 'Authentication token has expired';
+  } else if (
+    err.name === 'MongooseError' ||
+    err.name === 'MongoNetworkError' ||
+    err.name === 'MongooseServerSelectionError' ||
+    (err.message && typeof err.message === 'string' && err.message.includes('buffering timed out'))
+  ) {
+    logger.warn('[AI Studio] Database offline — returning mock response', { path: req.path });
+    if (req.method === 'GET') {
+      res.json(req.path.endsWith('s') || req.path.endsWith('s/') ? [] : {});
+      return;
+    }
+    statusCode = 503;
+    code = 'SERVICE_UNAVAILABLE';
+    message = 'Service temporarily unavailable (database offline)';
   }
 
   // Log the complete error detail based on status severity

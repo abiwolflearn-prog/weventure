@@ -19,10 +19,16 @@ import {
   Briefcase,
   UploadCloud,
   X,
-  Image
+  Image,
+  Copy,
+  Star,
+  Eye,
+  Maximize2,
+  MapPin,
+  ListOrdered
 } from 'lucide-react';
 import { useAppSelector } from '../store';
-import { workspaceApi, IWorkspacePayload } from '../lib/workspaceApi';
+import { workspaceApi, IWorkspacePayload, IWorkspace } from '../lib/workspaceApi';
 import { bookingApi } from '../lib/bookingApi';
 import { UserRole } from '../types';
 import { Table, IColumn } from '../components/Table';
@@ -30,25 +36,6 @@ import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
 import { BookingCalendar } from '../components/workspaces/BookingCalendar';
-
-interface WorkspaceItem {
-  id: string;
-  name: string;
-  type: 'HOT_DESK' | 'MEETING_ROOM' | 'EVENT_VENUE';
-  capacity: number;
-  hourlyRate: number;
-  currency: string;
-  amenities: string[];
-  isAvailable: boolean;
-  bufferTime: number;
-  imageUrl?: string;
-  availabilityRules: {
-    startHour: number;
-    endHour: number;
-    allowedDays: number[];
-  };
-  billingPlans?: any[];
-}
 
 export default function WorkspaceList() {
   const navigate = useNavigate();
@@ -60,12 +47,12 @@ export default function WorkspaceList() {
 
   // Search and filter states
   const [search, setSearch] = useState('');
-  const [filterType, setFilterType] = useState<string>('ALL');
+  const [filterCategory, setFilterCategory] = useState<string>('ALL');
 
   // Modal control states
-  const [selectedWorkspace, setSelectedWorkspace] = useState<WorkspaceItem | null>(null);
+  const [selectedWorkspace, setSelectedWorkspace] = useState<any | null>(null);
   const [workspaceFormOpen, setWorkspaceFormOpen] = useState(false);
-  const [editingWorkspace, setEditingWorkspace] = useState<WorkspaceItem | null>(null);
+  const [editingWorkspace, setEditingWorkspace] = useState<any | null>(null);
 
   // New Booking form states
   const [bookingDate, setBookingDate] = useState('2026-07-01');
@@ -99,18 +86,33 @@ export default function WorkspaceList() {
   const [billingCompany, setBillingCompany] = useState('');
   const [billingAddress, setBillingAddress] = useState('');
 
-  // New / Edit Workspace form states
-  const [wsName, setWsName] = useState('');
-  const [wsType, setWsType] = useState<'HOT_DESK' | 'MEETING_ROOM' | 'EVENT_VENUE'>('MEETING_ROOM');
+  // Comprehensive Workspace Form States
+  const [wsTitle, setWsTitle] = useState('');
+  const [wsShortDescription, setWsShortDescription] = useState('');
+  const [wsFullDescription, setWsFullDescription] = useState('');
+  const [wsCategory, setWsCategory] = useState('Meeting Room');
+  const [wsType, setWsType] = useState<string>('MEETING_ROOM');
   const [wsCapacity, setWsCapacity] = useState('8');
-  const [wsHourlyRate, setWsHourlyRate] = useState('35');
-  const [wsBufferTime, setWsBufferTime] = useState('15');
+  const [wsFloor, setWsFloor] = useState('Floor 1');
+  const [wsSize, setWsSize] = useState('350 sqft');
+  const [wsHourlyPrice, setWsHourlyPrice] = useState('35');
+  const [wsDailyPrice, setWsDailyPrice] = useState('200');
+  const [wsWeeklyPrice, setWsWeeklyPrice] = useState('800');
+  const [wsMonthlyPrice, setWsMonthlyPrice] = useState('2800');
+  const [wsCurrency, setWsCurrency] = useState('USD');
   const [wsAmenitiesText, setWsAmenitiesText] = useState('Whiteboard, Webcam, High-speed WiFi');
-  const [wsStartHour, setWsStartHour] = useState('8');
-  const [wsEndHour, setWsEndHour] = useState('20');
-  const [wsIsAvailable, setWsIsAvailable] = useState(true);
+  const [wsFeaturesText, setWsFeaturesText] = useState('Ergonomic Chairs, Natural Light, Quiet Zone');
+  const [wsAvailability, setWsAvailability] = useState<'Available' | 'Occupied' | 'Maintenance' | 'Reserved'>('Available');
+  const [wsOpeningHours, setWsOpeningHours] = useState('08:00');
+  const [wsClosingHours, setWsClosingHours] = useState('20:00');
+  const [wsLocation, setWsLocation] = useState('Main Campus, Building A');
+  const [wsStatus, setWsStatus] = useState<'published' | 'draft' | 'archived'>('published');
+  const [wsFeatured, setWsFeatured] = useState(false);
+  const [wsDisplayOrder, setWsDisplayOrder] = useState('0');
+  const [wsCoverImage, setWsCoverImage] = useState('');
+  const [wsGalleryText, setWsGalleryText] = useState('');
+  const [wsBufferTime, setWsBufferTime] = useState('15');
   const [formError, setFormError] = useState<string | null>(null);
-  const [wsImageUrl, setWsImageUrl] = useState('');
   const [dragActive, setDragActive] = useState(false);
 
   const handleDrag = (e: React.DragEvent) => {
@@ -147,7 +149,7 @@ export default function WorkspaceList() {
     }
     const reader = new FileReader();
     reader.onloadend = () => {
-      setWsImageUrl(reader.result as string);
+      setWsCoverImage(reader.result as string);
     };
     reader.onerror = () => {
       alert('Failed to read file. Please try another image.');
@@ -169,11 +171,11 @@ export default function WorkspaceList() {
     isLoading: isWorkspacesLoading,
     refetch: refetchWorkspaces 
   } = useQuery({
-    queryKey: ['workspaces', search, filterType],
+    queryKey: ['workspaces', search, filterCategory],
     queryFn: async () => {
       const params: any = {};
       if (search) params.search = search;
-      if (filterType !== 'ALL') params.type = filterType;
+      if (filterCategory !== 'ALL') params.category = filterCategory;
       return await workspaceApi.getWorkspaces(params);
     }
   });
@@ -188,7 +190,7 @@ export default function WorkspaceList() {
     }
   });
 
-  const workspaces: WorkspaceItem[] = workspacesResponse?.data || [];
+  const workspaces: any[] = workspacesResponse?.data || [];
   const bookings: any[] = bookingsResponse?.data || [];
 
   // ----------------------------------------------------
@@ -208,7 +210,7 @@ export default function WorkspaceList() {
       const checkoutPrice = selectedPlanObj 
         ? (selectedPlanObj.price + (selectedPlanObj.deposit || 0)) 
         : calculateEstimatedPrice();
-      const currency = selectedPlanObj ? (selectedPlanObj.currency || 'ETB') : 'ETB';
+      const currency = selectedPlanObj ? (selectedPlanObj.currency || 'USD') : 'USD';
       
       setTimeout(() => {
         setSelectedWorkspace(null);
@@ -220,10 +222,10 @@ export default function WorkspaceList() {
               targetId: data?.id || data?._id || 'BOOKING-123',
               amount: checkoutPrice,
               currency: currency,
-              title: selectedWorkspace?.name || 'Workspace Reservation',
+              title: selectedWorkspace?.title || selectedWorkspace?.name || 'Workspace Reservation',
               description: selectedPlanObj 
-                ? `${selectedPlanObj.name} Coworking Plan for ${selectedWorkspace?.name}` 
-                : `Hourly reservation for ${selectedWorkspace?.name}`
+                ? `${selectedPlanObj.name} Coworking Plan for ${selectedWorkspace?.title || selectedWorkspace?.name}` 
+                : `Hourly reservation for ${selectedWorkspace?.title || selectedWorkspace?.name}`
             }
           });
         }
@@ -260,6 +262,36 @@ export default function WorkspaceList() {
     },
     onError: (err: any) => {
       setFormError(err.message || 'Failed to update workspace.');
+    }
+  });
+
+  const duplicateWorkspaceMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await workspaceApi.duplicateWorkspace(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+    },
+    onError: (err: any) => {
+      alert(err.message || 'Failed to duplicate workspace.');
+    }
+  });
+
+  const toggleFeaturedMutation = useMutation({
+    mutationFn: async ({ id, featured }: { id: string; featured: boolean }) => {
+      return await workspaceApi.toggleWorkspaceFeatured(id, featured);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+    }
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: 'published' | 'draft' | 'archived' }) => {
+      return await workspaceApi.updateWorkspaceStatus(id, status);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
     }
   });
 
@@ -301,7 +333,7 @@ export default function WorkspaceList() {
     }
 
     const payload: any = {
-      spaceId: selectedWorkspace.id,
+      spaceId: selectedWorkspace._id || selectedWorkspace.id,
       startTime: startIso,
       endTime: endIso,
       purpose: bookingPurpose,
@@ -328,48 +360,78 @@ export default function WorkspaceList() {
 
   const handleSaveWorkspace = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!wsName.trim()) {
-      setFormError('Workspace Name is required');
+    if (!wsTitle.trim()) {
+      setFormError('Workspace Title is required');
       return;
     }
 
     const payload: IWorkspacePayload = {
-      name: wsName.trim(),
+      title: wsTitle.trim(),
+      name: wsTitle.trim(),
+      shortDescription: wsShortDescription.trim(),
+      fullDescription: wsFullDescription.trim(),
+      category: wsCategory,
+      workspaceType: wsType,
       type: wsType,
-      capacity: Number(wsCapacity),
-      hourlyRate: Number(wsHourlyRate),
-      currency: 'USD',
+      capacity: Number(wsCapacity) || 1,
+      floor: wsFloor.trim(),
+      size: wsSize.trim(),
+      hourlyPrice: Number(wsHourlyPrice) || 0,
+      hourlyRate: Number(wsHourlyPrice) || 0,
+      dailyPrice: Number(wsDailyPrice) || 0,
+      weeklyPrice: Number(wsWeeklyPrice) || 0,
+      monthlyPrice: Number(wsMonthlyPrice) || 0,
+      currency: wsCurrency || 'USD',
+      coverImage: wsCoverImage || undefined,
+      imageUrl: wsCoverImage || undefined,
+      galleryImages: wsGalleryText.split(',').map(s => s.trim()).filter(Boolean),
       amenities: wsAmenitiesText.split(',').map(s => s.trim()).filter(Boolean),
-      isAvailable: wsIsAvailable,
-      bufferTime: Number(wsBufferTime),
-      imageUrl: wsImageUrl || undefined,
-      availabilityRules: {
-        startHour: Number(wsStartHour),
-        endHour: Number(wsEndHour),
-        allowedDays: [1, 2, 3, 4, 5], // default Mon-Fri
-      },
+      features: wsFeaturesText.split(',').map(s => s.trim()).filter(Boolean),
+      availability: wsAvailability,
+      isAvailable: wsAvailability === 'Available',
+      openingHours: wsOpeningHours,
+      closingHours: wsClosingHours,
+      location: wsLocation.trim(),
+      status: wsStatus,
+      featured: wsFeatured,
+      displayOrder: Number(wsDisplayOrder) || 0,
       billingPlans: wsBillingPlans,
     };
 
-    if (editingWorkspace) {
-      updateWorkspaceMutation.mutate({ id: editingWorkspace.id, payload });
+    const targetId = editingWorkspace?._id || editingWorkspace?.id;
+    if (editingWorkspace && targetId) {
+      updateWorkspaceMutation.mutate({ id: targetId, payload });
     } else {
       createWorkspaceMutation.mutate(payload);
     }
   };
 
-  const handleEditWorkspaceClick = (space: WorkspaceItem) => {
+  const handleEditWorkspaceClick = (space: any) => {
     setEditingWorkspace(space);
-    setWsName(space.name);
-    setWsType(space.type);
-    setWsCapacity(space.capacity.toString());
-    setWsHourlyRate(space.hourlyRate.toString());
-    setWsBufferTime(space.bufferTime.toString());
-    setWsAmenitiesText(space.amenities.join(', '));
-    setWsStartHour(space.availabilityRules?.startHour?.toString() || '8');
-    setWsEndHour(space.availabilityRules?.endHour?.toString() || '20');
-    setWsIsAvailable(space.isAvailable);
-    setWsImageUrl(space.imageUrl || '');
+    setWsTitle(space.title || space.name || '');
+    setWsShortDescription(space.shortDescription || '');
+    setWsFullDescription(space.fullDescription || '');
+    setWsCategory(space.category || 'Meeting Room');
+    setWsType(space.workspaceType || space.type || 'MEETING_ROOM');
+    setWsCapacity((space.capacity || 8).toString());
+    setWsFloor(space.floor || 'Floor 1');
+    setWsSize(space.size || '350 sqft');
+    setWsHourlyPrice((space.hourlyPrice !== undefined ? space.hourlyPrice : (space.hourlyRate || 35)).toString());
+    setWsDailyPrice((space.dailyPrice !== undefined ? space.dailyPrice : (space.dailyRate || 200)).toString());
+    setWsWeeklyPrice((space.weeklyPrice || 800).toString());
+    setWsMonthlyPrice((space.monthlyPrice || 2800).toString());
+    setWsCurrency(space.currency || 'USD');
+    setWsAmenitiesText(Array.isArray(space.amenities) ? space.amenities.join(', ') : 'Whiteboard, Webcam, High-speed WiFi');
+    setWsFeaturesText(Array.isArray(space.features) ? space.features.join(', ') : 'Ergonomic Chairs, Natural Light');
+    setWsAvailability(space.availability || (space.isAvailable !== false ? 'Available' : 'Occupied'));
+    setWsOpeningHours(space.openingHours || '08:00');
+    setWsClosingHours(space.closingHours || '20:00');
+    setWsLocation(space.location || 'Main Campus');
+    setWsStatus(space.status || 'published');
+    setWsFeatured(!!space.featured);
+    setWsDisplayOrder((space.displayOrder || 0).toString());
+    setWsCoverImage(space.coverImage || space.imageUrl || '');
+    setWsGalleryText(Array.isArray(space.galleryImages) ? space.galleryImages.join(', ') : '');
     setWsBillingPlans(space.billingPlans || []);
     setWorkspaceFormOpen(true);
   };
@@ -382,16 +444,30 @@ export default function WorkspaceList() {
 
   const resetWorkspaceForm = () => {
     setEditingWorkspace(null);
-    setWsName('');
+    setWsTitle('');
+    setWsShortDescription('');
+    setWsFullDescription('');
+    setWsCategory('Meeting Room');
     setWsType('MEETING_ROOM');
     setWsCapacity('8');
-    setWsHourlyRate('35');
-    setWsBufferTime('15');
+    setWsFloor('Floor 1');
+    setWsSize('350 sqft');
+    setWsHourlyPrice('35');
+    setWsDailyPrice('200');
+    setWsWeeklyPrice('800');
+    setWsMonthlyPrice('2800');
+    setWsCurrency('USD');
     setWsAmenitiesText('Whiteboard, Webcam, High-speed WiFi');
-    setWsStartHour('8');
-    setWsEndHour('20');
-    setWsIsAvailable(true);
-    setWsImageUrl('');
+    setWsFeaturesText('Ergonomic Chairs, Natural Light');
+    setWsAvailability('Available');
+    setWsOpeningHours('08:00');
+    setWsClosingHours('20:00');
+    setWsLocation('Main Campus');
+    setWsStatus('published');
+    setWsFeatured(false);
+    setWsDisplayOrder('0');
+    setWsCoverImage('');
+    setWsGalleryText('');
     setWsBillingPlans([]);
     setFormError(null);
   };
@@ -450,21 +526,12 @@ export default function WorkspaceList() {
     setBookingStart(formattedStart);
     setBookingEnd(formattedEnd);
 
-    // If a specific workspace was filtered in visual, pre-select it!
-    if (filterType !== 'ALL') {
-      const spaceObj = workspaces.find(w => w.type === filterType);
-      if (spaceObj) {
-        handleOpenBookingModal(spaceObj);
-        return;
-      }
-    }
-    // Otherwise open modal with first available
     if (workspaces.length > 0) {
       handleOpenBookingModal(workspaces[0]);
     }
   };
 
-  const handleOpenBookingModal = (row: WorkspaceItem) => {
+  const handleOpenBookingModal = (row: any) => {
     setSelectedWorkspace(row);
     setSelectedBillingPlanId('');
     setSignatureName('');
@@ -485,133 +552,182 @@ export default function WorkspaceList() {
       const start = new Date(`${bookingDate}T${bookingStart}:00`);
       const end = new Date(`${bookingDate}T${bookingEnd}:00`);
       const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-      return Math.max(0, Math.round(hours * selectedWorkspace.hourlyRate * 100) / 100);
+      const rate = selectedWorkspace.hourlyPrice !== undefined ? selectedWorkspace.hourlyPrice : (selectedWorkspace.hourlyRate || 0);
+      return Math.max(0, Math.round(hours * rate * 100) / 100);
     } catch {
       return 0;
     }
   };
 
   // Columns definition for the table
-  const columns: IColumn<WorkspaceItem>[] = [
+  const columns: IColumn<any>[] = [
     {
-      header: 'Space Name',
-      accessor: 'name',
-      render: (row) => (
-        <div className="flex items-center space-x-3.5">
-          {row.imageUrl ? (
-            <div className="w-10 h-10 rounded-[10px] overflow-hidden border border-gray-100 flex-shrink-0">
-              <img src={row.imageUrl} alt={row.name} className="w-full h-full object-cover" />
+      header: 'Space Title',
+      accessor: 'title',
+      render: (row) => {
+        const titleStr = row.title || row.name;
+        const img = row.coverImage || row.imageUrl;
+        const targetId = row._id || row.id;
+
+        return (
+          <div className="flex items-center space-x-3.5">
+            {img ? (
+              <div className="w-10 h-10 rounded-[10px] overflow-hidden border border-gray-100 flex-shrink-0">
+                <img src={img} alt={titleStr} className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div className="p-2.5 bg-[#A3E635]/15 rounded-[10px] text-[#65A30D] flex-shrink-0">
+                <Building className="w-4.5 h-4.5" />
+              </div>
+            )}
+            <div>
+              <div className="flex items-center gap-1.5">
+                <p className="font-bold text-[#111827] text-[14px]">{titleStr}</p>
+                {row.featured && (
+                  <span className="p-0.5 bg-amber-100 text-amber-600 rounded" title="Featured Workspace">
+                    <Star className="w-3 h-3 fill-current" />
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] text-[#9CA3AF] font-bold uppercase tracking-wider mt-0.5">
+                {row.category || row.workspaceType || 'Workspace'} | Order: {row.displayOrder || 0}
+              </p>
             </div>
-          ) : (
-            <div className="p-2.5 bg-[#A3E635]/15 rounded-[10px] text-[#65A30D] flex-shrink-0">
-              <Building className="w-4.5 h-4.5" />
-            </div>
-          )}
-          <div>
-            <p className="font-bold text-[#111827] text-[14px]">{row.name}</p>
-            <p className="text-[10px] text-[#9CA3AF] font-bold uppercase tracking-wider mt-0.5">ID: {row.id.substring(0, 8)}</p>
           </div>
+        );
+      }
+    },
+    { 
+      header: 'Category & Type', 
+      accessor: 'category',
+      render: (row) => (
+        <span className="px-2.5 py-1 rounded-[6px] text-[10px] font-bold uppercase tracking-wider bg-[#F1F5F9] text-[#334155] border border-[#E2E8F0]">
+          {row.category || row.workspaceType || row.type || 'Workspace'}
+        </span>
+      )
+    },
+    { 
+      header: 'Capacity & Size', 
+      accessor: 'capacity', 
+      render: (row) => (
+        <div>
+          <p className="text-[13px] font-bold text-[#4B5563]">Up to {row.capacity} seats</p>
+          <p className="text-[10px] text-[#9CA3AF]">{row.floor || 'Floor 1'} • {row.size || '350 sqft'}</p>
         </div>
       )
     },
     { 
-      header: 'Space Type', 
-      accessor: 'type',
-      render: (row) => (
-        <span className={`px-2.5 py-1 rounded-[6px] text-[10px] font-bold uppercase tracking-wider ${
-          row.type === 'MEETING_ROOM'
-            ? 'bg-[#A3E635]/15 text-[#65A30D]'
-            : row.type === 'EVENT_VENUE'
-            ? 'bg-[#F5F3FF] text-[#7C3AED]'
-            : 'bg-[#FFF7ED] text-[#EA580C]'
-        }`}>
-          {row.type.replace('_', ' ')}
-        </span>
-      )
-    },
-    { 
-      header: 'Capacity', 
-      accessor: 'capacity', 
-      render: (row) => (
-        <span className="text-[13px] font-bold text-[#4B5563]">
-          Up to {row.capacity} pax
-        </span>
-      )
-    },
-    { 
-      header: 'Hourly Rate', 
-      accessor: 'hourlyRate', 
-      render: (row) => (
-        <span className="text-[13px] font-bold text-[#111827] font-mono">
-          {row.currency} {row.hourlyRate.toFixed(2)} / hr
-        </span>
-      )
+      header: 'Hourly Price', 
+      accessor: 'hourlyPrice', 
+      render: (row) => {
+        const price = row.hourlyPrice !== undefined ? row.hourlyPrice : (row.hourlyRate || 0);
+        return (
+          <span className="text-[13px] font-bold text-[#111827] font-mono">
+            {row.currency || 'USD'} {Number(price).toFixed(2)} / hr
+          </span>
+        );
+      }
     },
     {
-      header: 'Membership Plans',
-      accessor: 'billingPlans' as any,
+      header: 'Visibility Status',
+      accessor: 'status',
       render: (row) => {
-        const activePlans = row.billingPlans?.filter((p: any) => p.isActive) || [];
-        if (activePlans.length === 0) {
-          return <span className="text-[11px] text-[#9CA3AF] italic">Hourly Only</span>;
-        }
+        const statusVal = row.status || 'published';
+        const targetId = row._id || row.id;
+
         return (
-          <div className="flex flex-wrap gap-1 max-w-[180px]">
-            {activePlans.map((p: any) => (
-              <span key={p.id || p._id} className="text-[9px] bg-[#EEF2F6] text-[#4B5563] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider">
-                {p.name}
-              </span>
-            ))}
+          <div className="flex items-center gap-2">
+            <select
+              value={statusVal}
+              onChange={(e) => updateStatusMutation.mutate({ id: targetId, status: e.target.value as any })}
+              className={`px-2 py-1 rounded-md text-[11px] font-bold outline-none border cursor-pointer ${
+                statusVal === 'published'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : statusVal === 'draft'
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-rose-50 text-rose-700 border-rose-200'
+              }`}
+            >
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+              <option value="archived">Archived</option>
+            </select>
           </div>
         );
       }
     },
     {
-      header: 'Operational Status',
-      accessor: 'isAvailable',
-      render: (row) => (
-        <span className={`inline-flex items-center space-x-1.5 text-[12px] font-bold ${row.isAvailable ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
-          {row.isAvailable ? <CheckCircle2 className="w-4 h-4 text-[#10B981]" /> : <XCircle className="w-4 h-4 text-[#EF4444]" />}
-          <span>{row.isAvailable ? 'Available' : 'Occupied'}</span>
-        </span>
-      )
+      header: 'Operational State',
+      accessor: 'availability',
+      render: (row) => {
+        const state = row.availability || (row.isAvailable !== false ? 'Available' : 'Occupied');
+        return (
+          <span className={`inline-flex items-center space-x-1 text-[12px] font-bold ${
+            state === 'Available' ? 'text-emerald-600' : 'text-amber-600'
+          }`}>
+            {state === 'Available' ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <XCircle className="w-4 h-4 text-amber-500" />}
+            <span>{state}</span>
+          </span>
+        );
+      }
     },
     {
       header: 'Actions',
-      accessor: 'id',
-      render: (row) => (
-        <div className="flex items-center gap-2">
-          <Button 
-            size="sm" 
-            disabled={!row.isAvailable}
-            onClick={() => {
-              handleOpenBookingModal(row);
-            }}
-            className="bg-[#84CC16] hover:bg-[#65A30D] disabled:bg-[#E5E7EB] disabled:text-[#9CA3AF] text-[#111111] font-bold text-[12px] h-[34px] px-3.5 rounded-[6px]"
-          >
-            Book Space
-          </Button>
+      accessor: '_id' as any,
+      render: (row) => {
+        const targetId = row._id || row.id;
+        return (
+          <div className="flex items-center gap-1.5">
+            <Button 
+              size="sm" 
+              onClick={() => handleOpenBookingModal(row)}
+              className="bg-[#84CC16] hover:bg-[#65A30D] text-[#111111] font-bold text-[11px] h-[32px] px-2.5 rounded-[6px]"
+            >
+              Book
+            </Button>
 
-          {isAdminOrStaff && (
-            <>
-              <button 
-                onClick={() => handleEditWorkspaceClick(row)}
-                className="p-2 border border-[#E5E7EB] rounded-[8px] hover:bg-gray-50 hover:text-[#65A30D] text-[#4B5563] bg-white transition-colors"
-                title="Edit space properties"
-              >
-                <Edit className="w-4 h-4" />
-              </button>
-              <button 
-                onClick={() => handleDeleteWorkspaceClick(row.id)}
-                className="p-2 border border-[#E5E7EB] rounded-[8px] hover:bg-rose-50 hover:text-[#EF4444] text-[#4B5563] bg-white transition-colors"
-                title="Decommission workspace"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </>
-          )}
-        </div>
-      )
+            {isAdminOrStaff && (
+              <>
+                <button
+                  onClick={() => toggleFeaturedMutation.mutate({ id: targetId, featured: !row.featured })}
+                  className={`p-1.5 border rounded-[6px] transition-colors ${
+                    row.featured 
+                      ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100' 
+                      : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50 hover:text-amber-500'
+                  }`}
+                  title={row.featured ? "Unfeature workspace" : "Feature on Marketplace"}
+                >
+                  <Star className="w-3.5 h-3.5 fill-current" />
+                </button>
+
+                <button 
+                  onClick={() => duplicateWorkspaceMutation.mutate(targetId)}
+                  className="p-1.5 border border-gray-200 rounded-[6px] hover:bg-gray-50 hover:text-brand-accent text-gray-600 bg-white transition-colors"
+                  title="Duplicate workspace"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                </button>
+
+                <button 
+                  onClick={() => handleEditWorkspaceClick(row)}
+                  className="p-1.5 border border-gray-200 rounded-[6px] hover:bg-gray-50 hover:text-[#65A30D] text-gray-600 bg-white transition-colors"
+                  title="Edit workspace"
+                >
+                  <Edit className="w-3.5 h-3.5" />
+                </button>
+
+                <button 
+                  onClick={() => handleDeleteWorkspaceClick(targetId)}
+                  className="p-1.5 border border-gray-200 rounded-[6px] hover:bg-rose-50 hover:text-rose-600 text-gray-600 bg-white transition-colors"
+                  title="Delete workspace"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </>
+            )}
+          </div>
+        );
+      }
     }
   ];
 
@@ -620,8 +736,8 @@ export default function WorkspaceList() {
       {/* View Title */}
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
-          <h1 className="font-display font-bold text-[24px] text-[#111827] tracking-tight">Workspace Resource Directory</h1>
-          <p className="text-[13px] text-[#6B7280] mt-1">Reserve private boardrooms, hot desks, or lecture spaces instantly with real-time billing.</p>
+          <h1 className="font-display font-bold text-[24px] text-[#111827] tracking-tight">Dynamic Workspace Directory</h1>
+          <p className="text-[13px] text-[#6B7280] mt-1">Manage WeVentureHub meeting rooms, hot desks, boardrooms, and event venues in real-time.</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -666,7 +782,7 @@ export default function WorkspaceList() {
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-5 rounded-[16px] border border-[#E5E7EB] shadow-[0_2px_10px_rgba(0,0,0,0.01)]">
             <div className="relative w-full md:max-w-sm">
               <Input 
-                placeholder="Search workspaces..." 
+                placeholder="Search workspaces by name, category, location..." 
                 value={search} 
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10 rounded-[10px] border-[#E5E7EB]"
@@ -676,17 +792,17 @@ export default function WorkspaceList() {
 
             <div className="flex items-center gap-2 self-start w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
               <SlidersHorizontal className="w-4.5 h-4.5 text-[#9CA3AF] shrink-0" />
-              {['ALL', 'MEETING_ROOM', 'HOT_DESK', 'EVENT_VENUE'].map((type) => (
+              {['ALL', 'Meeting Room', 'Hot Desk', 'Dedicated Desk', 'Executive Boardroom', 'Event Venue'].map((cat) => (
                 <button
-                  key={type}
-                  onClick={() => setFilterType(type)}
+                  key={cat}
+                  onClick={() => setFilterCategory(cat)}
                   className={`px-4 py-2 rounded-full text-[12px] font-bold whitespace-nowrap transition-all duration-200 border ${
-                    filterType === type 
+                    filterCategory === cat 
                       ? 'bg-[#84CC16] text-[#111111] border-[#84CC16] shadow-sm' 
                       : 'bg-white border-[#E5E7EB] text-[#4B5563] hover:bg-[#F8FAFC]'
                   }`}
                 >
-                  {type === 'ALL' ? 'Show All' : type.replace('_', ' ')}
+                  {cat === 'ALL' ? 'Show All' : cat}
                 </button>
               ))}
             </div>
@@ -696,10 +812,10 @@ export default function WorkspaceList() {
           {isWorkspacesLoading ? (
             <div className="p-16 text-center text-[#6B7280]">
               <div className="animate-spin w-8 h-8 border-4 border-[#84CC16] border-t-transparent rounded-full mx-auto mb-4" />
-              <p className="text-[13px] font-bold text-[#111827]">Retrieving workspace resources...</p>
+              <p className="text-[13px] font-bold text-[#111827]">Retrieving dynamic workspaces...</p>
             </div>
           ) : (
-            <Table columns={columns} data={workspaces} emptyMessage="No workspaces matches your query criteria." />
+            <Table columns={columns} data={workspaces} emptyMessage="No workspaces match your query criteria." />
           )}
         </>
       ) : (
@@ -738,9 +854,7 @@ export default function WorkspaceList() {
             </div>
             <h3 className="font-display font-bold text-[18px] text-[#111827]">Reservation Successful!</h3>
             <p className="text-[13px] text-[#6B7280]">
-              {selectedWorkspace?.type === 'HOT_DESK'
-                ? 'Your hot desk booking has been automatically confirmed!'
-                : 'Your booking has been received and is pending operator review.'}
+              Your workspace reservation has been confirmed. Redirecting to payment checkout...
             </p>
           </div>
         ) : selectedWorkspace ? (
@@ -756,32 +870,29 @@ export default function WorkspaceList() {
               <div className="flex justify-between items-start">
                 <div>
                   <h4 className="font-display font-bold text-[15px] text-[#111827]">
-                    {selectedWorkspace.name}
+                    {selectedWorkspace.title || selectedWorkspace.name}
                   </h4>
                   <p className="text-[10px] bg-[#A3E635]/15 text-[#65A30D] px-2 py-0.5 rounded-[4px] inline-block uppercase font-bold mt-1.5">
-                    {selectedWorkspace.type.replace('_', ' ')}
+                    {selectedWorkspace.category || selectedWorkspace.workspaceType || 'Workspace'}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">Hourly Cost</p>
                   <p className="text-[14px] font-bold text-[#111827] font-mono mt-0.5">
-                    {selectedWorkspace.currency} {selectedWorkspace.hourlyRate.toFixed(2)}/hr
+                    {selectedWorkspace.currency || 'USD'} {Number(selectedWorkspace.hourlyPrice !== undefined ? selectedWorkspace.hourlyPrice : (selectedWorkspace.hourlyRate || 0)).toFixed(2)}/hr
                   </p>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-1.5 pt-1.5">
-                {selectedWorkspace.amenities.map((am) => (
-                  <span key={am} className="text-[10px] bg-[#FFFFFF] border border-[#E5E7EB] text-[#4B5563] px-2.5 py-0.5 rounded-[6px] font-bold">
-                    {am}
-                  </span>
-                ))}
-              </div>
-
-              <div className="border-t border-dashed border-[#E2E8F0] pt-3 mt-1.5 flex justify-between text-[11px] font-bold text-[#6B7280]">
-                <span>Buffer Period: {selectedWorkspace.bufferTime} mins</span>
-                <span>Hours Allowed: {selectedWorkspace.availabilityRules?.startHour}:00 - {selectedWorkspace.availabilityRules?.endHour}:00</span>
-              </div>
+              {Array.isArray(selectedWorkspace.amenities) && selectedWorkspace.amenities.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1.5">
+                  {selectedWorkspace.amenities.map((am: string) => (
+                    <span key={am} className="text-[10px] bg-[#FFFFFF] border border-[#E5E7EB] text-[#4B5563] px-2.5 py-0.5 rounded-[6px] font-bold">
+                      {am}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Plan selection dropdown */}
@@ -796,7 +907,7 @@ export default function WorkspaceList() {
                   }}
                   className="w-full px-3.5 py-2.5 rounded-[10px] border text-[13px] font-bold outline-none bg-white border-[#E5E7EB] text-[#374151]"
                 >
-                  <option value="">Standard Hourly Rate (USD {selectedWorkspace.hourlyRate.toFixed(2)}/hr)</option>
+                  <option value="">Standard Hourly Rate ({selectedWorkspace.currency || 'USD'} {Number(selectedWorkspace.hourlyPrice || selectedWorkspace.hourlyRate || 0).toFixed(2)}/hr)</option>
                   {selectedWorkspace.billingPlans.filter((p: any) => p.isActive).map((p: any) => (
                     <option key={p.id || p._id} value={p.id || p._id}>
                       {p.name} Membership - {p.currency} {p.price.toFixed(2)} {p.deposit ? `(+ ${p.deposit} Deposit)` : ''}
@@ -806,180 +917,47 @@ export default function WorkspaceList() {
               </div>
             )}
 
-            {/* Form Fields: Conditional based on plan selection */}
-            {selectedBillingPlanId === '' ? (
-              <div className="space-y-4">
+            {/* Form Fields */}
+            <div className="space-y-4">
+              <Input 
+                label="Reservation Date" 
+                type="date" 
+                value={bookingDate} 
+                onChange={(e) => setBookingDate(e.target.value)}
+                className="w-full rounded-[10px] border-[#E5E7EB]"
+              />
+              <div className="grid grid-cols-2 gap-4">
                 <Input 
-                  label="Reservation Date" 
-                  type="date" 
-                  value={bookingDate} 
-                  onChange={(e) => setBookingDate(e.target.value)}
+                  label="Start Hour" 
+                  type="time" 
+                  value={bookingStart} 
+                  onChange={(e) => setBookingStart(e.target.value)}
                   className="w-full rounded-[10px] border-[#E5E7EB]"
                 />
-                <div className="grid grid-cols-2 gap-4">
-                  <Input 
-                    label="Start Hour" 
-                    type="time" 
-                    value={bookingStart} 
-                    onChange={(e) => setBookingStart(e.target.value)}
-                    className="w-full rounded-[10px] border-[#E5E7EB]"
-                  />
-                  <Input 
-                    label="End Hour" 
-                    type="time" 
-                    value={bookingEnd} 
-                    onChange={(e) => setBookingEnd(e.target.value)}
-                    className="w-full rounded-[10px] border-[#E5E7EB]"
-                  />
-                </div>
                 <Input 
-                  label="Utilization Purpose" 
-                  placeholder="e.g. Stakeholders sync, deep work..." 
-                  value={bookingPurpose} 
-                  onChange={(e) => setBookingPurpose(e.target.value)}
+                  label="End Hour" 
+                  type="time" 
+                  value={bookingEnd} 
+                  onChange={(e) => setBookingEnd(e.target.value)}
                   className="w-full rounded-[10px] border-[#E5E7EB]"
                 />
               </div>
-            ) : (
-              <div className="space-y-4">
-                <Input 
-                  label="Membership Start Date" 
-                  type="date" 
-                  value={bookingDate} 
-                  onChange={(e) => setBookingDate(e.target.value)}
-                  className="w-full rounded-[10px] border-[#E5E7EB]"
-                />
-                <Input 
-                  label="Workspace Utilization Notes" 
-                  placeholder="e.g. Specialized team access, corporate membership..." 
-                  value={bookingPurpose} 
-                  onChange={(e) => setBookingPurpose(e.target.value)}
-                  className="w-full rounded-[10px] border-[#E5E7EB]"
-                />
-
-                {/* Emergency Contact details form */}
-                <div className="border border-gray-200 rounded-xl p-4.5 space-y-3 bg-[#FAFAFA]">
-                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-[#4B5563]">Emergency Contact (Required)</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input 
-                      label="Contact Name" 
-                      placeholder="e.g. Martha Kebede" 
-                      value={emergencyName} 
-                      onChange={e => setEmergencyName(e.target.value)} 
-                      className="rounded-[8px] border-[#E5E7EB] bg-white text-xs"
-                    />
-                    <Input 
-                      label="Relationship" 
-                      placeholder="e.g. Spouse" 
-                      value={emergencyRelationship} 
-                      onChange={e => setEmergencyRelationship(e.target.value)} 
-                      className="rounded-[8px] border-[#E5E7EB] bg-white text-xs"
-                    />
-                  </div>
-                  <Input 
-                    label="Emergency Phone" 
-                    placeholder="e.g. +251-911-000000" 
-                    value={emergencyPhone} 
-                    onChange={e => setEmergencyPhone(e.target.value)} 
-                    className="rounded-[8px] border-[#E5E7EB] bg-white text-xs"
-                  />
-                </div>
-
-                {/* Billing compliance form */}
-                <div className="border border-gray-200 rounded-xl p-4.5 space-y-3 bg-[#FAFAFA]">
-                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-[#4B5563]">Billing Details</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input 
-                      label="Billing Contact Name" 
-                      value={billingContactName} 
-                      onChange={e => setBillingContactName(e.target.value)} 
-                      className="rounded-[8px] border-[#E5E7EB] bg-white text-xs"
-                    />
-                    <Input 
-                      label="Billing Email" 
-                      value={billingContactEmail} 
-                      onChange={e => setBillingContactEmail(e.target.value)} 
-                      className="rounded-[8px] border-[#E5E7EB] bg-white text-xs"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input 
-                      label="Company Name" 
-                      placeholder="Optional" 
-                      value={billingCompany} 
-                      onChange={e => setBillingCompany(e.target.value)} 
-                      className="rounded-[8px] border-[#E5E7EB] bg-white text-xs"
-                    />
-                    <Input 
-                      label="Billing Address" 
-                      placeholder="Optional" 
-                      value={billingAddress} 
-                      onChange={e => setBillingAddress(e.target.value)} 
-                      className="rounded-[8px] border-[#E5E7EB] bg-white text-xs"
-                    />
-                  </div>
-                </div>
-
-                {/* Agreement builder visual and electronic signature input */}
-                <div className="border border-gray-200 rounded-xl p-4.5 space-y-3.5 bg-white shadow-xs">
-                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-[#111827]">WeVentureHub Coworking Agreement</h4>
-                  <div className="border border-[#E2E8F0] rounded-[10px] p-3 bg-slate-50 max-h-36 overflow-y-auto text-[11px] text-[#4B5563] font-sans leading-relaxed whitespace-pre-wrap select-none">
-                    {(() => {
-                      const plan = selectedWorkspace.billingPlans?.find((p: any) => p.id === selectedBillingPlanId || p._id === selectedBillingPlanId);
-                      if (!plan) return '';
-                      let template = plan.agreementTemplate || '';
-                      template = template.replace(/{member_name}/g, user ? `${user.firstName} ${user.lastName}` : 'The Member');
-                      template = template.replace(/{workspace_name}/g, selectedWorkspace.name);
-                      template = template.replace(/{price}/g, `${plan.price} ${plan.currency}`);
-                      template = template.replace(/{start_date}/g, bookingDate);
-                      return template;
-                    })()}
-                  </div>
-
-                  <Input
-                    label="Electronic Signature (Type Full Name to Sign)"
-                    placeholder="Abel Bimrew"
-                    value={signatureName}
-                    onChange={(e) => setSignatureName(e.target.value)}
-                    className="rounded-[8px] border-[#E5E7EB]"
-                  />
-                </div>
-              </div>
-            )}
+              <Input 
+                label="Utilization Purpose" 
+                placeholder="e.g. Executive team sync..." 
+                value={bookingPurpose} 
+                onChange={(e) => setBookingPurpose(e.target.value)}
+                className="w-full rounded-[10px] border-[#E5E7EB]"
+              />
+            </div>
 
             {/* Estimated Rates Display */}
-            {selectedBillingPlanId === '' ? (
-              <div className="p-4 bg-[#F8FAFC] rounded-[14px] border border-[#E5E7EB] flex justify-between items-center text-[13px]">
-                <span className="font-bold text-[#4B5563]">Estimated Total Rate</span>
-                <span className="font-bold text-[#65A30D] font-mono text-[16px]">
-                  USD {calculateEstimatedPrice().toFixed(2)}
-                </span>
-              </div>
-            ) : (
-              (() => {
-                const plan = selectedWorkspace.billingPlans?.find((p: any) => p.id === selectedBillingPlanId || p._id === selectedBillingPlanId);
-                if (!plan) return null;
-                const grand = plan.price + (plan.deposit || 0);
-                return (
-                  <div className="p-4 bg-[#F8FAFC] rounded-[14px] border border-[#E5E7EB] space-y-2 text-[12px]">
-                    <div className="flex justify-between text-[#4B5563]">
-                      <span>Subscription Charge:</span>
-                      <span className="font-bold text-gray-900 font-mono">{plan.price.toFixed(2)} {plan.currency}</span>
-                    </div>
-                    {plan.deposit && (
-                      <div className="flex justify-between text-[#4B5563]">
-                        <span>Refundable Security Deposit:</span>
-                        <span className="font-bold text-gray-900 font-mono">{plan.deposit.toFixed(2)} {plan.currency}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between items-center text-[13px] border-t border-dashed border-[#E5E7EB] pt-2 font-bold mt-1">
-                      <span className="text-gray-900">Total Upfront Amount</span>
-                      <span className="font-bold text-[#65A30D] font-mono text-[16px]">{grand.toFixed(2)} {plan.currency}</span>
-                    </div>
-                  </div>
-                );
-              })()
-            )}
+            <div className="p-4 bg-[#F8FAFC] rounded-[14px] border border-[#E5E7EB] flex justify-between items-center text-[13px]">
+              <span className="font-bold text-[#4B5563]">Estimated Total Rate</span>
+              <span className="font-bold text-[#65A30D] font-mono text-[16px]">
+                {selectedWorkspace.currency || 'USD'} {calculateEstimatedPrice().toFixed(2)}
+              </span>
+            </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
               <Button 
@@ -1005,9 +983,9 @@ export default function WorkspaceList() {
       <Modal
         isOpen={workspaceFormOpen}
         onClose={() => setWorkspaceFormOpen(false)}
-        title={editingWorkspace ? 'Update Workspace Parameters' : 'Establish New Workspace Resource'}
+        title={editingWorkspace ? 'Edit Workspace Parameters' : 'Establish New Dynamic Workspace'}
       >
-        <form onSubmit={handleSaveWorkspace} className="space-y-5">
+        <form onSubmit={handleSaveWorkspace} className="space-y-4 max-h-[80vh] overflow-y-auto pr-1">
           {formError && (
             <div className="p-3.5 bg-rose-50 text-[#EF4444] border border-rose-100 rounded-[10px] text-[12px] font-bold flex items-center gap-2">
               <XCircle className="w-4 h-4" />
@@ -1017,27 +995,45 @@ export default function WorkspaceList() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input 
-              label="Workspace Name" 
+              label="Workspace Title / Name" 
               placeholder="e.g. Tesla Boardroom" 
-              value={wsName} 
-              onChange={(e) => setWsName(e.target.value)}
+              value={wsTitle} 
+              onChange={(e) => setWsTitle(e.target.value)}
+              required
               className="w-full rounded-[10px] border-[#E5E7EB]"
             />
+
             <div className="flex flex-col space-y-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-[#6B7280]">Space Type</label>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-[#6B7280]">Category</label>
               <select 
-                value={wsType} 
-                onChange={(e) => setWsType(e.target.value as any)}
+                value={wsCategory} 
+                onChange={(e) => setWsCategory(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-[10px] border text-[13px] font-bold outline-none bg-white border-[#E5E7EB] text-[#374151]"
               >
-                <option value="HOT_DESK">Hot Desk</option>
-                <option value="MEETING_ROOM">Meeting Room</option>
-                <option value="EVENT_VENUE">Event Venue</option>
+                <option value="Meeting Room">Meeting Room</option>
+                <option value="Hot Desk">Hot Desk</option>
+                <option value="Dedicated Desk">Dedicated Desk</option>
+                <option value="Executive Boardroom">Executive Boardroom</option>
+                <option value="Event Venue">Event Venue</option>
+                <option value="Creative Studio">Creative Studio</option>
               </select>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-[#6B7280]">Workspace Type</label>
+              <select 
+                value={wsType} 
+                onChange={(e) => setWsType(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-[10px] border text-[13px] font-bold outline-none bg-white border-[#E5E7EB] text-[#374151]"
+              >
+                <option value="MEETING_ROOM">Meeting Room</option>
+                <option value="HOT_DESK">Hot Desk</option>
+                <option value="EVENT_VENUE">Event Venue</option>
+              </select>
+            </div>
+
             <Input 
               label="Max Capacity (Pax)" 
               type="number" 
@@ -1045,240 +1041,204 @@ export default function WorkspaceList() {
               onChange={(e) => setWsCapacity(e.target.value)}
               className="w-full rounded-[10px] border-[#E5E7EB]"
             />
+          </div>
+
+          <Input 
+            label="Short Description" 
+            placeholder="Brief summary shown on catalog cards..." 
+            value={wsShortDescription} 
+            onChange={(e) => setWsShortDescription(e.target.value)}
+            className="w-full rounded-[10px] border-[#E5E7EB]"
+          />
+
+          <div className="flex flex-col space-y-1.5">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-[#6B7280]">Full Description</label>
+            <textarea
+              rows={3}
+              placeholder="Detailed space specifications, policies, guidelines..."
+              value={wsFullDescription}
+              onChange={(e) => setWsFullDescription(e.target.value)}
+              className="w-full p-3 rounded-[10px] border text-[13px] border-[#E5E7EB] outline-none focus:ring-1 focus:ring-[#84CC16]"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Input 
-              label="Hourly Rate (USD)" 
+              label="Hourly Price" 
               type="number" 
-              value={wsHourlyRate} 
-              onChange={(e) => setWsHourlyRate(e.target.value)}
+              value={wsHourlyPrice} 
+              onChange={(e) => setWsHourlyPrice(e.target.value)}
               className="w-full rounded-[10px] border-[#E5E7EB]"
             />
             <Input 
-              label="Buffer Time (Minutes)" 
+              label="Daily Price" 
               type="number" 
-              value={wsBufferTime} 
-              onChange={(e) => setWsBufferTime(e.target.value)}
-              helperText="Gap between successive bookings"
+              value={wsDailyPrice} 
+              onChange={(e) => setWsDailyPrice(e.target.value)}
+              className="w-full rounded-[10px] border-[#E5E7EB]"
+            />
+            <Input 
+              label="Weekly Price" 
+              type="number" 
+              value={wsWeeklyPrice} 
+              onChange={(e) => setWsWeeklyPrice(e.target.value)}
+              className="w-full rounded-[10px] border-[#E5E7EB]"
+            />
+            <Input 
+              label="Monthly Price" 
+              type="number" 
+              value={wsMonthlyPrice} 
+              onChange={(e) => setWsMonthlyPrice(e.target.value)}
+              className="w-full rounded-[10px] border-[#E5E7EB]"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input 
+              label="Floor Level" 
+              placeholder="e.g. Floor 2" 
+              value={wsFloor} 
+              onChange={(e) => setWsFloor(e.target.value)}
+              className="w-full rounded-[10px] border-[#E5E7EB]"
+            />
+            <Input 
+              label="Size" 
+              placeholder="e.g. 450 sqft" 
+              value={wsSize} 
+              onChange={(e) => setWsSize(e.target.value)}
+              className="w-full rounded-[10px] border-[#E5E7EB]"
+            />
+            <Input 
+              label="Display Order" 
+              type="number" 
+              value={wsDisplayOrder} 
+              onChange={(e) => setWsDisplayOrder(e.target.value)}
               className="w-full rounded-[10px] border-[#E5E7EB]"
             />
           </div>
 
           <Input 
             label="Amenities (Comma Separated)" 
+            placeholder="Whiteboard, High-speed WiFi, Webcam, Coffee"
             value={wsAmenitiesText} 
             onChange={(e) => setWsAmenitiesText(e.target.value)}
             className="w-full rounded-[10px] border-[#E5E7EB]"
           />
 
-          {/* Local Image Upload Area */}
+          <Input 
+            label="Features (Comma Separated)" 
+            placeholder="Ergonomic Chairs, Natural Lighting, City View"
+            value={wsFeaturesText} 
+            onChange={(e) => setWsFeaturesText(e.target.value)}
+            className="w-full rounded-[10px] border-[#E5E7EB]"
+          />
+
+          {/* Local Image Upload / URL Area */}
           <div className="space-y-1.5">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-[#6B7280]">Local Workspace Photo</label>
+            <label className="text-[11px] font-bold uppercase tracking-wider text-[#6B7280]">Cover Image (Photo)</label>
             <div 
               onDragEnter={handleDrag}
               onDragOver={handleDrag}
               onDragLeave={handleDrag}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-[14px] p-5 transition-all text-center flex flex-col items-center justify-center cursor-pointer ${
+              className={`border-2 border-dashed rounded-[14px] p-4 transition-all text-center flex flex-col items-center justify-center cursor-pointer ${
                 dragActive 
                   ? "border-[#84CC16] bg-[#A3E635]/15" 
-                  : wsImageUrl 
+                  : wsCoverImage 
                     ? "border-emerald-200 bg-emerald-50/20" 
                     : "border-[#E5E7EB] hover:border-[#84CC16] bg-[#F9FAFB]"
               }`}
             >
-              {wsImageUrl ? (
-                <div className="relative w-full max-h-48 rounded-[10px] overflow-hidden group">
-                  <img src={wsImageUrl} alt="Preview" className="w-full h-48 object-cover rounded-[10px]" />
+              {wsCoverImage ? (
+                <div className="relative w-full max-h-40 rounded-[10px] overflow-hidden group">
+                  <img src={wsCoverImage} alt="Preview" className="w-full h-40 object-cover rounded-[10px]" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-[10px]">
                     <button
                       type="button"
-                      onClick={() => setWsImageUrl('')}
-                      className="p-2 bg-[#EF4444] text-white rounded-full hover:bg-red-600 transition shadow-lg animate-fade-in"
+                      onClick={() => setWsCoverImage('')}
+                      className="p-2 bg-[#EF4444] text-white rounded-full hover:bg-red-600 transition shadow-lg"
                       title="Remove Image"
                     >
-                      <X className="w-5 h-5" />
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
               ) : (
-                <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer py-4">
+                <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer py-2">
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleFileChange}
                     className="hidden"
                   />
-                  <div className="p-3 bg-[#A3E635]/15 rounded-full text-[#65A30D] mb-3">
-                    <UploadCloud className="w-6 h-6" />
+                  <div className="p-2 bg-[#A3E635]/15 rounded-full text-[#65A30D] mb-2">
+                    <UploadCloud className="w-5 h-5" />
                   </div>
-                  <p className="text-[13px] font-bold text-[#111827]">
-                    Click to upload a local photo <span className="text-[#65A30D] font-medium">or drag & drop here</span>
-                  </p>
-                  <p className="text-[11px] text-[#6B7280] mt-1">
-                    Accepts PNG, JPG, JPEG, WEBP. Max file size: 5MB
+                  <p className="text-[12px] font-bold text-[#111827]">
+                    Click to upload photo <span className="text-[#65A30D] font-medium">or drag & drop</span>
                   </p>
                 </label>
               )}
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <Input 
-              label="Availability Start Hour" 
-              type="number" 
-              min="0" 
-              max="23"
-              value={wsStartHour} 
-              onChange={(e) => setWsStartHour(e.target.value)}
-              className="w-full rounded-[10px] border-[#E5E7EB]"
-            />
-            <Input 
-              label="Availability End Hour" 
-              type="number" 
-              min="1" 
-              max="24"
-              value={wsEndHour} 
-              onChange={(e) => setWsEndHour(e.target.value)}
-              className="w-full rounded-[10px] border-[#E5E7EB]"
+              placeholder="Or paste image URL (https://...)" 
+              value={wsCoverImage} 
+              onChange={(e) => setWsCoverImage(e.target.value)}
+              className="w-full rounded-[10px] border-[#E5E7EB] text-xs"
             />
           </div>
 
-          {/* Custom Billing / Membership Plans Editor */}
-          <div className="border border-gray-200 rounded-xl p-5 space-y-4 bg-gray-50/50">
-            <div>
-              <h3 className="text-sm font-bold text-[#111827]">Membership / Coworking Billing Plans</h3>
-              <p className="text-[11.5px] text-[#6B7280]">Admins can enable multiple custom recurring plans for this workspace resource.</p>
+          <Input 
+            label="Gallery Images (Comma Separated URLs)" 
+            placeholder="https://img1.jpg, https://img2.jpg"
+            value={wsGalleryText} 
+            onChange={(e) => setWsGalleryText(e.target.value)}
+            className="w-full rounded-[10px] border-[#E5E7EB]"
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-[#6B7280]">Publishing Status</label>
+              <select 
+                value={wsStatus} 
+                onChange={(e) => setWsStatus(e.target.value as any)}
+                className="w-full px-3.5 py-2.5 rounded-[10px] border text-[13px] font-bold outline-none bg-white border-[#E5E7EB] text-[#374151]"
+              >
+                <option value="published">Published (Visible on Marketplace)</option>
+                <option value="draft">Draft (Admin Only)</option>
+                <option value="archived">Archived</option>
+              </select>
             </div>
 
-            {/* List of current plans */}
-            {wsBillingPlans.length > 0 ? (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {wsBillingPlans.map((plan: any) => (
-                  <div key={plan.id || plan._id} className="p-3 bg-white border border-[#E5E7EB] rounded-lg flex justify-between items-center text-xs">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-bold text-[#111827] uppercase tracking-wider">{plan.name}</span>
-                        <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-bold ${plan.isActive ? 'bg-[#A3E635]/15 text-[#65A30D]' : 'bg-red-50 text-red-500'}`}>
-                          {plan.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                      <p className="font-medium text-gray-500 font-mono">
-                        {plan.currency} {plan.price.toFixed(2)} {plan.deposit ? `(+ ${plan.deposit} Deposit)` : ''} | Due Day: {plan.paymentDueDay}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleTogglePlanActive(plan.id || plan._id)}
-                        className="px-2 py-1 text-[10px] font-bold border border-[#E2E8F0] hover:bg-gray-50 rounded-md transition-colors"
-                      >
-                        Toggle Status
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleRemovePlan(plan.id || plan._id)}
-                        className="p-1 bg-red-50 hover:bg-red-100 text-red-500 rounded-md transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-[11.5px] text-[#9CA3AF] italic text-center py-2">No custom membership plans configured. Defaults to Hourly Booking only.</p>
-            )}
-
-            {/* Form to add a plan */}
-            <div className="border-t border-dashed border-[#E2E8F0] pt-4 space-y-3">
-              <h4 className="text-[11px] font-bold uppercase tracking-wider text-[#4B5563]">Configure New Plan Option</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">Plan Frequency</label>
-                  <select
-                    value={newPlanName}
-                    onChange={(e) => handlePlanNameChange(e.target.value as any)}
-                    className="w-full px-2.5 py-2 rounded-[8px] border text-xs font-semibold outline-none bg-white border-[#E5E7EB] text-[#374151]"
-                  >
-                    <option value="Daily">Daily Pass</option>
-                    <option value="Weekly">Weekly Pass</option>
-                    <option value="Monthly">Monthly Membership</option>
-                    <option value="Quarterly">Quarterly Membership</option>
-                    <option value="Yearly">Yearly Membership</option>
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Input
-                    label="Price"
-                    type="number"
-                    value={newPlanPrice}
-                    onChange={e => setNewPlanPrice(e.target.value)}
-                    className="rounded-[8px] text-xs bg-white border-[#E5E7EB]"
-                  />
-                  <Input
-                    label="Currency"
-                    value={newPlanCurrency}
-                    onChange={e => setNewPlanCurrency(e.target.value)}
-                    className="rounded-[8px] text-xs bg-white border-[#E5E7EB]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  label="Refundable Deposit"
-                  placeholder="Optional"
-                  type="number"
-                  value={newPlanDeposit}
-                  onChange={e => setNewPlanDeposit(e.target.value)}
-                  className="rounded-[8px] text-xs bg-white border-[#E5E7EB]"
-                />
-                <Input
-                  label="Recurring Due Day"
-                  type="number"
-                  min="1"
-                  max="31"
-                  value={newPlanDueDay}
-                  onChange={e => setNewPlanDueDay(e.target.value)}
-                  className="rounded-[8px] text-xs bg-white border-[#E5E7EB]"
-                  helperText="Day of month when invoice triggers"
-                />
-              </div>
-
-              <div className="flex flex-col space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">Custom Coworking Agreement Template</label>
-                <textarea
-                  value={newPlanAgreement}
-                  onChange={e => setNewPlanAgreement(e.target.value)}
-                  rows={2}
-                  className="w-full p-2.5 rounded-[8px] border text-xs font-sans border-[#E5E7EB] outline-none focus:ring-1 focus:ring-[#84CC16]"
-                  placeholder="Insert agreement terms. Dynamic tokens: {member_name}, {workspace_name}, {price}, {start_date}"
-                />
-              </div>
-
-              <Button
-                type="button"
-                onClick={handleAddPlan}
-                className="w-full bg-[#FAFAFA] border border-[#E2E8F0] hover:bg-gray-100 text-[#4B5563] font-bold text-[11px] h-[34px] rounded-[8px]"
+            <div className="flex flex-col space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-[#6B7280]">Operational State</label>
+              <select 
+                value={wsAvailability} 
+                onChange={(e) => setWsAvailability(e.target.value as any)}
+                className="w-full px-3.5 py-2.5 rounded-[10px] border text-[13px] font-bold outline-none bg-white border-[#E5E7EB] text-[#374151]"
               >
-                + Append Membership Plan
-              </Button>
+                <option value="Available">Available for Reservation</option>
+                <option value="Occupied">Occupied / In Use</option>
+                <option value="Maintenance">Under Maintenance</option>
+                <option value="Reserved">Reserved</option>
+              </select>
             </div>
           </div>
 
           <div className="flex items-center space-x-2.5 pt-2">
             <input 
               type="checkbox" 
-              id="wsIsAvailable"
-              checked={wsIsAvailable} 
-              onChange={(e) => setWsIsAvailable(e.target.checked)}
-              className="w-4.5 h-4.5 text-[#84CC16] rounded-[4px] border-[#E5E7EB] focus:ring-[#84CC16] cursor-pointer"
+              id="wsFeatured"
+              checked={wsFeatured} 
+              onChange={(e) => setWsFeatured(e.target.checked)}
+              className="w-4 h-4 text-[#84CC16] rounded border-[#E5E7EB] focus:ring-[#84CC16] cursor-pointer"
             />
-            <label htmlFor="wsIsAvailable" className="text-[12.5px] font-semibold text-[#4B5563] cursor-pointer">
-              Mark space as active and reservable immediately
+            <label htmlFor="wsFeatured" className="text-[12.5px] font-semibold text-[#4B5563] cursor-pointer">
+              Feature on Marketplace top section
             </label>
           </div>
 
-          <div className="flex justify-end gap-3 pt-5 border-t border-gray-100">
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
             <Button 
               variant="secondary" 
               type="button" 

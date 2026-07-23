@@ -14,16 +14,29 @@ import {
   Calendar,
   Layers,
   Clock,
-  Briefcase
+  Briefcase,
+  Grid,
+  Star,
+  CheckCircle2
 } from 'lucide-react';
 import { axiosInstance } from '../lib/axiosInstance';
 import { Button } from '../components/Button';
 import { motion, AnimatePresence } from 'motion/react';
 
-const WORKSPACE_IMAGES: Record<string, string> = {
-  HOT_DESK: 'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&q=80&w=600',
-  MEETING_ROOM: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=600',
-  EVENT_VENUE: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&q=80&w=600'
+// Fallback image builder when no coverImage or imageUrl is provided
+const getWorkspaceImage = (ws: any) => {
+  if (ws.coverImage) return ws.coverImage;
+  if (ws.imageUrl) return ws.imageUrl;
+  if (ws.galleryImages && ws.galleryImages.length > 0) return ws.galleryImages[0];
+  
+  // Generic high quality placeholder based on type
+  const typeStr = (ws.workspaceType || ws.type || '').toUpperCase();
+  if (typeStr.includes('DESK')) {
+    return 'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&q=80&w=800';
+  } else if (typeStr.includes('HALL') || typeStr.includes('EVENT') || typeStr.includes('VENUE')) {
+    return 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&q=80&w=800';
+  }
+  return 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800';
 };
 
 export default function WorkspaceMarketplace() {
@@ -31,11 +44,12 @@ export default function WorkspaceMarketplace() {
 
   // Search/Filters states
   const [search, setSearch] = useState(searchParams.get('search') || '');
-  const [type, setType] = useState(searchParams.get('type') || '');
+  const [category, setCategory] = useState(searchParams.get('category') || '');
+  const [workspaceType, setWorkspaceType] = useState(searchParams.get('workspaceType') || searchParams.get('type') || '');
   const [minCapacity, setMinCapacity] = useState(searchParams.get('minCapacity') || '');
   const [maxPrice, setMaxPrice] = useState(searchParams.get('maxPrice') || '');
   const [tenantId, setTenantId] = useState(searchParams.get('tenantId') || '');
-  const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
+  const [sort, setSort] = useState(searchParams.get('sort') || 'display_order');
 
   // UI States
   const [showFilters, setShowFilters] = useState(false);
@@ -43,6 +57,14 @@ export default function WorkspaceMarketplace() {
   // Data States
   const [workspaces, setWorkspaces] = useState<any[]>([]);
   const [featuredWorkspaces, setFeaturedWorkspaces] = useState<any[]>([]);
+  const [categories, setCategories] = useState<string[]>([
+    'Meeting Room',
+    'Hot Desk',
+    'Dedicated Desk',
+    'Executive Boardroom',
+    'Event Venue',
+    'Creative Studio'
+  ]);
   const [organizers, setOrganizers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,7 +87,8 @@ export default function WorkspaceMarketplace() {
     try {
       const params: any = {};
       if (search) params.search = search;
-      if (type) params.type = type;
+      if (category) params.category = category;
+      if (workspaceType) params.workspaceType = workspaceType;
       if (minCapacity) params.minCapacity = minCapacity;
       if (maxPrice) params.maxPrice = maxPrice;
       if (tenantId) params.tenantId = tenantId;
@@ -76,8 +99,15 @@ export default function WorkspaceMarketplace() {
         axiosInstance.get('/public/workspaces', { params: { featured: 'true' } })
       ]);
 
-      setWorkspaces(wsRes.data.data || []);
+      const fetchedWorkspaces = wsRes.data.data || [];
+      setWorkspaces(fetchedWorkspaces);
       setFeaturedWorkspaces(featRes.data.data || []);
+
+      // Extract unique categories dynamically
+      const uniqueCats = Array.from(new Set(fetchedWorkspaces.map((w: any) => w.category).filter(Boolean))) as string[];
+      if (uniqueCats.length > 0) {
+        setCategories(prev => Array.from(new Set([...prev, ...uniqueCats])));
+      }
     } catch (err) {
       console.error('Failed to load workspaces:', err);
     } finally {
@@ -90,21 +120,23 @@ export default function WorkspaceMarketplace() {
     // Update URL params
     const nextParams: any = {};
     if (search) nextParams.search = search;
-    if (type) nextParams.type = type;
+    if (category) nextParams.category = category;
+    if (workspaceType) nextParams.workspaceType = workspaceType;
     if (minCapacity) nextParams.minCapacity = minCapacity;
     if (maxPrice) nextParams.maxPrice = maxPrice;
     if (tenantId) nextParams.tenantId = tenantId;
     if (sort) nextParams.sort = sort;
     setSearchParams(nextParams);
-  }, [search, type, minCapacity, maxPrice, tenantId, sort]);
+  }, [search, category, workspaceType, minCapacity, maxPrice, tenantId, sort]);
 
   const clearFilters = () => {
     setSearch('');
-    setType('');
+    setCategory('');
+    setWorkspaceType('');
     setMinCapacity('');
     setMaxPrice('');
     setTenantId('');
-    setSort('newest');
+    setSort('display_order');
   };
 
   return (
@@ -122,7 +154,7 @@ export default function WorkspaceMarketplace() {
               Discover & Reserve Your <span className="text-brand-accent">Ideal Workspace</span>
             </h1>
             <p className="text-[15px] text-neutral-slate-400 leading-relaxed max-w-2xl mx-auto">
-              Find professional hot desks, private boardrooms, and premium corporate venues hosted at WeVentureHub. Instantly bookable, and complete with custom amenities.
+              Find professional hot desks, private boardrooms, and premium corporate venues hosted at WeVentureHub. Instantly bookable, complete with custom amenities and live availability.
             </p>
           </div>
 
@@ -133,7 +165,7 @@ export default function WorkspaceMarketplace() {
                 <Search className="absolute left-4 top-[14px] text-neutral-slate-500 w-5 h-5 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Search workspace names, facilities, or amenities (e.g. projector)..."
+                  placeholder="Search workspace names, categories, facilities, or amenities..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-11 pr-4 py-3 outline-none text-[14px] font-medium rounded-[14px] bg-neutral-900 border border-transparent focus:border-brand-accent/20 focus:bg-[#181818] transition text-white placeholder-neutral-500"
@@ -142,8 +174,19 @@ export default function WorkspaceMarketplace() {
 
               <div className="flex flex-wrap md:flex-nowrap gap-2.5">
                 <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="px-4 py-3 text-[13px] font-bold bg-neutral-900 rounded-[14px] border border-neutral-800 text-neutral-slate-300 focus:outline-none focus:border-brand-accent cursor-pointer"
+                >
+                  <option value="" className="bg-neutral-900 text-white">All Categories</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat} className="bg-neutral-900 text-white">{cat}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={workspaceType}
+                  onChange={(e) => setWorkspaceType(e.target.value)}
                   className="px-4 py-3 text-[13px] font-bold bg-neutral-900 rounded-[14px] border border-neutral-800 text-neutral-slate-300 focus:outline-none focus:border-brand-accent cursor-pointer"
                 >
                   <option value="" className="bg-neutral-900 text-white">All Types</option>
@@ -152,21 +195,10 @@ export default function WorkspaceMarketplace() {
                   <option value="EVENT_VENUE" className="bg-neutral-900 text-white">Event Venue</option>
                 </select>
 
-                <select
-                  value={tenantId}
-                  onChange={(e) => setTenantId(e.target.value)}
-                  className="px-4 py-3 text-[13px] font-bold bg-neutral-900 rounded-[14px] border border-neutral-800 text-neutral-slate-300 focus:outline-none focus:border-brand-accent cursor-pointer max-w-[180px]"
-                >
-                  <option value="" className="bg-neutral-900 text-white">All Organizers</option>
-                  {organizers.map((org) => (
-                    <option key={org.id} value={org.id} className="bg-neutral-900 text-white">{org.name}</option>
-                  ))}
-                </select>
-
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className={`px-5 py-3 rounded-[14px] border text-[13px] font-bold flex items-center gap-2 transition-all ${
-                    showFilters || minCapacity || maxPrice
+                    showFilters || minCapacity || maxPrice || tenantId
                       ? 'bg-brand-accent/20 border-brand-accent text-brand-accent'
                       : 'border-neutral-800 hover:bg-neutral-900 text-neutral-slate-300'
                   }`}
@@ -199,7 +231,7 @@ export default function WorkspaceMarketplace() {
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-slate-400 mb-2">Max Price (USD / Hr)</label>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-slate-400 mb-2">Max Hourly Price (USD)</label>
                       <input
                         type="number"
                         placeholder="e.g. 50"
@@ -216,6 +248,7 @@ export default function WorkspaceMarketplace() {
                         onChange={(e) => setSort(e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-[12px] border border-neutral-800 text-[13px] font-bold outline-none bg-neutral-900 focus:border-brand-accent text-neutral-slate-300 cursor-pointer"
                       >
+                        <option value="display_order" className="bg-neutral-900 text-white">Recommended / Display Order</option>
                         <option value="newest" className="bg-neutral-900 text-white">Recently Added</option>
                         <option value="price_asc" className="bg-neutral-900 text-white">Price: Low to High</option>
                         <option value="price_desc" className="bg-neutral-900 text-white">Price: High to Low</option>
@@ -251,88 +284,94 @@ export default function WorkspaceMarketplace() {
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
         {/* Featured Section */}
-        {featuredWorkspaces.length > 0 && !search && !type && !tenantId && (
+        {featuredWorkspaces.length > 0 && !search && !category && !workspaceType && (
           <div className="mb-14">
             <div className="flex items-center gap-2 mb-6">
               <Sparkles className="w-5 h-5 text-brand-accent animate-pulse" />
-              <h2 className="text-[20px] font-display font-bold text-white">Featured Premium Venues</h2>
+              <h2 className="text-[20px] font-display font-bold text-white">Featured Workspaces</h2>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {featuredWorkspaces.slice(0, 3).map((ws) => (
-                <div key={ws.id + '-featured'} className="bg-[#181818] rounded-[24px] overflow-hidden border border-neutral-800 shadow-[0_10px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgba(163,230,53,0.08)] hover:border-brand-accent/40 transition-all duration-300 flex flex-col group relative">
-                  <div className="absolute top-4 left-4 z-10 px-3 py-1 bg-brand-accent text-neutral-900 text-[10px] font-bold uppercase tracking-wider rounded-[8px] flex items-center gap-1 shadow-md">
-                    <Sparkles className="w-3 h-3 text-neutral-900 fill-current" />
-                    <span>FEATURED</span>
-                  </div>
-                  <div className="h-52 overflow-hidden relative">
-                    <img
-                      src={ws.imageUrl || WORKSPACE_IMAGES[ws.type] || WORKSPACE_IMAGES.MEETING_ROOM}
-                      alt={ws.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                    />
-                    <div className="absolute bottom-4 right-4 bg-[#111827]/90 backdrop-blur px-3 py-1.5 rounded-[10px] text-[13px] font-bold text-brand-accent font-mono shadow-sm">
-                      ${ws.hourlyRate.toFixed(2)}/hr
+              {featuredWorkspaces.slice(0, 3).map((ws) => {
+                const img = getWorkspaceImage(ws);
+                const price = ws.hourlyPrice !== undefined ? ws.hourlyPrice : (ws.hourlyRate || 0);
+                const titleStr = ws.title || ws.name;
+                const typeLabel = ws.category || ws.workspaceType || ws.type;
+                const idVal = ws.slug || ws._id || ws.id;
+
+                return (
+                  <div key={(ws._id || ws.id) + '-featured'} className="bg-[#181818] rounded-[24px] overflow-hidden border border-neutral-800 shadow-[0_10px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgba(163,230,53,0.08)] hover:border-brand-accent/40 transition-all duration-300 flex flex-col group relative">
+                    <div className="absolute top-4 left-4 z-10 px-3 py-1 bg-brand-accent text-neutral-900 text-[10px] font-bold uppercase tracking-wider rounded-[8px] flex items-center gap-1 shadow-md">
+                      <Sparkles className="w-3 h-3 text-neutral-900 fill-current" />
+                      <span>FEATURED</span>
                     </div>
-                  </div>
-
-                  <div className="p-6 flex-1 flex flex-col justify-between space-y-5">
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-brand-accent bg-brand-accent/10 px-2.5 py-1 rounded-[6px] border border-brand-accent/20">
-                          {ws.type.replace('_', ' ')}
-                        </span>
-                        <div className="flex items-center gap-1.5 text-[12px] font-bold text-neutral-slate-400">
-                          <Users className="w-4 h-4 text-neutral-slate-500" />
-                          <span>Seats {ws.capacity}</span>
-                        </div>
+                    <div className="h-52 overflow-hidden relative">
+                      <img
+                        src={img}
+                        alt={titleStr}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                      />
+                      <div className="absolute bottom-4 right-4 bg-[#111827]/90 backdrop-blur px-3 py-1.5 rounded-[10px] text-[13px] font-bold text-brand-accent font-mono shadow-sm">
+                        ${Number(price).toFixed(2)}/hr
                       </div>
+                    </div>
 
-                      <h3 className="font-display font-bold text-[18px] text-white group-hover:text-brand-accent transition-colors leading-snug">
-                        {ws.name}
-                      </h3>
+                    <div className="p-6 flex-1 flex flex-col justify-between space-y-5">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-brand-accent bg-brand-accent/10 px-2.5 py-1 rounded-[6px] border border-brand-accent/20">
+                            {typeLabel}
+                          </span>
+                          <div className="flex items-center gap-1.5 text-[12px] font-bold text-neutral-slate-400">
+                            <Users className="w-4 h-4 text-neutral-slate-500" />
+                            <span>Capacity: {ws.capacity} pax</span>
+                          </div>
+                        </div>
 
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {ws.amenities.slice(0, 3).map((am: string) => (
-                          <span key={am} className="text-[10px] font-bold bg-neutral-900 text-neutral-slate-300 px-2.5 py-1 rounded-[6px] border border-neutral-800">
-                            {am}
-                          </span>
-                        ))}
-                        {ws.amenities.length > 3 && (
-                          <span className="text-[10px] font-bold text-brand-accent bg-brand-accent/10 px-2.5 py-1 rounded-[6px]">
-                            +{ws.amenities.length - 3} more
-                          </span>
+                        <h3 className="font-display font-bold text-[18px] text-white group-hover:text-brand-accent transition-colors leading-snug">
+                          {titleStr}
+                        </h3>
+
+                        {ws.shortDescription && (
+                          <p className="text-[13px] text-neutral-slate-400 line-clamp-2 leading-relaxed">
+                            {ws.shortDescription}
+                          </p>
                         )}
+
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {Array.isArray(ws.amenities) && ws.amenities.slice(0, 3).map((am: string) => (
+                            <span key={am} className="text-[10px] font-bold bg-neutral-900 text-neutral-slate-300 px-2.5 py-1 rounded-[6px] border border-neutral-800">
+                              {am}
+                            </span>
+                          ))}
+                          {Array.isArray(ws.amenities) && ws.amenities.length > 3 && (
+                            <span className="text-[10px] font-bold text-brand-accent bg-brand-accent/10 px-2.5 py-1 rounded-[6px]">
+                              +{ws.amenities.length - 3} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="pt-4 border-t border-neutral-800 flex justify-between items-center">
+                        <div className="flex items-center gap-2 text-[12px] font-bold text-neutral-slate-400">
+                          <MapPin className="w-3.5 h-3.5 text-brand-accent" />
+                          <span>{ws.floor || 'Main Campus'}</span>
+                        </div>
+
+                        <Link to={`/workspaces/${idVal}`}>
+                          <Button 
+                            variant="success"
+                            size="sm" 
+                            className="font-bold text-[12px] px-4 h-[36px] rounded-[8px]"
+                          >
+                            Book Space
+                          </Button>
+                        </Link>
                       </div>
                     </div>
-
-                    <div className="pt-4 border-t border-neutral-800 flex justify-between items-center">
-                      {ws.organizer ? (
-                        <div className="flex items-center gap-2">
-                          {ws.organizer.logoUrl ? (
-                            <img src={ws.organizer.logoUrl} alt={ws.organizer.name} className="w-7 h-7 rounded-full object-cover border border-neutral-850" referrerPolicy="no-referrer" />
-                          ) : (
-                            <div className="w-7 h-7 rounded-full bg-neutral-900 flex items-center justify-center text-[10px] font-bold text-brand-accent border border-neutral-850">
-                              {ws.organizer.name[0]}
-                            </div>
-                          )}
-                          <span className="text-[12px] font-bold text-neutral-slate-300 max-w-[130px] truncate">{ws.organizer.name}</span>
-                        </div>
-                      ) : <span />}
-
-                      <Link to={`/workspaces/${ws.id}`}>
-                        <Button 
-                          variant="success"
-                          size="sm" 
-                          className="font-bold text-[12px] px-4 h-[36px] rounded-[8px]"
-                        >
-                          Book Space
-                        </Button>
-                      </Link>
-                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -341,7 +380,7 @@ export default function WorkspaceMarketplace() {
         <div>
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-[20px] font-display font-bold text-white">
-              {search || type || tenantId ? 'Search Results' : 'Explore All Workspaces'}
+              {search || category || workspaceType || tenantId ? 'Search Results' : 'Explore All Workspaces'}
               <span className="text-sm text-neutral-slate-400 font-normal ml-2">({workspaces.length} available)</span>
             </h2>
 
@@ -356,14 +395,14 @@ export default function WorkspaceMarketplace() {
           {loading && workspaces.length === 0 ? (
             <div className="py-24 text-center text-neutral-slate-400 space-y-4">
               <RefreshCw className="w-10 h-10 animate-spin text-brand-accent mx-auto" />
-              <p className="text-[14px] font-bold text-white">Updating global workspace matrix...</p>
+              <p className="text-[14px] font-bold text-white">Loading workspaces from server...</p>
             </div>
           ) : workspaces.length === 0 ? (
             <div className="py-16 text-center border border-dashed border-neutral-800 rounded-[20px] bg-[#181818] p-8">
               <Briefcase className="w-12 h-12 text-neutral-slate-500 mx-auto mb-4" />
-              <h3 className="text-[16px] font-bold text-white">No workspaces matching criteria</h3>
+              <h3 className="text-[16px] font-bold text-white">No workspaces found</h3>
               <p className="text-[13px] text-neutral-slate-400 mt-1 max-w-sm mx-auto">
-                Try widening your filters or input string (e.g. "TV Screen", "seats 10", "All Types").
+                No spaces match your search criteria. Try adjusting filters or searching for keywords.
               </p>
               <Button size="sm" variant="success" className="mt-5 font-bold text-[13px]" onClick={clearFilters}>
                 Clear All Filters
@@ -371,82 +410,88 @@ export default function WorkspaceMarketplace() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {workspaces.map((ws) => (
-                <div key={ws.id} className="bg-[#181818] rounded-[20px] overflow-hidden border border-neutral-800 shadow-[0_4px_25px_rgba(0,0,0,0.02)] hover:shadow-[0_12px_35px_rgba(0,0,0,0.06)] hover:border-brand-accent/40 hover:scale-[1.01] transition-all duration-300 flex flex-col group justify-between">
-                  <div>
-                    <div className="h-44 overflow-hidden relative">
-                      <img
-                        src={ws.imageUrl || WORKSPACE_IMAGES[ws.type] || WORKSPACE_IMAGES.MEETING_ROOM}
-                        alt={ws.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                      />
-                      <div className="absolute top-3 right-3 bg-[#111827]/85 backdrop-blur px-2.5 py-1 rounded-[8px] text-[12px] font-bold text-brand-accent font-mono shadow-sm">
-                        ${ws.hourlyRate.toFixed(2)}/hr
-                      </div>
-                      
-                      {/* Price Capping Labels */}
-                      {ws.dailyRate && (
-                        <div className="absolute bottom-3 left-3 bg-brand-accent text-neutral-900 px-2.5 py-0.5 rounded-[6px] text-[10px] font-bold uppercase tracking-wider shadow-sm">
-                          Daily: ${ws.dailyRate}/day
+              {workspaces.map((ws) => {
+                const img = getWorkspaceImage(ws);
+                const price = ws.hourlyPrice !== undefined ? ws.hourlyPrice : (ws.hourlyRate || 0);
+                const titleStr = ws.title || ws.name;
+                const typeLabel = ws.category || ws.workspaceType || ws.type;
+                const idVal = ws.slug || ws._id || ws.id;
+
+                return (
+                  <div key={ws._id || ws.id} className="bg-[#181818] rounded-[20px] overflow-hidden border border-neutral-800 shadow-[0_4px_25px_rgba(0,0,0,0.02)] hover:shadow-[0_12px_35px_rgba(0,0,0,0.06)] hover:border-brand-accent/40 hover:scale-[1.01] transition-all duration-300 flex flex-col group justify-between">
+                    <div>
+                      <div className="h-44 overflow-hidden relative">
+                        <img
+                          src={img}
+                          alt={titleStr}
+                          className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                        />
+                        <div className="absolute top-3 right-3 bg-[#111827]/85 backdrop-blur px-2.5 py-1 rounded-[8px] text-[12px] font-bold text-brand-accent font-mono shadow-sm">
+                          ${Number(price).toFixed(2)}/hr
                         </div>
-                      )}
-                    </div>
-
-                    <div className="p-5 space-y-3">
-                      <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-neutral-slate-400">
-                        <span className="bg-neutral-900 text-neutral-slate-300 px-2 py-0.5 rounded-[4px] border border-neutral-850">{ws.type.replace('_', ' ')}</span>
-                        <span className="flex items-center gap-1 font-bold text-neutral-slate-400">
-                          <Users className="w-3.5 h-3.5 text-neutral-slate-500" />
-                          <span>Max {ws.capacity} pax</span>
-                        </span>
-                      </div>
-
-                      <h3 className="font-display font-bold text-[15px] text-white group-hover:text-brand-accent transition-colors truncate">
-                        {ws.name}
-                      </h3>
-
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {ws.amenities.slice(0, 2).map((am: string) => (
-                          <span key={am} className="text-[10px] font-bold bg-neutral-900 text-neutral-slate-300 px-2 py-0.5 rounded-[4px] border border-neutral-850">
-                            {am}
-                          </span>
-                        ))}
-                        {ws.amenities.length > 2 && (
-                          <span className="text-[10px] text-neutral-slate-400 font-bold px-1 py-0.5">
-                            +{ws.amenities.length - 2} more
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-5 pt-3 mt-auto border-t border-neutral-800 flex justify-between items-center bg-[#151515]">
-                    {ws.organizer ? (
-                      <div className="flex items-center gap-2">
-                        {ws.organizer.logoUrl ? (
-                          <img src={ws.organizer.logoUrl} alt={ws.organizer.name} className="w-5 h-5 rounded-full object-cover border border-neutral-850" referrerPolicy="no-referrer" />
-                        ) : (
-                          <div className="w-5 h-5 rounded-full bg-neutral-900 flex items-center justify-center text-[8px] font-bold text-brand-accent border border-neutral-850">
-                            {ws.organizer.name[0]}
+                        
+                        {/* Price Capping Labels */}
+                        {(ws.dailyPrice || ws.dailyRate) ? (
+                          <div className="absolute bottom-3 left-3 bg-brand-accent text-neutral-900 px-2.5 py-0.5 rounded-[6px] text-[10px] font-bold uppercase tracking-wider shadow-sm">
+                            ${ws.dailyPrice || ws.dailyRate}/day
                           </div>
-                        )}
-                        <span className="text-[11px] font-bold text-neutral-slate-300 truncate max-w-[100px]">{ws.organizer.name}</span>
+                        ) : null}
                       </div>
-                    ) : <span />}
 
-                    <Link to={`/workspaces/${ws.id}`}>
-                      <Button 
-                        variant="success"
-                        size="xs" 
-                        className="text-[11px] font-bold px-3 py-1.5 flex items-center gap-1 h-[32px] rounded-[6px]"
-                      >
-                        <span>Detail & Book</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </Button>
-                    </Link>
+                      <div className="p-5 space-y-3">
+                        <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-neutral-slate-400">
+                          <span className="bg-neutral-900 text-neutral-slate-300 px-2 py-0.5 rounded-[4px] border border-neutral-850">{typeLabel}</span>
+                          <span className="flex items-center gap-1 font-bold text-neutral-slate-400">
+                            <Users className="w-3.5 h-3.5 text-neutral-slate-500" />
+                            <span>Max {ws.capacity} pax</span>
+                          </span>
+                        </div>
+
+                        <h3 className="font-display font-bold text-[15px] text-white group-hover:text-brand-accent transition-colors truncate">
+                          {titleStr}
+                        </h3>
+
+                        {ws.shortDescription && (
+                          <p className="text-[12px] text-neutral-slate-400 line-clamp-2">
+                            {ws.shortDescription}
+                          </p>
+                        )}
+
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {Array.isArray(ws.amenities) && ws.amenities.slice(0, 2).map((am: string) => (
+                            <span key={am} className="text-[10px] font-bold bg-neutral-900 text-neutral-slate-300 px-2 py-0.5 rounded-[4px] border border-neutral-850">
+                              {am}
+                            </span>
+                          ))}
+                          {Array.isArray(ws.amenities) && ws.amenities.length > 2 && (
+                            <span className="text-[10px] text-neutral-slate-400 font-bold px-1 py-0.5">
+                              +{ws.amenities.length - 2} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-5 pt-3 mt-auto border-t border-neutral-800 flex justify-between items-center bg-[#151515]">
+                      <div className="flex items-center gap-1 text-[11px] font-bold text-neutral-slate-400">
+                        <Building className="w-3.5 h-3.5 text-brand-accent" />
+                        <span className="truncate max-w-[90px]">{ws.floor || 'Floor 1'}</span>
+                      </div>
+
+                      <Link to={`/workspaces/${idVal}`}>
+                        <Button 
+                          variant="success"
+                          size="xs" 
+                          className="text-[11px] font-bold px-3 py-1.5 flex items-center gap-1 h-[32px] rounded-[6px]"
+                        >
+                          <span>Detail & Book</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

@@ -19,7 +19,10 @@ import {
   Tv,
   Wifi,
   Coffee,
-  Volume2
+  Volume2,
+  Maximize2,
+  Layers,
+  Star
 } from 'lucide-react';
 import { axiosInstance } from '../lib/axiosInstance';
 import { bookingApi } from '../lib/bookingApi';
@@ -27,12 +30,6 @@ import { useAppSelector } from '../store';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { motion } from 'motion/react';
-
-const WORKSPACE_IMAGES: Record<string, string> = {
-  HOT_DESK: 'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&q=80&w=800',
-  MEETING_ROOM: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800',
-  EVENT_VENUE: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&q=80&w=800'
-};
 
 const AMENITY_ICONS: Record<string, any> = {
   wifi: Wifi,
@@ -47,6 +44,13 @@ const AMENITY_ICONS: Record<string, any> = {
   whiteboard: Briefcase,
   webcam: Tv,
   boardroom: Building
+};
+
+const getWorkspaceCover = (ws: any) => {
+  if (ws.coverImage) return ws.coverImage;
+  if (ws.imageUrl) return ws.imageUrl;
+  if (ws.galleryImages && ws.galleryImages.length > 0) return ws.galleryImages[0];
+  return 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800';
 };
 
 export default function WorkspaceDetailsPage() {
@@ -266,77 +270,129 @@ export default function WorkspaceDetailsPage() {
           <div className="lg:col-span-2 space-y-8">
             
             {/* Visual Header Banner */}
-            <div className="h-80 rounded-[24px] overflow-hidden relative shadow-2xl border border-neutral-800">
-              <img
-                src={workspace.imageUrl || WORKSPACE_IMAGES[workspace.type] || WORKSPACE_IMAGES.MEETING_ROOM}
-                alt={workspace.name}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#111111]/90 via-transparent to-transparent flex flex-col justify-end p-8">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-900 bg-brand-accent px-3 py-1 rounded-[6px] inline-block self-start mb-3 shadow-sm border border-brand-accent/20">
-                  {workspace.type.replace('_', ' ')}
-                </span>
-                <h1 className="text-[28px] md:text-[36px] font-display font-bold text-white tracking-tight leading-tight">
-                  {workspace.name}
-                </h1>
+            <div className="rounded-[24px] overflow-hidden shadow-2xl border border-neutral-800 space-y-4">
+              <div className="h-80 w-full relative">
+                <img
+                  src={getWorkspaceCover(workspace)}
+                  alt={workspace.title || workspace.name}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#111111]/90 via-transparent to-transparent flex flex-col justify-end p-8">
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-900 bg-brand-accent px-3 py-1 rounded-[6px] shadow-sm border border-brand-accent/20">
+                      {workspace.category || workspace.workspaceType || (workspace.type && workspace.type.replace('_', ' '))}
+                    </span>
+                    {workspace.floor && (
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-white bg-neutral-900/80 backdrop-blur px-3 py-1 rounded-[6px] border border-neutral-700">
+                        {workspace.floor}
+                      </span>
+                    )}
+                  </div>
+                  <h1 className="text-[28px] md:text-[36px] font-display font-bold text-white tracking-tight leading-tight">
+                    {workspace.title || workspace.name}
+                  </h1>
+                </div>
               </div>
+
+              {/* Gallery Images Strip */}
+              {Array.isArray(workspace.galleryImages) && workspace.galleryImages.length > 0 && (
+                <div className="p-4 bg-[#181818] flex items-center gap-3 overflow-x-auto border-t border-neutral-800">
+                  {workspace.galleryImages.map((imgUrl: string, idx: number) => (
+                    <img
+                      key={idx}
+                      src={imgUrl}
+                      alt={`Gallery ${idx + 1}`}
+                      className="w-24 h-16 rounded-[12px] object-cover border border-neutral-800 hover:border-brand-accent transition cursor-pointer shrink-0"
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Space Properties Cards (Bento style) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-              <div className="bg-[#181818] p-5 rounded-[20px] border border-neutral-800 shadow-md flex items-center gap-4">
-                <div className="p-3 bg-brand-accent/10 text-brand-accent rounded-[12px] border border-brand-accent/20">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-[#181818] p-4 rounded-[20px] border border-neutral-800 shadow-md flex items-center gap-3">
+                <div className="p-2.5 bg-brand-accent/10 text-brand-accent rounded-[12px] border border-brand-accent/20">
                   <Users className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-slate-400">Total Seating</p>
-                  <p className="text-[14px] font-bold text-white">Up to {workspace.capacity} Seats</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-slate-400">Total Capacity</p>
+                  <p className="text-[13px] font-bold text-white">{workspace.capacity} Seats</p>
                 </div>
               </div>
 
-              <div className="bg-[#181818] p-5 rounded-[20px] border border-neutral-800 shadow-md flex items-center gap-4">
-                <div className="p-3 bg-brand-accent/10 text-brand-accent rounded-[12px] border border-brand-accent/20">
+              <div className="bg-[#181818] p-4 rounded-[20px] border border-neutral-800 shadow-md flex items-center gap-3">
+                <div className="p-2.5 bg-brand-accent/10 text-brand-accent rounded-[12px] border border-brand-accent/20">
                   <DollarSign className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-slate-400">Standard Price</p>
-                  <p className="text-[14px] font-bold text-white font-mono">${workspace.hourlyRate.toFixed(2)}/hr</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-slate-400">Hourly Rate</p>
+                  <p className="text-[13px] font-bold text-white font-mono">
+                    {workspace.currency || 'USD'} {Number(workspace.hourlyPrice !== undefined ? workspace.hourlyPrice : (workspace.hourlyRate || 0)).toFixed(2)}/hr
+                  </p>
                 </div>
               </div>
 
-              <div className="bg-[#181818] p-5 rounded-[20px] border border-neutral-800 shadow-md flex items-center gap-4">
-                <div className="p-3 bg-brand-accent/10 text-brand-accent rounded-[12px] border border-brand-accent/20">
+              <div className="bg-[#181818] p-4 rounded-[20px] border border-neutral-800 shadow-md flex items-center gap-3">
+                <div className="p-2.5 bg-brand-accent/10 text-brand-accent rounded-[12px] border border-brand-accent/20">
+                  <Maximize2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-slate-400">Space Size</p>
+                  <p className="text-[13px] font-bold text-white">{workspace.size || '350 sqft'}</p>
+                </div>
+              </div>
+
+              <div className="bg-[#181818] p-4 rounded-[20px] border border-neutral-800 shadow-md flex items-center gap-3">
+                <div className="p-2.5 bg-brand-accent/10 text-brand-accent rounded-[12px] border border-brand-accent/20">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-slate-400">Conflict Guard</p>
-                  <p className="text-[14px] font-bold text-white">{workspace.bufferTime} Min Buffer</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-slate-400">Status</p>
+                  <p className="text-[13px] font-bold text-brand-accent">{workspace.availability || 'Available'}</p>
                 </div>
               </div>
             </div>
 
             {/* Detailed Description / About */}
             <div className="bg-[#181818] p-7 rounded-[24px] border border-neutral-800 shadow-sm space-y-6">
-              <h2 className="text-[18px] font-display font-bold text-white tracking-tight">About the Space</h2>
-              <p className="text-[14px] text-neutral-slate-300 leading-relaxed">
-                This fully serviced, professionally curated workspace resource provides the ideal setup for productive workflows. Perfect for local and remote operations, this room is secure, temperature-controlled, and private. Equipped with reliable networking and utility access interfaces.
+              <h2 className="text-[18px] font-display font-bold text-white tracking-tight">About this Workspace</h2>
+              <p className="text-[14px] text-neutral-slate-300 leading-relaxed whitespace-pre-line">
+                {workspace.fullDescription || workspace.shortDescription || 'This fully serviced, professionally curated workspace resource provides the ideal setup for productive workflows.'}
               </p>
 
-              <div className="border-t border-neutral-800 pt-5">
-                <h3 className="text-[11px] font-bold uppercase tracking-wider text-neutral-slate-400 mb-4">Amenities Included</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {workspace.amenities.map((am: string) => {
-                    const matchedIcon = AMENITY_ICONS[am.toLowerCase().replace(/[^a-z_]/g, '')] || Building;
-                    const Icon = matchedIcon;
-                    return (
-                      <div key={am} className="flex items-center gap-2 text-[12.5px] font-semibold text-neutral-slate-300">
-                        <Icon className="w-4 h-4 text-brand-accent" />
-                        <span>{am}</span>
-                      </div>
-                    );
-                  })}
+              {/* Amenities */}
+              {Array.isArray(workspace.amenities) && workspace.amenities.length > 0 && (
+                <div className="border-t border-neutral-800 pt-5">
+                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-neutral-slate-400 mb-4">Included Amenities</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {workspace.amenities.map((am: string) => {
+                      const matchedIcon = AMENITY_ICONS[am.toLowerCase().replace(/[^a-z_]/g, '')] || Building;
+                      const Icon = matchedIcon;
+                      return (
+                        <div key={am} className="flex items-center gap-2 text-[12.5px] font-semibold text-neutral-slate-300">
+                          <Icon className="w-4 h-4 text-brand-accent" />
+                          <span>{am}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Special Features */}
+              {Array.isArray(workspace.features) && workspace.features.length > 0 && (
+                <div className="border-t border-neutral-800 pt-5">
+                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-neutral-slate-400 mb-4">Key Features</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {workspace.features.map((feat: string) => (
+                      <span key={feat} className="text-[12px] font-medium bg-neutral-900 border border-neutral-800 text-neutral-slate-300 px-3 py-1 rounded-full">
+                        ✨ {feat}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Host Details */}
@@ -539,7 +595,7 @@ export default function WorkspaceDetailsPage() {
                 <div key={rec.id} className="bg-[#181818] rounded-[20px] overflow-hidden border border-neutral-800 shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between hover:shadow-lg hover:border-brand-accent/40 hover:scale-[1.01] transition-all duration-300 group">
                   <div>
                     <div className="h-36 overflow-hidden relative">
-                      <img src={rec.imageUrl || WORKSPACE_IMAGES[rec.type] || WORKSPACE_IMAGES.MEETING_ROOM} alt={rec.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                      <img src={getWorkspaceCover(rec)} alt={rec.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
                       <div className="absolute top-3 right-3 bg-[#111827]/85 backdrop-blur px-2.5 py-1 rounded-[6px] text-[11px] font-bold text-brand-accent font-mono shadow-sm">${rec.hourlyRate.toFixed(2)}/hr</div>
                     </div>
                     <div className="p-5 space-y-2">

@@ -422,21 +422,38 @@ export class PublicMarketplaceController {
       const {
         tenantId,
         search,
+        category,
+        workspaceType,
         type,
         minCapacity,
         maxPrice,
         sort,
-        featured
+        featured,
+        availability
       } = req.query;
 
-      const query: any = { isDeleted: false, isAvailable: true };
+      const query: any = { isDeleted: false, status: 'published' };
       
       if (tenantId) {
         query.tenantId = String(tenantId).toLowerCase();
       }
 
-      if (type) {
-        query.type = String(type);
+      if (category) {
+        query.category = { $regex: new RegExp(`^${category}$`, 'i') };
+      }
+
+      const typeFilter = workspaceType || type;
+      if (typeFilter) {
+        query.$or = [
+          { workspaceType: String(typeFilter) },
+          { type: String(typeFilter) }
+        ];
+      }
+
+      if (availability) {
+        query.availability = String(availability);
+      } else {
+        query.isAvailable = true;
       }
 
       if (minCapacity) {
@@ -444,15 +461,29 @@ export class PublicMarketplaceController {
       }
 
       if (maxPrice) {
-        query.hourlyRate = { $lte: parseFloat(String(maxPrice)) };
+        const pLimit = parseFloat(String(maxPrice));
+        query.$or = [
+          { hourlyPrice: { $lte: pLimit } },
+          { hourlyRate: { $lte: pLimit } }
+        ];
       }
 
       if (search) {
-        const searchStr = String(search);
+        const searchStr = String(search).trim();
+        const regex = { $regex: searchStr, $options: 'i' };
         query.$or = [
-          { name: { $regex: searchStr, $options: 'i' } },
+          { title: regex },
+          { name: regex },
+          { category: regex },
+          { shortDescription: regex },
+          { fullDescription: regex },
+          { location: regex },
           { amenities: { $in: [new RegExp(searchStr, 'i')] } }
         ];
+      }
+
+      if (featured === 'true') {
+        query.featured = true;
       }
 
       let dbQuery = Workspace.find(query);
@@ -460,19 +491,19 @@ export class PublicMarketplaceController {
       // Sorting Strategy
       switch (sort) {
         case 'price_asc':
-          dbQuery = dbQuery.sort({ hourlyRate: 1 });
+          dbQuery = dbQuery.sort({ hourlyPrice: 1, hourlyRate: 1 });
           break;
         case 'price_desc':
-          dbQuery = dbQuery.sort({ hourlyRate: -1 });
+          dbQuery = dbQuery.sort({ hourlyPrice: -1, hourlyRate: -1 });
           break;
         case 'capacity_desc':
           dbQuery = dbQuery.sort({ capacity: -1 });
           break;
         case 'name_asc':
-          dbQuery = dbQuery.sort({ name: 1 });
+          dbQuery = dbQuery.sort({ title: 1, name: 1 });
           break;
         default:
-          dbQuery = dbQuery.sort({ createdAt: -1 });
+          dbQuery = dbQuery.sort({ displayOrder: 1, createdAt: -1 });
       }
 
       const workspaces = await dbQuery.exec();
@@ -494,25 +525,27 @@ export class PublicMarketplaceController {
         })
       );
 
-      // If featured is requested, we can mock/filter high-capacity or highly-amenitied spaces
-      let result = enrichedWorkspaces;
-      if (featured === 'true') {
-        result = enrichedWorkspaces.filter(w => w.capacity >= 6 || w.amenities.length >= 3).slice(0, 4);
-      }
-
-      ApiResponse.success(res, result);
+      ApiResponse.success(res, enrichedWorkspaces);
     } catch (error) {
       next(error);
     }
   }
 
   /**
-   * Get workspace detail by ID with associated tenant info and recommendations
+   * Get workspace detail by ID or Slug with associated tenant info and recommendations
    */
   public async getWorkspaceById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const workspace = await Workspace.findOne({ _id: id, isDeleted: false }).exec();
+      let workspace = null;
+      
+      if (id.match(/^[0-9a-fA-F]{24}$/)) {
+        workspace = await Workspace.findOne({ _id: id, isDeleted: false }).exec();
+      }
+      
+      if (!workspace) {
+        workspace = await Workspace.findOne({ slug: id, isDeleted: false }).exec();
+      }
 
       if (!workspace) {
         res.status(404).json({ success: false, message: 'Workspace not found' });
@@ -524,12 +557,16 @@ export class PublicMarketplaceController {
       // Retrieve tenant details
       const tenant = await Tenant.findOne({ _id: workspace.tenantId }).exec();
 
-      // Retrieve simple recommendations (same type, excluding current)
+      // Retrieve simple recommendations (same category or type, excluding current)
       const recommendations = await Workspace.find({
         _id: { $ne: workspace._id },
-        type: workspace.type,
+        $or: [
+          { category: workspace.category },
+          { workspaceType: workspace.workspaceType },
+          { type: workspace.type }
+        ],
         isDeleted: false,
-        isAvailable: true
+        status: 'published'
       }).limit(4).exec();
 
       const enrichedRecommendations = await Promise.all(

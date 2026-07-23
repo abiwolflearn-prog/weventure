@@ -28,6 +28,38 @@ workspaceRouter.put(
   workspaceController.update
 );
 
+// Update workspace status (Publish, Draft, Archive)
+workspaceRouter.patch(
+  '/:id/status',
+  authGuard,
+  hasPermission(Permission.WORKSPACES_UPDATE),
+  workspaceController.updateStatus
+);
+
+// Toggle workspace featured flag
+workspaceRouter.patch(
+  '/:id/feature',
+  authGuard,
+  hasPermission(Permission.WORKSPACES_UPDATE),
+  workspaceController.toggleFeature
+);
+
+// Update workspace display order
+workspaceRouter.patch(
+  '/:id/order',
+  authGuard,
+  hasPermission(Permission.WORKSPACES_UPDATE),
+  workspaceController.updateOrder
+);
+
+// Duplicate workspace
+workspaceRouter.post(
+  '/:id/duplicate',
+  authGuard,
+  hasPermission(Permission.WORKSPACES_CREATE),
+  workspaceController.duplicate
+);
+
 // Delete workspace (soft delete)
 workspaceRouter.delete(
   '/:id',
