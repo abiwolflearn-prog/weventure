@@ -111,11 +111,11 @@ export class AuthController {
         expiresIn: (env.JWT_ACCESS_EXPIRATION || '15m') as any,
       });
 
-      // Set cookie - Lax in dev so it can travel across frames/tabs if needed, secure in production
+      // Set cookie - SameSite none + secure in production for cross-site requests between Vercel & Render
       res.cookie('jwt_access_token', token, {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
-        sameSite: env.NODE_ENV === 'production' ? 'strict' : 'lax',
+        sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
         maxAge: 15 * 60 * 1000, // 15 mins
         path: '/',
       });
@@ -213,7 +213,7 @@ export class AuthController {
       res.clearCookie('jwt_access_token', {
         path: '/',
         secure: env.NODE_ENV === 'production',
-        sameSite: env.NODE_ENV === 'production' ? 'strict' : 'lax',
+        sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
       });
 
       ApiResponse.success(res, { status: 'logged-out' }, 200, {

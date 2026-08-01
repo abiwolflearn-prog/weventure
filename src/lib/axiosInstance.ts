@@ -2,8 +2,24 @@ import axios from 'axios';
 import { store } from '../store';
 import { logout } from '../store/authSlice';
 
+// Compute API base URL from VITE_API_URL environment variable or default to Render production URL
+const getApiBaseUrl = (): string => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
+    const cleanUrl = envUrl.trim().replace(/\/+$/, '');
+    if (cleanUrl.endsWith('/api/v1')) {
+      return cleanUrl;
+    }
+    if (cleanUrl.endsWith('/api')) {
+      return `${cleanUrl}/v1`;
+    }
+    return `${cleanUrl}/api/v1`;
+  }
+  return 'https://weventurehub.onrender.com/api/v1';
+};
+
 export const axiosInstance = axios.create({
-  baseURL: '/api/v1',
+  baseURL: getApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },

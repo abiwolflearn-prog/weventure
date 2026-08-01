@@ -3,10 +3,18 @@ import { logger } from '../utils/logger';
 
 let socket: Socket | null = null;
 
+const getSocketServerUrl = (): string => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
+    const cleanUrl = envUrl.trim().replace(/\/+$/, '');
+    return cleanUrl.replace(/\/api(\/v1)?$/, '');
+  }
+  return 'https://weventurehub.onrender.com';
+};
+
 export const getSocket = (): Socket => {
   if (!socket) {
-    // Connect to same host/port serving the web app
-    socket = io({
+    socket = io(getSocketServerUrl(), {
       autoConnect: false,
       reconnection: true,
       reconnectionAttempts: 10,

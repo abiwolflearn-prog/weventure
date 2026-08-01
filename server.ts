@@ -27,15 +27,39 @@ async function startServer() {
   const app = express();
   const server = http.createServer(app);
 
-  // Initialize Socket.io with restricted CORS origins in production
-  const socketOrigins = env.NODE_ENV === 'production'
-    ? (process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [])
-    : '*';
+  // Setup allowed origins list for CORS and Socket.io
+  const defaultAllowedOrigins = [
+    'https://weventure.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:4173',
+  ];
+
+  const envOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+    : [];
+
+  const appUrl = process.env.APP_URL ? process.env.APP_URL.trim() : '';
+  if (appUrl && !envOrigins.includes(appUrl)) {
+    envOrigins.push(appUrl);
+  }
+
+  const allAllowedOrigins = Array.from(new Set([...defaultAllowedOrigins, ...envOrigins]));
+
+  const corsOriginHandler = (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (like mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (env.NODE_ENV !== 'production' || allAllowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  };
 
   const io = new SocketIOServer(server, {
     cors: {
-      origin: socketOrigins,
+      origin: corsOriginHandler,
       methods: ['GET', 'POST'],
+      credentials: true,
     },
   });
 
@@ -71,14 +95,9 @@ async function startServer() {
   app.use(express.json({ limit: payloadLimit }));
   app.use(express.urlencoded({ extended: true, limit: payloadLimit }));
 
-  // Dynamic CORS configuration based on environment
-  const allowedOrigins = env.NODE_ENV === 'production'
-    ? (process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [])
-    : true;
-
   app.use(
     cors({
-      origin: allowedOrigins,
+      origin: corsOriginHandler,
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-ID', 'X-Request-ID'],
@@ -86,11 +105,10 @@ async function startServer() {
   );
 
   // Configure Helmet for secure HTTP response headers
-  // We disable contentSecurityPolicy in development to let Vite load hot module files
   app.use(
     helmet({
-      contentSecurityPolicy: env.NODE_ENV === 'production',
-      crossOriginEmbedderPolicy: env.NODE_ENV === 'production',
+      contentSecurityPolicy: false,
+      crossOriginResourcePolicy: { policy: "cross-origin" },
     })
   );
 

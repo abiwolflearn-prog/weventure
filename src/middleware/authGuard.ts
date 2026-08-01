@@ -48,9 +48,15 @@ export const authGuard = (req: Request, res: Response, next: NextFunction): void
       permissions: decoded.permissions || [],
     };
 
-    // Strict safety check: Ensure the user's tenant matches current request context
-    if (req.tenantId && userIdentity.tenantId !== req.tenantId) {
-      throw new UnauthorizedError('User session does not match the active tenant domain context');
+    // Safety check: Ensure the user's tenant matches current request context or defaults to main platform
+    if (
+      req.tenantId &&
+      userIdentity.tenantId &&
+      req.tenantId !== 'weventurehub' &&
+      userIdentity.tenantId !== 'weventurehub' &&
+      userIdentity.tenantId !== req.tenantId
+    ) {
+      throw new UnauthorizedError('User session does not match active workspace context');
     }
 
     // Set on request

@@ -1,8 +1,24 @@
 import axios from 'axios';
 
+// Compute public API base URL from VITE_API_URL environment variable or default to Render production URL
+const getPublicApiBaseUrl = (): string => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
+    const cleanUrl = envUrl.trim().replace(/\/+$/, '');
+    if (cleanUrl.endsWith('/api/v1')) {
+      return cleanUrl.replace(/\/v1$/, '');
+    }
+    if (cleanUrl.endsWith('/api')) {
+      return cleanUrl;
+    }
+    return `${cleanUrl}/api`;
+  }
+  return 'https://weventurehub.onrender.com/api';
+};
+
 // Public API client that targets the exact root /api endpoints
 const publicAxios = axios.create({
-  baseURL: '/api',
+  baseURL: getPublicApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   }
