@@ -82,15 +82,15 @@ export default function EventMarketplace() {
     const fetchMetadata = async () => {
       try {
         const [catRes, tagRes, orgRes] = await Promise.all([
-          axiosInstance.get('/public/events/categories'),
-          axiosInstance.get('/public/events/tags'),
-          axiosInstance.get('/public/organizers')
+          axiosInstance.get('/public/events/categories').catch(() => ({ data: { data: [] } })),
+          axiosInstance.get('/public/events/tags').catch(() => ({ data: { data: [] } })),
+          axiosInstance.get('/public/organizers').catch(() => ({ data: { data: [] } }))
         ]);
-        setCategories(catRes.data.data || []);
-        setTags(tagRes.data.data || []);
-        setOrganizers(orgRes.data.data || []);
+        setCategories(catRes.data?.data || []);
+        setTags(tagRes.data?.data || []);
+        setOrganizers(orgRes.data?.data || []);
       } catch (err) {
-        console.error('Failed to fetch marketplace metadata:', err);
+        console.warn('Marketplace metadata warning:', err);
       }
     };
     fetchMetadata();
@@ -114,14 +114,15 @@ export default function EventMarketplace() {
       if (endDate) params.endDate = endDate;
 
       const res = await axiosInstance.get('/public/events', { params });
-      setEvents(res.data.data || []);
+      setEvents(res.data?.data || []);
       setPagination(prev => ({
         ...prev,
-        total: res.data.pagination?.total || 0,
-        totalPages: res.data.pagination?.totalPages || 1
+        total: res.data?.pagination?.total || (res.data?.data || []).length,
+        totalPages: res.data?.pagination?.totalPages || 1
       }));
     } catch (err) {
-      console.error('Failed to load events:', err);
+      console.warn('Events loading warning:', err);
+      setEvents([]);
     } finally {
       setLoading(false);
     }

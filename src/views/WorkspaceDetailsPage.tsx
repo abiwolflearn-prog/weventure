@@ -205,47 +205,12 @@ export default function WorkspaceDetailsPage() {
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const targetBookingUrl = `/booking?type=workspace&id=${id}`;
     if (!isAuthenticated) {
-      navigate('/login', { state: { from: `/workspaces/${id}` } });
+      navigate(`/login?redirect=${encodeURIComponent(targetBookingUrl)}`);
       return;
     }
-
-    setSubmitting(true);
-    setFormError(null);
-
-    const startIso = new Date(`${bookingDate}T${bookingStart}:00`).toISOString();
-    const endIso = new Date(`${bookingDate}T${bookingEnd}:00`).toISOString();
-
-    try {
-      const response = await bookingApi.createBooking({
-        spaceId: workspace.id,
-        startTime: startIso,
-        endTime: endIso,
-        purpose: bookingPurpose
-      });
-
-      setBookingSuccess(true);
-      
-      // Auto redirect to payment checkout after brief display
-      setTimeout(() => {
-        navigate('/dashboard/checkout', {
-          state: {
-            targetType: 'BOOKING',
-            targetId: response.id || response._id || 'BOOKING-MOCK',
-            amount: estimate.totalAmount,
-            currency: workspace.currency || 'USD',
-            title: workspace.name,
-            description: `Workspace Reservation booking on ${bookingDate} (${estimate.hours.toFixed(1)} hrs)`
-          }
-        });
-      }, 2000);
-
-    } catch (err: any) {
-      console.error('Failed to submit booking:', err);
-      setFormError(err.response?.data?.message || err.message || 'Conflict detected or booking unavailable.');
-    } finally {
-      setSubmitting(false);
-    }
+    navigate(targetBookingUrl);
   };
 
   const startHour = workspace.availabilityRules?.startHour || 8;

@@ -394,38 +394,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 2. SPONSORS ROW (DYNAMIC) */}
-      <section className="py-12 bg-neutral-900/60 border-y border-neutral-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-[11px] font-bold text-neutral-slate-400 tracking-wider uppercase mb-6">Our Dynamic Ecosystem Sponsor</p>
-          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
-            {(sponsors && sponsors.length > 0
-              ? sponsors.filter(s => s.name.toLowerCase().includes('arifpay'))
-              : [{ id: 'arifpay', name: 'ArifPay', logoUrl: 'https://arifpay.net/wp-content/uploads/2021/08/arifpay-logo.png', websiteUrl: 'https://arifpay.net' }]
-            ).concat(
-              (!sponsors || !sponsors.some(s => s.name.toLowerCase().includes('arifpay')))
-                ? [{ id: 'arifpay', name: 'ArifPay', logoUrl: 'https://arifpay.net/wp-content/uploads/2021/08/arifpay-logo.png', websiteUrl: 'https://arifpay.net' }]
-                : []
-            ).slice(0, 1).map((sponsor) => (
-              <a 
-                key={sponsor.id || sponsor.name} 
-                href={sponsor.websiteUrl || 'https://arifpay.net'} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center space-x-3 px-6 py-3 bg-neutral-800/80 border border-neutral-700/80 rounded-2xl hover:border-brand-accent/60 transition-all duration-300 group shadow-md"
-              >
-                <span className="w-3 h-3 rounded-full bg-brand-accent animate-pulse" />
-                <span className="font-extrabold text-white text-lg tracking-wide group-hover:text-brand-accent transition-colors">
-                  {sponsor.name}
-                </span>
-                <span className="text-xs text-neutral-400 font-semibold px-2 py-0.5 rounded-md bg-neutral-900 border border-neutral-700">
-                  Official Payment Partner
-                </span>
-              </a>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* 3. FEATURED WORKSPACES (DYNAMIC) */}
       <section className="py-24 bg-[#111111] border-b border-neutral-800">
@@ -732,7 +700,7 @@ export default function LandingPage() {
                     {prog.description}
                   </p>
                 </div>
-                <Link to="/register">
+                <Link to="/get-started">
                   <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <Button variant="success" className="w-full font-bold rounded-xl h-11 transition shadow-sm">
                       {prog.ctaText || 'Apply Cohort'}
@@ -835,7 +803,7 @@ export default function LandingPage() {
                 <span className="text-sm text-neutral-slate-400">/ exclusive billing rate</span>
               </div>
               <div className="pt-4">
-                <Link to="/register">
+                <Link to="/get-started">
                   <Button variant="success" className="font-extrabold px-8 h-12 rounded-xl shadow-md">
                     Claim Summer Rate Now
                   </Button>
@@ -853,34 +821,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-      {/* 9. PARTNERS BOARD (DYNAMIC) */}
-      {partners && partners.length > 0 && (
-        <section className="py-16 bg-[#111111] border-b border-neutral-800">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p className="text-[11px] font-bold text-neutral-slate-400 tracking-wider uppercase mb-6">Incubator & Innovation Partners</p>
-            <div className="flex flex-wrap items-center justify-center gap-10 md:gap-20">
-              {partners.map((partner) => (
-                <a 
-                  key={partner.id} 
-                  href={partner.websiteUrl || '#'} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="transition-opacity duration-300 hover:opacity-100 opacity-60 flex items-center gap-2"
-                >
-                  <img 
-                    src={partner.logoUrl} 
-                    alt={partner.name} 
-                    className="h-8 object-contain rounded-md border border-neutral-800"
-                    referrerPolicy="no-referrer"
-                  />
-                  <span className="text-xs font-bold text-neutral-slate-400">{partner.name}</span>
-                </a>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* 10. CONTACT FORM */}
       <section id="contact" className="py-24 bg-[#111111]">

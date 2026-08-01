@@ -41,6 +41,7 @@ interface SidebarItem {
   path: string;
   icon: React.ComponentType<{ className?: string }>;
   requiredPermission?: Permission;
+  adminOnly?: boolean;
 }
 
 // Derive permissions based on role if they aren't explicitly assigned
@@ -96,7 +97,7 @@ export default function DashboardLayout() {
     { name: 'System Settings', path: '/dashboard/settings', icon: Settings, requiredPermission: Permission.SETTINGS_UPDATE },
     { name: 'Email Center', path: '/dashboard/emails', icon: Mail },
     { name: 'Website CMS', path: '/dashboard/cms', icon: Globe, requiredPermission: Permission.SETTINGS_UPDATE },
-    { name: 'Startup Programs', path: '/dashboard/startups', icon: Rocket },
+    { name: 'Startup Programs', path: '/dashboard/startups', icon: Rocket, requiredPermission: Permission.ANALYTICS_READ, adminOnly: true },
   ];
 
   const handleLogout = () => {
@@ -121,12 +122,17 @@ export default function DashboardLayout() {
     return `${currentPrefix}${sub}`;
   };
 
+  const isUserPortal = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/superadmin');
+
   // RBAC Filtering of Sidebar Items
   const userPermissions = user?.permissions && user.permissions.length > 0 
     ? user.permissions 
     : getPermissionsForRole(user?.role);
 
   const filteredSidebarItems = sidebarItems.filter((item) => {
+    if (item.adminOnly && isUserPortal) {
+      return false;
+    }
     if (!item.requiredPermission) return true;
     return userPermissions.includes(item.requiredPermission);
   });

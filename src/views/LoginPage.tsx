@@ -1,6 +1,6 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { User, Key, Mail, ShieldAlert, ArrowRight } from 'lucide-react';
@@ -21,6 +21,8 @@ type LoginFields = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const [searchParams] = useSearchParams();
+  const redirectUrl = searchParams.get('redirect');
   const { loading, error } = useAppSelector((state) => state.auth);
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFields>({
@@ -48,7 +50,12 @@ export default function LoginPage() {
       localStorage.setItem('weventure_tenant_id', user.tenantId);
 
       dispatch(loginSuccess(user));
-      navigate('/dashboard');
+      
+      if (redirectUrl) {
+        navigate(redirectUrl);
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       dispatch(loginFailure(err.response?.data?.error?.message || err.message || 'User authentication failed. Check credentials.'));
     }

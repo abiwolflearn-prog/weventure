@@ -64,9 +64,26 @@ export async function connectDatabase(): Promise<typeof mongoose> {
     process.exit(0);
   });
 
+  let conn: typeof mongoose;
   try {
     logger.info(`🔄 Initiating connection to MongoDB: ${uri.split('@')[1] || uri}`);
-    const conn = await mongoose.connect(uri, defaultOptions);
+    conn = await mongoose.connect(uri, defaultOptions);
+  } catch (initialErr) {
+    if (env.NODE_ENV !== 'production') {
+      logger.warn('⚠️ Primary MongoDB connection failed. Spawning embedded MongoMemoryServer fallback...', initialErr);
+      try {
+        mongoServer = await MongoMemoryServer.create();
+        uri = mongoServer.getUri();
+        logger.info(`💾 Embedded MongoMemoryServer running successfully at: ${uri}`);
+        conn = await mongoose.connect(uri, defaultOptions);
+      } catch (fallbackErr) {
+        logger.error('❌ Failed to establish embedded MongoMemoryServer fallback connection', fallbackErr);
+        throw fallbackErr;
+      }
+    } else {
+      throw initialErr;
+    }
+  }
 
     // Auto-seed workspaces if none exist or if legacy test data exists
     try {
@@ -778,10 +795,6 @@ export async function connectDatabase(): Promise<typeof mongoose> {
     }
 
     return conn;
-  } catch (error) {
-    logger.error('❌ Failed to establish initial database connection', error);
-    throw error;
-  }
 }
 
 export async function disconnectDatabase(): Promise<void> {

@@ -21,11 +21,13 @@ import {
 } from 'lucide-react';
 import { axiosInstance } from '../lib/axiosInstance';
 import { Button } from '../components/Button';
+import { useAppSelector } from '../store';
 import { motion } from 'framer-motion';
 
 export default function EventDetailsPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
 
   const [event, setEvent] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -563,11 +565,18 @@ export default function EventDetailsPage() {
                       </div>
 
                       <Button
-                        onClick={() => navigate(`/login?eventId=${event.id}&ticketId=${ticket.id}`)}
+                        onClick={() => {
+                          const targetUrl = `/booking?type=event&id=${event.id || slug}`;
+                          if (!isAuthenticated) {
+                            navigate(`/login?redirect=${encodeURIComponent(targetUrl)}`);
+                          } else {
+                            navigate(targetUrl);
+                          }
+                        }}
                         variant="success"
                         className="w-full text-xs font-bold py-2"
                       >
-                        Book Admission
+                        Register for Event
                       </Button>
                     </div>
                   ))
@@ -576,11 +585,18 @@ export default function EventDetailsPage() {
                     <span className="text-brand-accent font-bold uppercase text-xs tracking-wider">Free Direct Entrance</span>
                     <p className="text-[10px] text-neutral-slate-400">This experience does not require specific tickets. Simply join us on schedule!</p>
                     <Button
-                      onClick={() => navigate('/login')}
+                      onClick={() => {
+                        const targetUrl = `/booking?type=event&id=${event.id || slug}`;
+                        if (!isAuthenticated) {
+                          navigate(`/login?redirect=${encodeURIComponent(targetUrl)}`);
+                        } else {
+                          navigate(targetUrl);
+                        }
+                      }}
                       variant="success"
                       className="w-full text-xs font-bold mt-2"
                     >
-                      Register My Attendance
+                      Register for Event
                     </Button>
                   </div>
                 )}

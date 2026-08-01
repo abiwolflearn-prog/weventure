@@ -6,20 +6,15 @@ import { motion, AnimatePresence } from 'motion/react';
 import { FloatingSocialLinks } from '../components/FloatingSocialLinks';
 import WeVentureLogo from '../components/WeVentureLogo';
 import WeVentureAssistant from '../components/assistant/WeVentureAssistant';
+import GetStartedModal from '../components/GetStartedModal';
 import { publicApi } from '../lib/publicApi';
 
 export default function PublicShell() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isGetStartedModalOpen, setIsGetStartedModalOpen] = useState(false);
   const location = useLocation();
 
-  const { data: navMenus } = useQuery({
-    queryKey: ['publicNavigationMenus'],
-    queryFn: publicApi.getNavigation,
-  });
-
-  const headerMenu = navMenus?.find((m: any) => m.menuLocation === 'header');
-
-  const defaultNavLinks = [
+  const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Discover Events', path: '/events' },
     { name: 'Find Workspace', path: '/workspaces' },
@@ -27,13 +22,6 @@ export default function PublicShell() {
     { name: 'About', path: '/about' },
     { name: 'Contact', path: '/contact' },
   ];
-
-  const navLinks = (headerMenu?.items && headerMenu.items.length > 0)
-    ? headerMenu.items.filter((item: any) => item.isVisible).map((item: any) => ({
-        name: item.label,
-        path: item.path,
-      }))
-    : defaultNavLinks;
 
   return (
     <div className="min-h-screen flex flex-col bg-[#111111]">
@@ -73,12 +61,13 @@ export default function PublicShell() {
               >
                 Log In
               </Link>
-              <Link
-                to="/register"
-                className="px-4.5 py-2 text-sm font-extrabold text-neutral-slate-900 bg-brand-accent hover:bg-brand-accent/90 rounded-lg shadow-sm transition-all duration-200 active:scale-95"
+              <button
+                type="button"
+                onClick={() => setIsGetStartedModalOpen(true)}
+                className="px-4.5 py-2 text-sm font-extrabold text-neutral-slate-900 bg-brand-accent hover:bg-brand-accent/90 rounded-lg shadow-sm transition-all duration-200 active:scale-95 cursor-pointer"
               >
                 Get Started
-              </Link>
+              </button>
             </div>
 
             {/* Mobile Hamburger Button */}
@@ -162,18 +151,27 @@ export default function PublicShell() {
                 >
                   Log In
                 </Link>
-                <Link
-                  to="/register"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-full flex items-center justify-center py-3 text-sm font-bold text-neutral-slate-900 bg-brand-accent hover:bg-brand-accent/90 rounded-xl transition-colors shadow-lg shadow-brand-accent/10"
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setIsGetStartedModalOpen(true);
+                  }}
+                  className="w-full flex items-center justify-center py-3 text-sm font-bold text-neutral-slate-900 bg-brand-accent hover:bg-brand-accent/90 rounded-xl transition-colors shadow-lg shadow-brand-accent/10 cursor-pointer"
                 >
                   Get Started
-                </Link>
+                </button>
               </div>
             </motion.aside>
           </>
         )}
       </AnimatePresence>
+
+      {/* Global Get Started Selection Modal */}
+      <GetStartedModal 
+        isOpen={isGetStartedModalOpen} 
+        onClose={() => setIsGetStartedModalOpen(false)} 
+      />
 
       {/* Main Viewport with Page Transition */}
       <main className="flex-grow">

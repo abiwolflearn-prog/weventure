@@ -13,7 +13,7 @@ const getPublicApiBaseUrl = (): string => {
     }
     return `${cleanUrl}/api`;
   }
-  return 'https://weventurehub.onrender.com/api';
+  return '/api';
 };
 
 // Public API client that targets the exact root /api endpoints

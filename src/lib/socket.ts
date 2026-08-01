@@ -9,7 +9,7 @@ const getSocketServerUrl = (): string => {
     const cleanUrl = envUrl.trim().replace(/\/+$/, '');
     return cleanUrl.replace(/\/api(\/v1)?$/, '');
   }
-  return 'https://weventurehub.onrender.com';
+  return typeof window !== 'undefined' ? window.location.origin : '';
 };
 
 export const getSocket = (): Socket => {

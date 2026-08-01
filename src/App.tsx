@@ -21,6 +21,7 @@ import OrganizerProfilePage from './views/OrganizerProfilePage';
 import AboutPage from './views/AboutPage';
 import StartupPage from './views/StartupPage';
 import ContactPage from './views/ContactPage';
+import GetStartedPage from './views/GetStartedPage';
 import LoginPage from './views/LoginPage';
 import AdminLoginPage from './views/AdminLoginPage';
 import RegisterPage from './views/RegisterPage';
@@ -45,6 +46,7 @@ import EmailCenterPage from './views/EmailCenterPage';
 import CmsManagementPage from './views/CmsManagementPage';
 import StartupManagementPage from './views/StartupManagementPage';
 import AssistantAdminDashboard from './components/assistant/AssistantAdminDashboard';
+import BookingRegistrationPage from './views/BookingRegistrationPage';
 
 /**
  * Access Guard to restrict access to authenticated members/admins
@@ -63,7 +65,7 @@ function ProtectedRoute({ children, fallbackPath }: { children: React.ReactNode;
 }
 
 export default function App() {
-  const dashboardRoutes = (
+  const userDashboardRoutes = (
     <>
       <Route index element={<DashboardSummary />} />
       <Route path="crm" element={<CrmDashboard />} />
@@ -81,6 +83,12 @@ export default function App() {
       <Route path="announcements" element={<AnnouncementsPage />} />
       <Route path="emails" element={<EmailCenterPage />} />
       <Route path="cms" element={<CmsManagementPage />} />
+    </>
+  );
+
+  const adminDashboardRoutes = (
+    <>
+      {userDashboardRoutes}
       <Route path="startups" element={<StartupManagementPage />} />
     </>
   );
@@ -102,6 +110,8 @@ export default function App() {
               <Route path="/startup" element={<StartupPage />} />
               <Route path="/pricing" element={<StartupPage />} />
               <Route path="/contact" element={<ContactPage />} />
+              <Route path="/get-started" element={<GetStartedPage />} />
+              <Route path="/booking" element={<BookingRegistrationPage />} />
             </Route>
 
             {/* Authentication Layer - Separate Portals */}
@@ -122,7 +132,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             >
-              {dashboardRoutes}
+              {userDashboardRoutes}
             </Route>
 
             {/* Admin Portal Dashboard */}
@@ -134,7 +144,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             >
-              {dashboardRoutes}
+              {adminDashboardRoutes}
             </Route>
 
             {/* Super Admin Portal Dashboard */}
@@ -146,7 +156,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             >
-              {dashboardRoutes}
+              {adminDashboardRoutes}
             </Route>
 
             {/* Global Fallback Route */}

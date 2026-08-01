@@ -72,10 +72,10 @@ export default function WorkspaceMarketplace() {
   useEffect(() => {
     const fetchOrganizers = async () => {
       try {
-        const res = await axiosInstance.get('/public/organizers');
-        setOrganizers(res.data.data || []);
+        const res = await axiosInstance.get('/public/organizers').catch(() => ({ data: { data: [] } }));
+        setOrganizers(res.data?.data || []);
       } catch (err) {
-        console.error('Failed to fetch organizers:', err);
+        console.warn('Organizers info warning:', err);
       }
     };
     fetchOrganizers();
@@ -95,13 +95,13 @@ export default function WorkspaceMarketplace() {
       if (sort) params.sort = sort;
 
       const [wsRes, featRes] = await Promise.all([
-        axiosInstance.get('/public/workspaces', { params }),
-        axiosInstance.get('/public/workspaces', { params: { featured: 'true' } })
+        axiosInstance.get('/public/workspaces', { params }).catch(() => ({ data: { data: [] } })),
+        axiosInstance.get('/public/workspaces', { params: { featured: 'true' } }).catch(() => ({ data: { data: [] } }))
       ]);
 
-      const fetchedWorkspaces = wsRes.data.data || [];
+      const fetchedWorkspaces = wsRes.data?.data || [];
       setWorkspaces(fetchedWorkspaces);
-      setFeaturedWorkspaces(featRes.data.data || []);
+      setFeaturedWorkspaces(featRes.data?.data || []);
 
       // Extract unique categories dynamically
       const uniqueCats = Array.from(new Set(fetchedWorkspaces.map((w: any) => w.category).filter(Boolean))) as string[];
@@ -109,7 +109,8 @@ export default function WorkspaceMarketplace() {
         setCategories(prev => Array.from(new Set([...prev, ...uniqueCats])));
       }
     } catch (err) {
-      console.error('Failed to load workspaces:', err);
+      console.warn('Workspaces loading warning:', err);
+      setWorkspaces([]);
     } finally {
       setLoading(false);
     }
