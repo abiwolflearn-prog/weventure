@@ -79,11 +79,9 @@ export default function App() {
       <Route path="invoices" element={<InvoicesPage />} />
       <Route path="transactions" element={<TransactionsPage />} />
       <Route path="announcements" element={<AnnouncementsPage />} />
-      <Route path="integrations" element={<IntegrationsPage />} />
       <Route path="emails" element={<EmailCenterPage />} />
       <Route path="cms" element={<CmsManagementPage />} />
       <Route path="startups" element={<StartupManagementPage />} />
-      <Route path="assistant" element={<AssistantAdminDashboard />} />
     </>
   );
 
