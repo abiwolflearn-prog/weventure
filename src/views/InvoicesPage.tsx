@@ -1,10 +1,13 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { paymentApi } from '../lib/paymentApi';
-import { FileText, Download, Loader2, Calendar, Receipt } from 'lucide-react';
+import { FileText, Download, Loader2, Calendar, Receipt, CreditCard } from 'lucide-react';
 import { Button } from '../components/Button';
 
 export default function InvoicesPage() {
+  const navigate = useNavigate();
+
   const { data: invoices = [], isLoading, isError } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => paymentApi.getInvoices(),
@@ -14,6 +17,21 @@ export default function InvoicesPage() {
     const token = localStorage.getItem('weventure_jwt_token');
     const url = `/api/v1/payments/invoices/${id}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`;
     window.open(url, '_blank');
+  };
+
+  const handlePayInvoice = (invoice: any) => {
+    navigate('/dashboard/checkout', {
+      state: {
+        targetType: 'INVOICE',
+        targetId: invoice.id,
+        amount: invoice.amount,
+        currency: invoice.currency || 'ETB',
+        title: invoice.workspaceName ? `Invoice for ${invoice.workspaceName}` : `Invoice ${invoice.invoiceNumber}`,
+        description: `WeVentureHub Approved Reservation Invoice (${invoice.invoiceNumber})`,
+        invoiceNumber: invoice.invoiceNumber,
+        billingDetails: invoice.billingDetails,
+      }
+    });
   };
 
   if (isLoading) {
@@ -45,12 +63,13 @@ export default function InvoicesPage() {
           {/* Mobile View: Cards (block md:hidden) */}
           <div className="block md:hidden space-y-4">
             {invoices.map((invoice: any) => {
+              const isPaid = invoice.status === 'PAID';
               const statusColors = 
-                invoice.status === 'PAID'
+                isPaid
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900'
                   : invoice.status === 'REFUNDED'
                   ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900'
-                  : 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-neutral-700';
+                  : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900';
 
               return (
                 <div 
@@ -91,19 +110,32 @@ export default function InvoicesPage() {
                     </div>
                   </div>
 
-                  <div className="border-t border-neutral-slate-100 dark:border-neutral-slate-850 pt-4 flex items-center justify-between">
+                  <div className="border-t border-neutral-slate-100 dark:border-neutral-slate-850 pt-4 flex items-center justify-between gap-2">
                     <div className="text-base font-black text-[#111827] dark:text-white">
                       {invoice.amount.toFixed(2)} <span className="text-xs font-normal text-neutral-slate-400">{invoice.currency || 'ETB'}</span>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => handleDownload(invoice.id, invoice.invoiceNumber)}
-                      className="rounded-xl flex items-center gap-1 text-[11px] font-bold"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Download</span>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      {!isPaid && (
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={() => handlePayInvoice(invoice)}
+                          className="rounded-xl bg-[#84CC16] hover:bg-[#73B612] text-[#111827] font-bold text-[11px] flex items-center gap-1"
+                        >
+                          <CreditCard className="w-3.5 h-3.5" />
+                          <span>Pay Invoice</span>
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => handleDownload(invoice.id, invoice.invoiceNumber)}
+                        className="rounded-xl flex items-center gap-1 text-[11px] font-bold"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download</span>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               );
@@ -127,12 +159,13 @@ export default function InvoicesPage() {
                 </thead>
                 <tbody>
                   {invoices.map((invoice: any) => {
+                    const isPaid = invoice.status === 'PAID';
                     const statusColors = 
-                      invoice.status === 'PAID'
+                      isPaid
                         ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900'
                         : invoice.status === 'REFUNDED'
                         ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900'
-                        : 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-neutral-700';
+                        : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900';
 
                     return (
                       <tr 
@@ -165,15 +198,28 @@ export default function InvoicesPage() {
                           </span>
                         </td>
                         <td className="py-4 px-6 text-right">
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => handleDownload(invoice.id, invoice.invoiceNumber)}
-                            className="rounded-xl flex items-center gap-1.5 ml-auto text-[11px] font-bold"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                            <span>Download TXT</span>
-                          </Button>
+                          <div className="flex items-center justify-end gap-2">
+                            {!isPaid && (
+                              <Button
+                                size="sm"
+                                variant="primary"
+                                onClick={() => handlePayInvoice(invoice)}
+                                className="rounded-xl bg-[#84CC16] hover:bg-[#73B612] text-[#111827] font-bold text-[11px] flex items-center gap-1.5"
+                              >
+                                <CreditCard className="w-3.5 h-3.5" />
+                                <span>Pay Invoice</span>
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => handleDownload(invoice.id, invoice.invoiceNumber)}
+                              className="rounded-xl flex items-center gap-1.5 text-[11px] font-bold"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              <span>Download TXT</span>
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );

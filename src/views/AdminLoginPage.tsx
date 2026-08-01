@@ -94,30 +94,30 @@ export default function AdminLoginPage() {
   return (
     <div className="space-y-6">
       {/* Tab Switcher for Unified Admin & Super Admin Portal */}
-      <div className="bg-neutral-slate-100 p-1.5 rounded-2xl flex items-center space-x-1 border border-neutral-slate-200">
+      <div className="bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl flex items-center space-x-1 border border-slate-200 dark:border-slate-800">
         <button
           type="button"
           onClick={() => handleTabSwitch('admin')}
-          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2 ${
+          className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center space-x-2 ${
             portalMode === 'admin'
-              ? 'bg-neutral-slate-900 text-white shadow-sm'
-              : 'text-neutral-slate-600 hover:text-neutral-slate-900'
+              ? 'bg-[#0F172A] text-white shadow-md border border-slate-800'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <ShieldCheck className="w-3.5 h-3.5 text-brand-accent" />
+          <ShieldCheck className="w-4 h-4 text-[#84CC16]" />
           <span>Admin Portal</span>
         </button>
 
         <button
           type="button"
           onClick={() => handleTabSwitch('superadmin')}
-          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2 ${
+          className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center space-x-2 ${
             portalMode === 'superadmin'
-              ? 'bg-emerald-950 text-emerald-400 shadow-sm border border-emerald-800'
-              : 'text-neutral-slate-600 hover:text-neutral-slate-900'
+              ? 'bg-slate-950 text-[#84CC16] shadow-md border border-[#84CC16]/40'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <Lock className="w-3.5 h-3.5" />
+          <Lock className="w-4 h-4 text-[#84CC16]" />
           <span>Super Admin Portal</span>
         </button>
       </div>
@@ -126,22 +126,22 @@ export default function AdminLoginPage() {
       <div className="space-y-2">
         <div className="flex items-center space-x-2">
           {portalMode === 'admin' ? (
-            <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-900 text-brand-accent border border-slate-800 text-xs font-bold uppercase tracking-wider">
+            <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-[#0F172A] text-[#84CC16] border border-slate-800 text-xs font-bold uppercase tracking-wider">
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>Admin Access</span>
             </span>
           ) : (
-            <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 text-xs font-bold uppercase tracking-wider">
+            <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-950 text-[#84CC16] border border-[#84CC16]/40 text-xs font-bold uppercase tracking-wider">
               <Lock className="w-3.5 h-3.5" />
               <span>Super Admin Governance</span>
             </span>
           )}
         </div>
 
-        <h1 className="font-display font-bold text-3xl text-neutral-slate-900">
+        <h1 className="font-display font-extrabold text-3xl text-slate-900 dark:text-white tracking-tight">
           {portalMode === 'admin' ? 'Admin Portal Log In' : 'Super Admin Log In'}
         </h1>
-        <p className="text-sm text-neutral-slate-500">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           {portalMode === 'admin'
             ? 'Operational interface for WeVentureHub Event Managers, Workspace Coordinators, and Administrative Staff.'
             : 'Executive control plane for platform configuration, RBAC governance, and enterprise audit controls.'}
@@ -149,14 +149,14 @@ export default function AdminLoginPage() {
       </div>
 
       {portalMode === 'superadmin' && (
-        <div className="p-3 bg-neutral-slate-900 text-neutral-slate-300 rounded-xl text-xs font-mono border border-neutral-slate-800 flex items-center space-x-2">
-          <Cpu className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="p-3.5 bg-[#0F172A] text-slate-200 rounded-xl text-xs font-mono border border-slate-800 flex items-center space-x-2.5">
+          <Cpu className="w-4 h-4 text-[#84CC16] shrink-0" />
           <span>Strict governance zone. Super Admin credentials required.</span>
         </div>
       )}
 
       {error && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-xs font-semibold flex items-center space-x-2">
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-semibold flex items-center space-x-2">
           <ShieldAlert className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -182,20 +182,20 @@ export default function AdminLoginPage() {
         />
 
         <div className="flex items-center justify-between text-xs font-semibold">
-          <label className="flex items-center space-x-2 text-neutral-slate-600">
-            <input type="checkbox" className="rounded text-brand-primary" />
+          <label className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 cursor-pointer">
+            <input type="checkbox" className="rounded accent-[#84CC16] text-[#84CC16] focus:ring-[#84CC16]" />
             <span>Remember operational session</span>
           </label>
-          <a href="#reset" className="text-brand-primary hover:underline">Forgot password?</a>
+          <a href="#reset" className="text-[#65A30D] dark:text-[#84CC16] hover:underline font-bold">Forgot password?</a>
         </div>
 
         <Button
           type="submit"
           isLoading={loading}
-          className={`w-full flex items-center justify-center space-x-2 text-white ${
+          className={`w-full flex items-center justify-center space-x-2 font-extrabold transition-all shadow-md h-12 rounded-[14px] cursor-pointer ${
             portalMode === 'superadmin'
-              ? 'bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20'
-              : 'bg-neutral-slate-900 hover:bg-black'
+              ? 'bg-[#84CC16] hover:bg-[#74b816] text-[#0F172A] shadow-[#84CC16]/20'
+              : 'bg-[#0F172A] hover:bg-slate-900 text-white border border-slate-800'
           }`}
         >
           <span>
@@ -207,10 +207,10 @@ export default function AdminLoginPage() {
         </Button>
       </form>
 
-      <div className="border-t border-neutral-slate-200 pt-5 text-center">
-        <p className="text-xs text-neutral-slate-500">
+      <div className="border-t border-slate-200 dark:border-slate-800 pt-5 text-center">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           Looking for member workspace access?{' '}
-          <Link to="/login" className="text-brand-primary hover:underline font-bold">
+          <Link to="/login" className="text-[#65A30D] dark:text-[#84CC16] hover:underline font-extrabold">
             Go to User Portal (/login)
           </Link>
         </p>

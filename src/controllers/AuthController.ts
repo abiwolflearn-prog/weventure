@@ -139,24 +139,38 @@ export class AuthController {
    */
   public async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { email, firstName, lastName, password } = req.body;
-      if (!email || !password) {
+      const { email, firstName, lastName, name, password, userType, phone, profileImage, companyInfo } = req.body;
+      if (!email || (!password && !req.body.adminPassword)) {
         throw new ValidationError('Email and password are required');
       }
 
       const activeTenant = req.tenantId || 'weventurehub';
       const cleanEmail = email.toLowerCase().trim();
+      const resolvedName = name || `${firstName || ''} ${lastName || ''}`.trim() || 'WeVenture Member';
+      const resolvedFirstName = firstName || resolvedName.split(' ')[0] || 'Member';
+      const resolvedLastName = lastName || resolvedName.split(' ').slice(1).join(' ') || 'User';
 
       // Store / Update user in MongoDB User Collection
       let dbUser = await (User as any).findOneAndUpdate(
         { email: cleanEmail, tenantId: activeTenant },
         {
           $set: {
-            email: cleanEmail,
             tenantId: activeTenant,
-            firstName: firstName || 'New',
-            lastName: lastName || 'Member',
-            name: `${firstName || 'New'} ${lastName || 'Member'}`,
+            userType: userType || 'individual',
+            email: cleanEmail,
+            firstName: resolvedFirstName,
+            lastName: resolvedLastName,
+            name: resolvedName,
+            phone: phone || '',
+            profileImage: profileImage || companyInfo?.companyLogo || '',
+            companyInfo: companyInfo ? {
+              companyName: companyInfo.companyName,
+              companyLogo: companyInfo.companyLogo,
+              companyCover: companyInfo.companyCover,
+              address: companyInfo.address,
+              industry: companyInfo.industry,
+              employees: companyInfo.employees,
+            } : undefined,
             role: UserRole.HUB_MEMBER,
           },
         },
@@ -166,10 +180,14 @@ export class AuthController {
       const user = {
         id: dbUser._id ? dbUser._id.toString() : `usr_${Math.random().toString(36).substring(2, 8)}`,
         tenantId: activeTenant,
+        userType: dbUser.userType || userType || 'individual',
         email: cleanEmail,
         firstName: dbUser.firstName,
         lastName: dbUser.lastName,
         name: dbUser.name,
+        phone: dbUser.phone,
+        profileImage: dbUser.profileImage,
+        companyInfo: dbUser.companyInfo,
         role: UserRole.HUB_MEMBER,
         permissions: ROLE_PERMISSIONS[UserRole.HUB_MEMBER],
       };
@@ -180,7 +198,7 @@ export class AuthController {
       await emailNotificationManager.sendEmailVerification(user, otpCode, 15);
       await emailNotificationManager.sendNewUserRegistrationAdminAlert(user);
 
-      ApiResponse.success(res, { user, otpRequired: true }, 201, { message: 'Registration successful. Welcome and verification emails sent!' });
+      ApiResponse.success(res, { user, otpRequired: true, verificationCode: otpCode }, 201, { message: 'Registration successful. Verification code generated!' });
     } catch (error) {
       next(error);
     }

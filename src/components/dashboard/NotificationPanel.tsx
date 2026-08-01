@@ -27,12 +27,15 @@ export default function NotificationPanel() {
   const { user } = useAppSelector((state) => state.auth);
   const tenantId = user?.tenantId || 'weventurehub';
   const userId = user?.id;
+  const token = localStorage.getItem('weventure_jwt_token');
+  const isAuthenticated = !!(userId && token && token !== 'undefined' && token !== 'null');
 
   // Query notifications
   const { data: notifications = [], isLoading, refetch } = useQuery({
     queryKey: ['notifications', userId, tenantId],
     queryFn: () => communicationApi.getNotifications(50),
-    enabled: !!userId,
+    enabled: isAuthenticated,
+    retry: false,
   });
 
   // Mutate single notification to read

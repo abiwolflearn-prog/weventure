@@ -160,6 +160,7 @@ export default function App() {
             </Route>
 
             {/* Global Fallback Route */}
+            <Route path="/checkout" element={<Navigate to="/dashboard/checkout" replace />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </HashRouter>

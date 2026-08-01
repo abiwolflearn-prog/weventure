@@ -3,6 +3,7 @@ import { UserRole } from '../types';
 
 export interface IUserDocument extends Document {
   tenantId: string;
+  userType?: 'individual' | 'group' | 'company';
   email: string;
   firstName: string;
   lastName: string;
@@ -11,6 +12,15 @@ export interface IUserDocument extends Document {
   role: UserRole;
   phone?: string;
   company?: string;
+  profileImage?: string;
+  companyInfo?: {
+    companyName?: string;
+    companyLogo?: string;
+    companyCover?: string;
+    address?: string;
+    industry?: string;
+    employees?: number;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -18,6 +28,7 @@ export interface IUserDocument extends Document {
 const UserSchema = new Schema<IUserDocument>(
   {
     tenantId: { type: String, required: true, default: 'weventurehub' },
+    userType: { type: String, enum: ['individual', 'group', 'company'], default: 'individual' },
     email: { type: String, required: true, lowercase: true, trim: true },
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
@@ -26,6 +37,15 @@ const UserSchema = new Schema<IUserDocument>(
     role: { type: String, required: true, default: UserRole.HUB_MEMBER },
     phone: { type: String },
     company: { type: String },
+    profileImage: { type: String },
+    companyInfo: {
+      companyName: { type: String },
+      companyLogo: { type: String },
+      companyCover: { type: String },
+      address: { type: String },
+      industry: { type: String },
+      employees: { type: Number },
+    },
   },
   { timestamps: true }
 );

@@ -30,6 +30,10 @@ export const authGuard = (req: Request, res: Response, next: NextFunction): void
       token = req.query.token as string;
     }
 
+    if (token === 'undefined' || token === 'null' || !token?.trim()) {
+      token = null;
+    }
+
     if (!token) {
       throw new UnauthorizedError('Access token is missing');
     }
@@ -85,6 +89,10 @@ export const optionalAuthGuard = (req: Request, res: Response, next: NextFunctio
     }
     if (!token && req.query.token) {
       token = req.query.token as string;
+    }
+
+    if (token === 'undefined' || token === 'null' || !token?.trim()) {
+      token = null;
     }
 
     if (token) {

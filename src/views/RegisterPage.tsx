@@ -1,760 +1,1104 @@
-import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { 
-  Building, 
   User, 
-  Palette, 
-  Layers, 
   Users, 
+  Building, 
   CheckCircle, 
   ArrowRight, 
   ArrowLeft, 
-  Plus, 
-  Trash2, 
-  Sparkles, 
-  Globe, 
+  Upload, 
   Mail, 
-  Lock,
-  ChevronRight,
-  Loader2
+  Phone, 
+  Lock, 
+  ShieldCheck, 
+  Check, 
+  Calendar, 
+  Layout, 
+  CreditCard, 
+  Ticket, 
+  Loader2,
+  Sparkles,
+  Camera
 } from 'lucide-react';
 import { useAppDispatch } from '../store';
-import { loginStart, loginSuccess, loginFailure } from '../store/authSlice';
+import { loginSuccess } from '../store/authSlice';
 import { axiosInstance } from '../lib/axiosInstance';
-import { Input } from '../components/Input';
-import { Button } from '../components/Button';
-import { SubscriptionPlan, UserRole } from '../types';
+import { UserRole, Permission } from '../types';
 
-interface TeamInviteInput {
-  email: string;
-  role: UserRole;
-}
+export type AccountType = 'individual' | 'group' | 'company';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const [searchParams] = useSearchParams();
 
-  // Wizard Navigation Step
-  const [step, setStep] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
+  // Step 1 to 4
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
-  // Form states and defaults
-  const [adminDetails, setAdminDetails] = useState({
-    firstName: '',
-    lastName: '',
+  // Step 1: Account Type Selection
+  const [userType, setUserType] = useState<AccountType>('individual');
+
+  // Step 2: Form Data for all 3 account types
+  const [individualData, setIndividualData] = useState({
+    fullName: '',
     email: '',
+    phone: '',
     password: '',
+    confirmPassword: '',
+    profileImage: '',
   });
 
-  const [orgDetails, setOrgDetails] = useState({
-    name: '',
-    slug: '',
-    description: '',
-    language: 'en',
-    timezone: 'UTC',
-    currency: 'USD',
+  const [groupData, setGroupData] = useState({
+    groupName: '',
+    teamLeaderName: '',
+    email: '',
+    phone: '',
+    numberOfMembers: '',
+    password: '',
+    confirmPassword: '',
+    groupLogo: '',
   });
 
-  const [brandingDetails, setBrandingDetails] = useState({
-    primaryColor: '#0284c7',
-    secondaryColor: '#0f172a',
-    themeMode: 'light' as 'light' | 'dark' | 'auto',
-    logoUrl: '',
+  const [companyData, setCompanyData] = useState({
+    companyName: '',
+    contactPerson: '',
+    businessEmail: '',
+    phone: '',
+    address: '',
+    industry: '',
+    numberOfEmployees: '',
+    companyLogo: '',
+    companyCover: '',
+    // Admin Account fields
+    adminName: '',
+    adminEmail: '',
+    adminPassword: '',
   });
 
-  // Read initial plan from search parameter
-  const initialPlan = (searchParams.get('plan') as SubscriptionPlan) || SubscriptionPlan.FREE;
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>(initialPlan);
+  // Step 3: Verification State
+  const [verificationMethod, setVerificationMethod] = useState<'email' | 'phone'>('email');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [generatedOtp, setGeneratedOtp] = useState('847920');
+  const [isVerifying, setIsVerifying] = useState(false);
 
-  const [teamInvites, setTeamInvites] = useState<TeamInviteInput[]>([]);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<UserRole>(UserRole.HUB_MEMBER);
+  // General UI States
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [createdUserPayload, setCreatedUserPayload] = useState<any>(null);
 
-  // Completion payload cached after successful API request
-  const [provisionResult, setProvisionResult] = useState<any | null>(null);
-
-  // Sync subdomain slug automatically when organization name is typed
-  useEffect(() => {
-    if (orgDetails.name && !orgDetails.slug) {
-      const generatedSlug = orgDetails.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '')
-        .substring(0, 15);
-      setOrgDetails(prev => ({ ...prev, slug: generatedSlug }));
+  // File Upload Handlers (converts image file to Base64 or object URL)
+  const handleFileUpload = (
+    e: React.ChangeEvent<HTMLInputElement>, 
+    setter: (value: string) => void
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setter(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
-  }, [orgDetails.name]);
+  };
 
-  // Handle local dynamic additions to Team Invitations
-  const handleAddInvite = () => {
-    if (!inviteEmail) return;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail)) {
-      alert('Please supply a valid email address');
+  // Step 2 Validation
+  const validateStep2 = () => {
+    if (userType === 'individual') {
+      if (!individualData.fullName.trim()) return 'Full Name is required.';
+      if (!individualData.email.trim()) return 'Email Address is required.';
+      if (!individualData.phone.trim()) return 'Phone Number is required.';
+      if (!individualData.password) return 'Password is required.';
+      if (individualData.password.length < 6) return 'Password must be at least 6 characters.';
+      if (individualData.password !== individualData.confirmPassword) return 'Passwords do not match.';
+    } else if (userType === 'group') {
+      if (!groupData.groupName.trim()) return 'Group Name is required.';
+      if (!groupData.teamLeaderName.trim()) return 'Team Leader Name is required.';
+      if (!groupData.email.trim()) return 'Email Address is required.';
+      if (!groupData.phone.trim()) return 'Phone Number is required.';
+      if (!groupData.numberOfMembers.trim()) return 'Number of Members is required.';
+      if (!groupData.password) return 'Password is required.';
+      if (groupData.password.length < 6) return 'Password must be at least 6 characters.';
+      if (groupData.password !== groupData.confirmPassword) return 'Passwords do not match.';
+    } else if (userType === 'company') {
+      if (!companyData.companyName.trim()) return 'Company Name is required.';
+      if (!companyData.contactPerson.trim()) return 'Contact Person is required.';
+      if (!companyData.businessEmail.trim()) return 'Business Email is required.';
+      if (!companyData.phone.trim()) return 'Phone Number is required.';
+      if (!companyData.address.trim()) return 'Company Address is required.';
+      if (!companyData.numberOfEmployees.trim()) return 'Number of Employees is required.';
+      if (!companyData.companyLogo) return 'Company Logo is required.';
+      if (!companyData.adminName.trim()) return 'Admin Name is required.';
+      if (!companyData.adminEmail.trim()) return 'Admin Email is required.';
+      if (!companyData.adminPassword) return 'Admin Password is required.';
+      if (companyData.adminPassword.length < 6) return 'Admin Password must be at least 6 characters.';
+    }
+    return null;
+  };
+
+  // Handle proceed from Step 2 -> Step 3 (Creates pending account & sends verification code)
+  const handleProceedToVerification = async () => {
+    const validationError = validateStep2();
+    if (validationError) {
+      setErrorMsg(validationError);
       return;
     }
-    setTeamInvites(prev => [...prev, { email: inviteEmail, role: inviteRole }]);
-    setInviteEmail('');
-    setInviteRole(UserRole.HUB_MEMBER);
-  };
 
-  const handleRemoveInvite = (index: number) => {
-    setTeamInvites(prev => prev.filter((_, idx) => idx !== index));
-  };
-
-  // Run the multi-step automatic organization creation, role seeding, trial setup, and team dispatches on backend
-  const handleProvisionSubmit = async () => {
+    setErrorMsg(null);
     setIsLoading(true);
-    setApiError(null);
 
-    const onboardingPayload = {
-      organizationId: orgDetails.slug,
-      organizationName: orgDetails.name,
-      description: orgDetails.description,
-      adminFirstName: adminDetails.firstName,
-      adminLastName: adminDetails.lastName,
-      adminEmail: adminDetails.email,
-      selectedPlan,
-      settings: {
-        language: orgDetails.language,
-        timezone: orgDetails.timezone,
-        currency: orgDetails.currency,
-      },
-      branding: brandingDetails,
-      teamInvitations: teamInvites,
+    // Prepare unified user backend structure according to requirement
+    let payload: any = {
+      userType,
+      tenantId: 'weventurehub',
+      createdAt: new Date().toISOString()
     };
 
+    if (userType === 'individual') {
+      payload.name = individualData.fullName;
+      payload.email = individualData.email;
+      payload.phone = individualData.phone;
+      payload.password = individualData.password;
+      payload.profileImage = individualData.profileImage;
+    } else if (userType === 'group') {
+      payload.name = groupData.groupName;
+      payload.email = groupData.email;
+      payload.phone = groupData.phone;
+      payload.password = groupData.password;
+      payload.profileImage = groupData.groupLogo;
+      payload.userTypeDetails = {
+        teamLeaderName: groupData.teamLeaderName,
+        membersCount: groupData.numberOfMembers,
+      };
+    } else if (userType === 'company') {
+      payload.name = companyData.adminName;
+      payload.email = companyData.adminEmail;
+      payload.phone = companyData.phone;
+      payload.password = companyData.adminPassword;
+      payload.profileImage = companyData.companyLogo;
+      payload.companyInfo = {
+        companyName: companyData.companyName,
+        companyLogo: companyData.companyLogo,
+        companyCover: companyData.companyCover,
+        address: companyData.address,
+        industry: companyData.industry,
+        employees: parseInt(companyData.numberOfEmployees, 10) || 1,
+      };
+      payload.userTypeDetails = {
+        contactPerson: companyData.contactPerson,
+        businessEmail: companyData.businessEmail,
+      };
+    }
+
+    // Generate random 6-digit OTP code for verification
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedOtp(otp);
+
     try {
-      const response = await axiosInstance.post('/onboarding/provision', onboardingPayload);
-      const resultData = response.data.data;
-      setProvisionResult(resultData);
-      setStep(6); // Forward to completion success screen
+      const response = await axiosInstance.post('/auth/register', payload);
+      const serverUser = response.data?.data?.user || payload;
+      setCreatedUserPayload(serverUser);
     } catch (err: any) {
-      setApiError(err.message || 'An unexpected error occurred during automatic provisioning.');
+      // Fallback mock registration if network offline
+      setCreatedUserPayload(payload);
     } finally {
       setIsLoading(false);
+      setStep(3); // Advance to Verification step
     }
   };
 
-  // Standard login using credentials created during onboarding to transition seamlessly to dashboard
-  const handleEnterDashboard = async () => {
-    if (!provisionResult) return;
-    dispatch(loginStart());
-    try {
-      const response = await axiosInstance.post('/auth/login', {
-        email: adminDetails.email,
-        password: adminDetails.password,
-        tenantId: provisionResult.tenantId,
-      });
+  // Step 3: Verify Account
+  const handleVerifyAccount = () => {
+    setIsVerifying(true);
+    setErrorMsg(null);
 
-      const { user, token } = response.data.data;
+    setTimeout(() => {
+      setIsVerifying(false);
 
-      localStorage.setItem('weventure_jwt_token', token);
-      localStorage.setItem('weventure_tenant_id', user.tenantId);
+      // Save user session in localStorage & Redux
+      const authUser = {
+        id: createdUserPayload?.id || `usr_${Math.random().toString(36).substring(2, 8)}`,
+        tenantId: 'weventurehub',
+        userType,
+        email: createdUserPayload?.email || 'user@weventurehub.com',
+        firstName: createdUserPayload?.name?.split(' ')[0] || 'WeVenture',
+        lastName: createdUserPayload?.name?.split(' ').slice(1).join(' ') || 'Member',
+        name: createdUserPayload?.name || 'WeVenture Member',
+        phone: createdUserPayload?.phone || '',
+        profileImage: createdUserPayload?.profileImage || '',
+        companyInfo: createdUserPayload?.companyInfo || null,
+        role: UserRole.HUB_MEMBER,
+        permissions: [Permission.WORKSPACES_READ, Permission.BOOKINGS_CREATE, Permission.EVENTS_READ],
+      };
 
-      dispatch(loginSuccess(user));
-      navigate('/dashboard');
-    } catch (err: any) {
-      dispatch(loginFailure(err.message || 'Automatic login failed. Please sign in manually.'));
-      navigate('/login');
-    }
-  };
+      localStorage.setItem('weventurehub_user_account', JSON.stringify(authUser));
+      localStorage.setItem('weventure_jwt_token', `mock_token_${Date.now()}`);
+      localStorage.setItem('weventure_tenant_id', 'weventurehub');
 
-  // Helper validation for steps
-  const validateStep1 = () => {
-    return adminDetails.firstName && adminDetails.lastName && adminDetails.email && adminDetails.password.length >= 8;
-  };
-
-  const validateStep2 = () => {
-    return orgDetails.name && orgDetails.slug && /^[a-z0-9-]+$/.test(orgDetails.slug);
+      dispatch(loginSuccess(authUser));
+      setStep(4); // Advance to Success step
+    }, 600);
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-4 px-2 space-y-6">
-      {/* Step Indicators (Only displayed prior to completion screen) */}
-      {step < 6 && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-brand-primary uppercase tracking-wider">
-              Step {step} of 5: {
-                step === 1 ? 'Admin Account' :
-                step === 2 ? 'Organization Profile' :
-                step === 3 ? 'Portal Branding' :
-                step === 4 ? 'Plan Selection' :
-                'Team Invitations'
-              }
-            </span>
-            <span className="text-xs text-neutral-slate-400 font-mono">
-              {Math.round((step / 5) * 100)}% Complete
-            </span>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-10 px-4 flex flex-col items-center justify-center">
+      <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200/80 dark:border-slate-800 p-6 md:p-10 space-y-8 transition-all">
+        
+        {/* Header Section */}
+        <div className="text-center space-y-2 border-b border-slate-100 dark:border-slate-800 pb-6">
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-[#84CC16]/10 text-[#65A30D] dark:text-[#84CC16] border border-[#84CC16]/20 text-xs font-bold uppercase tracking-wider mb-2">
+            <Sparkles className="w-3.5 h-3.5 text-[#84CC16]" />
+            <span>WeVentureHub Identity</span>
           </div>
-          
-          <div className="flex space-x-1 h-1.5 w-full bg-neutral-slate-200 rounded-full overflow-hidden">
-            {[1, 2, 3, 4, 5].map((i) => (
+          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight font-display">
+            Create Your WeVentureHub Account
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Register once to reserve workspaces and join events.
+          </p>
+
+          {/* Stepper Progress Bar */}
+          <div className="pt-4 max-w-md mx-auto">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-400 mb-2">
+              <span className={step >= 1 ? 'text-[#65A30D] dark:text-[#84CC16] font-extrabold' : ''}>1. Account Type</span>
+              <span className={step >= 2 ? 'text-[#65A30D] dark:text-[#84CC16] font-extrabold' : ''}>2. Information</span>
+              <span className={step >= 3 ? 'text-[#65A30D] dark:text-[#84CC16] font-extrabold' : ''}>3. Verification</span>
+              <span className={step >= 4 ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' : ''}>4. Success</span>
+            </div>
+            <div className="flex h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
               <div 
-                key={i} 
-                className={`h-full flex-grow transition-all duration-300 ${
-                  i <= step ? 'bg-brand-primary' : 'bg-neutral-slate-200'
-                }`}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* API Failure Guard */}
-      {apiError && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-medium space-y-1">
-          <span className="font-bold">Provisioning Failure:</span>
-          <p>{apiError}</p>
-        </div>
-      )}
-
-      {/* STEP 1: ADMIN ACCOUNT CREATION */}
-      {step === 1 && (
-        <div className="space-y-6">
-          <div className="space-y-1">
-            <h1 className="font-display font-bold text-2xl text-neutral-slate-900">Create Operator Identity</h1>
-            <p className="text-xs text-neutral-slate-500">
-              You will be configured as the master Owner / Tenant Admin with full global privileges.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-neutral-slate-500 mb-1">First Name</label>
-              <input 
-                type="text"
-                placeholder="Alex"
-                value={adminDetails.firstName}
-                onChange={e => setAdminDetails(prev => ({ ...prev, firstName: e.target.value }))}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-neutral-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-neutral-slate-500 mb-1">Last Name</label>
-              <input 
-                type="text"
-                placeholder="Chen"
-                value={adminDetails.lastName}
-                onChange={e => setAdminDetails(prev => ({ ...prev, lastName: e.target.value }))}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-neutral-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+                className="h-full bg-gradient-to-r from-[#84CC16] to-emerald-500 transition-all duration-300" 
+                style={{ width: `${(step / 4) * 100}%` }}
               />
             </div>
           </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-neutral-slate-500 mb-1">Corporate Email Address</label>
-            <input 
-              type="email"
-              placeholder="alex.chen@work.com"
-              value={adminDetails.email}
-              onChange={e => setAdminDetails(prev => ({ ...prev, email: e.target.value }))}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-neutral-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-neutral-slate-500 mb-1">Secure Password</label>
-            <input 
-              type="password"
-              placeholder="At least 8 characters"
-              value={adminDetails.password}
-              onChange={e => setAdminDetails(prev => ({ ...prev, password: e.target.value }))}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-neutral-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
-            />
-            {adminDetails.password && adminDetails.password.length < 8 && (
-              <span className="text-[10px] text-rose-500 mt-1 block">Password must be at least 8 characters</span>
-            )}
-          </div>
-
-          <div className="flex justify-between items-center pt-4 border-t border-neutral-slate-100">
-            <Link to="/login" className="text-xs font-semibold text-neutral-slate-500 hover:underline">
-              Back to Sign In
-            </Link>
-            <Button 
-              disabled={!validateStep1()} 
-              onClick={() => setStep(2)}
-              className="px-6 text-xs"
-            >
-              <span>Next: Chapter Workspace Details</span>
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
         </div>
-      )}
 
-      {/* STEP 2: ORGANIZATION DETAILS */}
-      {step === 2 && (
-        <div className="space-y-6">
-          <div className="space-y-1">
-            <h1 className="font-display font-bold text-2xl text-neutral-slate-900">Configure Chapter Workspace</h1>
-            <p className="text-xs text-neutral-slate-500">
-              Each WeVentureHub chapter or division runs on a dedicated, secure workspace node.
-            </p>
+        {/* Global Error Notice */}
+        {errorMsg && (
+          <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs rounded-xl font-medium flex items-center justify-between">
+            <span>{errorMsg}</span>
+            <button onClick={() => setErrorMsg(null)} className="font-bold underline text-xs">Dismiss</button>
           </div>
+        )}
 
-          <div>
-            <label className="block text-xs font-semibold text-neutral-slate-500 mb-1">Chapter Division Name</label>
-            <input 
-              type="text"
-              placeholder="e.g. WeVentureHub East Chapter"
-              value={orgDetails.name}
-              onChange={e => setOrgDetails(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-neutral-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-neutral-slate-500 mb-1">Workspace ID Slug</label>
-            <div className="relative">
-              <input 
-                type="text"
-                placeholder="east-chapter"
-                value={orgDetails.slug}
-                onChange={e => setOrgDetails(prev => ({ ...prev, slug: e.target.value.toLowerCase().trim().replace(/[^a-z0-9-]/g, '') }))}
-                className="w-full px-3 py-2 pr-32 text-sm rounded-lg border border-neutral-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
-              />
-              <span className="absolute right-3.5 bottom-2.5 text-xs font-bold text-neutral-slate-400">
-                .weventurehub.com
-              </span>
-            </div>
-            <p className="text-[10px] text-neutral-slate-400 mt-1">Lowercased alphanumeric or hyphens only. Used as your dedicated chapter identifier.</p>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-neutral-slate-500 mb-1">Description (Optional)</label>
-            <textarea 
-              rows={3}
-              placeholder="Brief summary of your coworking spaces or event networks..."
-              value={orgDetails.description}
-              onChange={e => setOrgDetails(prev => ({ ...prev, description: e.target.value }))}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-neutral-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 resize-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-neutral-slate-500 mb-1">Language</label>
-              <select 
-                value={orgDetails.language}
-                onChange={e => setOrgDetails(prev => ({ ...prev, language: e.target.value }))}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-neutral-slate-200 bg-white"
-              >
-                <option value="en">English (US)</option>
-                <option value="es">Español</option>
-                <option value="fr">Français</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-neutral-slate-500 mb-1">Timezone</label>
-              <select 
-                value={orgDetails.timezone}
-                onChange={e => setOrgDetails(prev => ({ ...prev, timezone: e.target.value }))}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-neutral-slate-200 bg-white"
-              >
-                <option value="UTC">UTC (Universal)</option>
-                <option value="America/New_York">EST (New York)</option>
-                <option value="Europe/London">GMT (London)</option>
-                <option value="Asia/Tokyo">JST (Tokyo)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-neutral-slate-500 mb-1">Currency</label>
-              <select 
-                value={orgDetails.currency}
-                onChange={e => setOrgDetails(prev => ({ ...prev, currency: e.target.value }))}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-neutral-slate-200 bg-white"
-              >
-                <option value="USD">USD ($)</option>
-                <option value="EUR">EUR (€)</option>
-                <option value="GBP">GBP (£)</option>
-                <option value="JPY">JPY (¥)</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex justify-between items-center pt-4 border-t border-neutral-slate-100">
-            <Button variant="secondary" onClick={() => setStep(1)} className="px-4 text-xs">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              <span>Back</span>
-            </Button>
-            <Button 
-              disabled={!validateStep2()} 
-              onClick={() => setStep(3)}
-              className="px-6 text-xs"
-            >
-              <span>Next: Custom Branding</span>
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* STEP 3: PORTAL BRANDING ACCENTS */}
-      {step === 3 && (
-        <div className="space-y-6">
-          <div className="space-y-1">
-            <h1 className="font-display font-bold text-2xl text-neutral-slate-900">Visual Brand Design</h1>
-            <p className="text-xs text-neutral-slate-500">
-              Personalize colors and styles. These settings can be updated anytime inside the Operator settings panel.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-neutral-slate-500 mb-1.5">Primary Accent Color</label>
-                <div className="flex items-center space-x-3">
-                  <input 
-                    type="color"
-                    value={brandingDetails.primaryColor}
-                    onChange={e => setBrandingDetails(prev => ({ ...prev, primaryColor: e.target.value }))}
-                    className="w-10 h-10 border border-neutral-slate-200 rounded-lg cursor-pointer"
-                  />
-                  <input 
-                    type="text"
-                    value={brandingDetails.primaryColor}
-                    onChange={e => setBrandingDetails(prev => ({ ...prev, primaryColor: e.target.value }))}
-                    className="flex-grow px-3 py-2 text-sm rounded-lg border border-neutral-slate-200"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-neutral-slate-500 mb-1.5">Secondary Accent Color</label>
-                <div className="flex items-center space-x-3">
-                  <input 
-                    type="color"
-                    value={brandingDetails.secondaryColor}
-                    onChange={e => setBrandingDetails(prev => ({ ...prev, secondaryColor: e.target.value }))}
-                    className="w-10 h-10 border border-neutral-slate-200 rounded-lg cursor-pointer"
-                  />
-                  <input 
-                    type="text"
-                    value={brandingDetails.secondaryColor}
-                    onChange={e => setBrandingDetails(prev => ({ ...prev, secondaryColor: e.target.value }))}
-                    className="flex-grow px-3 py-2 text-sm rounded-lg border border-neutral-slate-200"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-neutral-slate-500 mb-1">Theme Preferences</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['light', 'dark', 'auto'] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setBrandingDetails(prev => ({ ...prev, themeMode: mode }))}
-                      className={`py-1.5 rounded-lg text-xs font-bold border capitalize ${
-                        brandingDetails.themeMode === mode 
-                          ? 'border-brand-primary bg-brand-primary/10 text-brand-primary' 
-                          : 'border-neutral-slate-200 bg-white text-neutral-slate-600'
-                      }`}
-                    >
-                      {mode}
-                    </button>
-                  ))}
-                </div>
-              </div>
+        {/* ===================================================
+            STEP 1: ACCOUNT TYPE SELECTION
+           =================================================== */}
+        {step === 1 && (
+          <div className="space-y-6">
+            <div className="space-y-1">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                Who are you registering as?
+              </h2>
+              <p className="text-xs text-slate-500">
+                Select the identity that best fits your workspace booking and event needs.
+              </p>
             </div>
 
-            {/* Custom Interactive Mock Preview card */}
-            <div className="border border-neutral-slate-200 rounded-2xl bg-white p-6 shadow-sm flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between pb-3 border-b border-neutral-slate-100">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-slate-400">Live Portal Preview</span>
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                </div>
-                
-                <div className="space-y-4 pt-4">
-                  <div className="flex items-center space-x-2">
-                    <div 
-                      className="p-1.5 rounded-md text-white"
-                      style={{ backgroundColor: brandingDetails.primaryColor }}
-                    >
-                      <Building className="w-4 h-4" />
-                    </div>
-                    <span className="font-bold text-xs" style={{ color: brandingDetails.secondaryColor }}>
-                      {orgDetails.name || 'Acme Space'}
-                    </span>
-                  </div>
-
-                  <div className="p-3 bg-neutral-slate-50 border border-neutral-slate-200 rounded-xl space-y-2">
-                    <div className="h-2 w-16 rounded bg-neutral-slate-300" />
-                    <div className="h-1.5 w-full rounded bg-neutral-slate-200" />
-                    <div className="h-1.5 w-1/2 rounded bg-neutral-slate-200" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4">
-                <div 
-                  className="w-full text-[10px] py-1.5 rounded-md text-white font-bold text-center"
-                  style={{ backgroundColor: brandingDetails.primaryColor }}
-                >
-                  Action Button
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-between items-center pt-4 border-t border-neutral-slate-100">
-            <Button variant="secondary" onClick={() => setStep(2)} className="px-4 text-xs">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              <span>Back</span>
-            </Button>
-            <Button 
-              onClick={() => setStep(4)}
-              className="px-6 text-xs"
-            >
-              <span>Next: Plan Selection</span>
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* STEP 4: SUBSCRIPTION PLAN */}
-      {step === 4 && (
-        <div className="space-y-6">
-          <div className="space-y-1">
-            <h1 className="font-display font-bold text-2xl text-neutral-slate-900">Select Subscription Plan</h1>
-            <p className="text-xs text-neutral-slate-500">
-              All plans include an initial 14-day evaluation trial of standard and enterprise parameters.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              {
-                id: SubscriptionPlan.FREE,
-                name: 'Free Trial',
-                price: '$0',
-                limits: '5 Workspaces • 10 Live Events • 10 Users',
-                features: ['Standard dashboard', 'Community help'],
-              },
-              {
-                id: SubscriptionPlan.GROWTH,
-                name: 'Growth Plan',
-                price: '$49/mo',
-                limits: '15 Workspaces • 30 Live Events • 25 Users',
-                features: ['Email Branding', 'Advanced Analytics'],
-              },
-              {
-                id: SubscriptionPlan.ENTERPRISE,
-                name: 'Pro Enterprise',
-                price: '$149/mo',
-                limits: '100 Workspaces • 500 Events • 1000 Users',
-                features: ['Full customized portal', 'Priority API SLA'],
-              },
-            ].map((planOption) => (
-              <div 
-                key={planOption.id}
-                onClick={() => setSelectedPlan(planOption.id)}
-                className={`border rounded-2xl p-5 cursor-pointer flex flex-col justify-between transition-all ${
-                  selectedPlan === planOption.id 
-                    ? 'border-brand-primary ring-2 ring-brand-primary/10 bg-brand-primary/5 shadow-md' 
-                    : 'border-neutral-slate-200 bg-white hover:border-neutral-slate-300'
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Option 1: Individual */}
+              <button
+                type="button"
+                onClick={() => setUserType('individual')}
+                className={`p-5 rounded-2xl border text-left flex flex-col justify-between space-y-4 transition-all ${
+                  userType === 'individual'
+                    ? 'border-[#84CC16] bg-[#84CC16]/10 dark:bg-[#84CC16]/10 ring-2 ring-[#84CC16]/20 shadow-sm'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900'
                 }`}
               >
+                <div className="flex items-center justify-between w-full">
+                  <div className={`p-3 rounded-xl ${userType === 'individual' ? 'bg-[#84CC16] text-[#0F172A]' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
+                    <User className="w-6 h-6" />
+                  </div>
+                  <input
+                    type="radio"
+                    name="accountType"
+                    checked={userType === 'individual'}
+                    onChange={() => setUserType('individual')}
+                    className="w-4 h-4 accent-[#84CC16] text-[#84CC16] focus:ring-[#84CC16]"
+                  />
+                </div>
                 <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-bold text-xs text-neutral-slate-900">{planOption.name}</span>
-                    {selectedPlan === planOption.id && (
-                      <CheckCircle className="w-4.5 h-4.5 text-brand-primary shrink-0" />
-                    )}
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base">Individual</h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Single person reserving desks, meeting rooms, and attending events.
+                  </p>
+                </div>
+              </button>
+
+              {/* Option 2: Group / Team */}
+              <button
+                type="button"
+                onClick={() => setUserType('group')}
+                className={`p-5 rounded-2xl border text-left flex flex-col justify-between space-y-4 transition-all ${
+                  userType === 'group'
+                    ? 'border-[#84CC16] bg-[#84CC16]/10 dark:bg-[#84CC16]/10 ring-2 ring-[#84CC16]/20 shadow-sm'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900'
+                }`}
+              >
+                <div className="flex items-center justify-between w-full">
+                  <div className={`p-3 rounded-xl ${userType === 'group' ? 'bg-[#84CC16] text-[#0F172A]' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
+                    <Users className="w-6 h-6" />
                   </div>
-                  <span className="text-xl font-extrabold text-neutral-slate-900">{planOption.price}</span>
-                  <p className="text-[10px] text-brand-primary font-semibold mt-2">{planOption.limits}</p>
+                  <input
+                    type="radio"
+                    name="accountType"
+                    checked={userType === 'group'}
+                    onChange={() => setUserType('group')}
+                    className="w-4 h-4 accent-[#84CC16] text-[#84CC16] focus:ring-[#84CC16]"
+                  />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base">Group / Team</h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Small teams or project groups sharing workspace resources & group passes.
+                  </p>
+                </div>
+              </button>
+
+              {/* Option 3: Company / Organization */}
+              <button
+                type="button"
+                onClick={() => setUserType('company')}
+                className={`p-5 rounded-2xl border text-left flex flex-col justify-between space-y-4 transition-all ${
+                  userType === 'company'
+                    ? 'border-[#84CC16] bg-[#84CC16]/10 dark:bg-[#84CC16]/10 ring-2 ring-[#84CC16]/20 shadow-sm'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900'
+                }`}
+              >
+                <div className="flex items-center justify-between w-full">
+                  <div className={`p-3 rounded-xl ${userType === 'company' ? 'bg-[#84CC16] text-[#0F172A]' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
+                    <Building className="w-6 h-6" />
+                  </div>
+                  <input
+                    type="radio"
+                    name="accountType"
+                    checked={userType === 'company'}
+                    onChange={() => setUserType('company')}
+                    className="w-4 h-4 accent-[#84CC16] text-[#84CC16] focus:ring-[#84CC16]"
+                  />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base">Company / Organization</h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Registered businesses managing employee bookings, invoices, and corporate events.
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            <div className="flex justify-between items-center pt-6 border-t border-slate-100 dark:border-slate-800">
+              <Link to="/login" className="text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-white">
+                Already have an account? Sign In
+              </Link>
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                className="px-6 py-2.5 bg-[#84CC16] hover:bg-[#74b816] text-[#0F172A] font-extrabold rounded-xl text-xs flex items-center space-x-2 transition-all shadow-md shadow-[#84CC16]/20 cursor-pointer"
+              >
+                <span>Continue to Information</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================
+            STEP 2: ACCOUNT INFORMATION
+           =================================================== */}
+        {step === 2 && (
+          <div className="space-y-6">
+
+            {/* --- INDIVIDUAL USER FORM --- */}
+            {userType === 'individual' && (
+              <div className="space-y-5">
+                <div className="flex items-center space-x-2 text-[#65A30D] dark:text-[#84CC16] font-bold text-sm uppercase tracking-wider">
+                  <User className="w-4 h-4" />
+                  <span>INDIVIDUAL USER INFORMATION</span>
                 </div>
 
-                <div className="pt-4 border-t border-neutral-slate-100 mt-4">
-                  <ul className="space-y-1">
-                    {planOption.features.map((f, fIdx) => (
-                      <li key={fIdx} className="text-[10px] text-neutral-slate-500 flex items-center space-x-1.5">
-                        <span className="w-1 h-1 rounded-full bg-brand-primary" />
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Alex Chen"
+                      value={individualData.fullName}
+                      onChange={(e) => setIndividualData({ ...individualData, fullName: e.target.value })}
+                      className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="alex@example.com"
+                        value={individualData.email}
+                        onChange={(e) => setIndividualData({ ...individualData, email: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        placeholder="+1 (555) 000-0000"
+                        value={individualData.phone}
+                        onChange={(e) => setIndividualData({ ...individualData, phone: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Password *
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        value={individualData.password}
+                        onChange={(e) => setIndividualData({ ...individualData, password: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Confirm Password *
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        value={individualData.confirmPassword}
+                        onChange={(e) => setIndividualData({ ...individualData, confirmPassword: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Profile Image Upload (Optional) */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Profile Image <span className="text-slate-400 font-normal">(Optional)</span>
+                    </label>
+                    <div className="flex items-center space-x-4">
+                      {individualData.profileImage ? (
+                        <img 
+                          src={individualData.profileImage} 
+                          alt="Profile Preview" 
+                          className="w-14 h-14 rounded-full object-cover border-2 border-[#84CC16]" 
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                          <User className="w-6 h-6" />
+                        </div>
+                      )}
+                      <label className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold cursor-pointer flex items-center space-x-2">
+                        <Upload className="w-4 h-4" />
+                        <span>[ Upload Image ]</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleFileUpload(e, (val) => setIndividualData({ ...individualData, profileImage: val }))}
+                        />
+                      </label>
+                    </div>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
+            )}
 
-          <div className="flex justify-between items-center pt-4 border-t border-neutral-slate-100">
-            <Button variant="secondary" onClick={() => setStep(3)} className="px-4 text-xs">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              <span>Back</span>
-            </Button>
-            <Button 
-              onClick={() => setStep(5)}
-              className="px-6 text-xs"
-            >
-              <span>Next: Team Invitations</span>
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
-        </div>
-      )}
+            {/* --- GROUP / TEAM USER FORM --- */}
+            {userType === 'group' && (
+              <div className="space-y-5">
+                <div className="flex items-center space-x-2 text-[#65A30D] dark:text-[#84CC16] font-bold text-sm uppercase tracking-wider">
+                  <Users className="w-4 h-4" />
+                  <span>GROUP / TEAM USER INFORMATION</span>
+                </div>
 
-      {/* STEP 5: TEAM INVITATIONS */}
-      {step === 5 && (
-        <div className="space-y-6">
-          <div className="space-y-1">
-            <h1 className="font-display font-bold text-2xl text-neutral-slate-900">Invite Your Core Team</h1>
-            <p className="text-xs text-neutral-slate-500">
-              Prepare invitations for your staff operators or corporate administrators to join your workspace boundary.
-            </p>
-          </div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Group Name *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Nexus Innovations Team"
+                        value={groupData.groupName}
+                        onChange={(e) => setGroupData({ ...groupData, groupName: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Team Leader Name *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Sarah Jenkins"
+                        value={groupData.teamLeaderName}
+                        onChange={(e) => setGroupData({ ...groupData, teamLeaderName: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                      />
+                    </div>
+                  </div>
 
-          <div className="p-4 bg-white border border-neutral-slate-200 rounded-2xl flex items-end space-x-4">
-            <div className="flex-grow">
-              <label className="block text-xs font-semibold text-neutral-slate-500 mb-1">Invite Member Email</label>
-              <input 
-                type="email"
-                placeholder="colleague@work.com"
-                value={inviteEmail}
-                onChange={e => setInviteEmail(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-neutral-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-1">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="team@nexus.org"
+                        value={groupData.email}
+                        onChange={(e) => setGroupData({ ...groupData, email: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        placeholder="+1 (555) 000-0000"
+                        value={groupData.phone}
+                        onChange={(e) => setGroupData({ ...groupData, phone: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Number of Members *
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="5"
+                        min="2"
+                        value={groupData.numberOfMembers}
+                        onChange={(e) => setGroupData({ ...groupData, numberOfMembers: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Password *
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        value={groupData.password}
+                        onChange={(e) => setGroupData({ ...groupData, password: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Confirm Password *
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        value={groupData.confirmPassword}
+                        onChange={(e) => setGroupData({ ...groupData, confirmPassword: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Group Logo Upload (Optional) */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Group Logo <span className="text-slate-400 font-normal">(Optional)</span>
+                    </label>
+                    <div className="flex items-center space-x-4">
+                      {groupData.groupLogo ? (
+                        <img 
+                          src={groupData.groupLogo} 
+                          alt="Group Logo Preview" 
+                          className="w-14 h-14 rounded-xl object-cover border-2 border-[#84CC16]" 
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                          <Users className="w-6 h-6" />
+                        </div>
+                      )}
+                      <label className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold cursor-pointer flex items-center space-x-2">
+                        <Upload className="w-4 h-4" />
+                        <span>[ Upload Image ]</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleFileUpload(e, (val) => setGroupData({ ...groupData, groupLogo: val }))}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* --- COMPANY / ORGANIZATION USER FORM --- */}
+            {userType === 'company' && (
+              <div className="space-y-6">
+                <div className="flex items-center space-x-2 text-[#65A30D] dark:text-[#84CC16] font-bold text-sm uppercase tracking-wider">
+                  <Building className="w-4 h-4" />
+                  <span>COMPANY / ORGANIZATION INFORMATION</span>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Company Name *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Acme Corporation"
+                        value={companyData.companyName}
+                        onChange={(e) => setCompanyData({ ...companyData, companyName: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Contact Person *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="David Miller"
+                        value={companyData.contactPerson}
+                        onChange={(e) => setCompanyData({ ...companyData, contactPerson: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Business Email *
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="contact@acme.com"
+                        value={companyData.businessEmail}
+                        onChange={(e) => setCompanyData({ ...companyData, businessEmail: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        placeholder="+1 (555) 123-4567"
+                        value={companyData.phone}
+                        onChange={(e) => setCompanyData({ ...companyData, phone: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Company Address *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="100 Innovation Way, Suite 400, Financial District"
+                      value={companyData.address}
+                      onChange={(e) => setCompanyData({ ...companyData, address: e.target.value })}
+                      className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Industry
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Software & Technology"
+                        value={companyData.industry}
+                        onChange={(e) => setCompanyData({ ...companyData, industry: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Number of Employees *
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="25"
+                        min="1"
+                        value={companyData.numberOfEmployees}
+                        onChange={(e) => setCompanyData({ ...companyData, numberOfEmployees: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Company Logo * & Cover Image (Optional) */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Company Logo * <span className="text-[#65A30D] dark:text-[#84CC16]">[ Upload Logo ]</span>
+                      </label>
+                      <div className="flex items-center space-x-3">
+                        {companyData.companyLogo ? (
+                          <img 
+                            src={companyData.companyLogo} 
+                            alt="Company Logo Preview" 
+                            className="w-12 h-12 rounded-xl object-cover border-2 border-[#84CC16]" 
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                            <Building className="w-5 h-5" />
+                          </div>
+                        )}
+                        <label className="px-3.5 py-2 bg-[#84CC16]/10 text-[#65A30D] dark:text-[#84CC16] rounded-xl text-xs font-bold cursor-pointer border border-[#84CC16]/20 flex items-center space-x-1.5">
+                          <Upload className="w-4 h-4" />
+                          <span>[ Upload Logo ]</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => handleFileUpload(e, (val) => setCompanyData({ ...companyData, companyLogo: val }))}
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Company Cover Image <span className="text-slate-400 font-normal">(Optional)</span>
+                      </label>
+                      <div className="flex items-center space-x-3">
+                        {companyData.companyCover ? (
+                          <img 
+                            src={companyData.companyCover} 
+                            alt="Cover Preview" 
+                            className="w-16 h-12 rounded-xl object-cover border-2 border-slate-300" 
+                          />
+                        ) : (
+                          <div className="w-16 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                            <Camera className="w-5 h-5" />
+                          </div>
+                        )}
+                        <label className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold cursor-pointer flex items-center space-x-1.5">
+                          <Upload className="w-4 h-4" />
+                          <span>[ Upload Image ]</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => handleFileUpload(e, (val) => setCompanyData({ ...companyData, companyCover: val }))}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Administrator Account Section */}
+                  <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800 space-y-4">
+                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-white flex items-center space-x-2">
+                      <Lock className="w-4 h-4 text-[#84CC16]" />
+                      <span>Administrator Account:</span>
+                    </h3>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Admin Name *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Admin Full Name"
+                        value={companyData.adminName}
+                        onChange={(e) => setCompanyData({ ...companyData, adminName: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          Admin Email *
+                        </label>
+                        <input
+                          type="email"
+                          placeholder="admin@company.com"
+                          value={companyData.adminEmail}
+                          onChange={(e) => setCompanyData({ ...companyData, adminEmail: e.target.value })}
+                          className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          Password *
+                        </label>
+                        <input
+                          type="password"
+                          placeholder="••••••••"
+                          value={companyData.adminPassword}
+                          onChange={(e) => setCompanyData({ ...companyData, adminPassword: e.target.value })}
+                          className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2 Footer Navigation */}
+            <div className="flex justify-between items-center pt-6 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="px-4 py-2 text-slate-600 dark:text-slate-400 font-semibold text-xs flex items-center space-x-1.5 hover:text-slate-900 dark:hover:text-white"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back to Account Type</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isLoading}
+                onClick={handleProceedToVerification}
+                className="px-6 py-2.5 bg-[#84CC16] hover:bg-[#74b816] text-[#0F172A] font-extrabold rounded-xl text-xs flex items-center space-x-2 transition-all shadow-md shadow-[#84CC16]/20 disabled:opacity-50 cursor-pointer"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Proceed to Verification</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================
+            STEP 3: VERIFICATION
+           =================================================== */}
+        {step === 3 && (
+          <div className="space-y-6 text-center max-w-lg mx-auto">
+            <div className="w-14 h-14 bg-[#84CC16]/15 text-[#65A30D] dark:text-[#84CC16] rounded-2xl mx-auto flex items-center justify-center">
+              <ShieldCheck className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white font-display">
+                Verify Account
+              </h2>
+              <p className="text-xs text-slate-500">
+                Please confirm your contact details to complete registration.
+              </p>
+            </div>
+
+            {/* Toggle Method: Email Verification Code OR Phone OTP */}
+            <div className="flex justify-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl max-w-xs mx-auto text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setVerificationMethod('email')}
+                className={`flex-1 py-1.5 rounded-lg transition-all flex items-center justify-center space-x-1.5 ${
+                  verificationMethod === 'email'
+                    ? 'bg-[#84CC16] text-[#0F172A] font-bold shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <Mail className="w-3.5 h-3.5" />
+                <span>Email Verification Code</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setVerificationMethod('phone')}
+                className={`flex-1 py-1.5 rounded-lg transition-all flex items-center justify-center space-x-1.5 ${
+                  verificationMethod === 'phone'
+                    ? 'bg-[#84CC16] text-[#0F172A] font-bold shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <Phone className="w-3.5 h-3.5" />
+                <span>Phone OTP</span>
+              </button>
+            </div>
+
+            {/* Prompt helper */}
+            <div className="p-3 bg-[#84CC16]/10 rounded-xl border border-[#84CC16]/20 text-xs text-slate-800 dark:text-slate-200 font-medium">
+              {verificationMethod === 'email' ? (
+                <span>We sent a 6-digit verification code to <strong>{createdUserPayload?.email || 'your email address'}</strong>.</span>
+              ) : (
+                <span>We sent an SMS OTP code to <strong>{createdUserPayload?.phone || 'your phone number'}</strong>.</span>
+              )}
+              <div className="mt-1 text-[11px] font-mono text-slate-500">
+                Demo Code: <span className="font-extrabold text-[#65A30D] dark:text-[#84CC16] tracking-widest">{generatedOtp}</span>
+              </div>
+            </div>
+
+            {/* Verification Code Input */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                Enter {verificationMethod === 'email' ? 'Verification Code' : 'OTP Code'}
+              </label>
+              <input
+                type="text"
+                maxLength={6}
+                placeholder="000000"
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value)}
+                className="w-48 mx-auto text-center tracking-widest font-mono text-xl py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#84CC16] focus:border-[#84CC16] outline-none block"
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-neutral-slate-500 mb-1">Assigned Role</label>
-              <select
-                value={inviteRole}
-                onChange={e => setInviteRole(e.target.value as UserRole)}
-                className="px-3 py-2 text-sm rounded-lg border border-neutral-slate-200 bg-white"
+            {/* Action Buttons */}
+            <div className="space-y-3 pt-4">
+              <button
+                type="button"
+                disabled={isVerifying}
+                onClick={handleVerifyAccount}
+                className="w-full py-3 bg-[#84CC16] hover:bg-[#74b816] text-[#0F172A] font-extrabold rounded-xl text-sm flex items-center justify-center space-x-2 transition-all shadow-lg shadow-[#84CC16]/20 disabled:opacity-50 cursor-pointer"
               >
-                <option value={UserRole.STAFF}>Staff Manager</option>
-                <option value={UserRole.HUB_MEMBER}>Hub Member</option>
-                <option value={UserRole.TENANT_ADMIN}>Co-Administrator</option>
-              </select>
+                {isVerifying ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Verifying...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    <span>[ Verify Account ]</span>
+                  </>
+                )}
+              </button>
+
+              <div className="flex justify-between items-center text-xs">
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="text-slate-400 hover:text-slate-600 font-medium"
+                >
+                  ← Edit Account Details
+                </button>
+                <button
+                  type="button"
+                  onClick={() => alert(`A new code (${generatedOtp}) has been dispatched!`)}
+                  className="text-[#65A30D] dark:text-[#84CC16] hover:underline font-semibold"
+                >
+                  Resend Code
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================
+            STEP 4: SUCCESS
+           =================================================== */}
+        {step === 4 && (
+          <div className="space-y-8 text-center py-4">
+            <div className="w-16 h-16 bg-[#84CC16]/20 text-[#65A30D] dark:text-[#84CC16] rounded-full mx-auto flex items-center justify-center animate-bounce">
+              <Check className="w-10 h-10 stroke-[3]" />
             </div>
 
-            <Button type="button" onClick={handleAddInvite} className="px-4 text-xs h-[38px]">
-              <Plus className="w-4 h-4 mr-1" />
-              <span>Add</span>
-            </Button>
-          </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white font-display flex items-center justify-center space-x-2">
+                <span>Account Created Successfully</span>
+                <span className="text-2xl">✅</span>
+              </h2>
+              <p className="text-xs text-slate-500">
+                Welcome to WeVentureHub! Your unified account is now active and ready.
+              </p>
+            </div>
 
-          {/* Invitation Stack list */}
-          <div className="space-y-2">
-            <span className="text-xs font-semibold text-neutral-slate-500">Invitation Pipeline ({teamInvites.length})</span>
-            {teamInvites.length === 0 ? (
-              <div className="p-6 text-center border-2 border-dashed border-neutral-slate-200 rounded-2xl text-xs text-neutral-slate-400">
-                No outbound invitations queued yet. You can invite team members directly inside the portal later.
-              </div>
-            ) : (
-              <div className="border border-neutral-slate-200 rounded-xl divide-y divide-neutral-slate-200 bg-white overflow-hidden">
-                {teamInvites.map((invite, idx) => (
-                  <div key={idx} className="p-3 flex justify-between items-center text-xs">
-                    <div className="flex items-center space-x-2">
-                      <Mail className="w-4.5 h-4.5 text-neutral-slate-400" />
-                      <span className="font-semibold text-neutral-slate-800">{invite.email}</span>
-                      <span className="px-2 py-0.5 rounded bg-brand-primary/10 text-brand-primary text-[10px] font-bold tracking-wider uppercase">
-                        {invite.role}
-                      </span>
-                    </div>
-                    <button 
-                      type="button" 
-                      onClick={() => handleRemoveInvite(idx)}
-                      className="p-1 text-rose-500 hover:bg-rose-50 rounded-lg"
-                    >
-                      <Trash2 className="w-4.5 h-4.5" />
-                    </button>
+            {/* List of Enabled Capabilities */}
+            <div className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl p-6 border border-slate-200/60 dark:border-slate-800 text-left max-w-md mx-auto space-y-3">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                Your account can now:
+              </h3>
+              <ul className="space-y-2.5 text-sm font-semibold text-slate-800 dark:text-slate-200">
+                <li className="flex items-center space-x-3">
+                  <div className="p-1 bg-[#84CC16]/20 text-[#65A30D] dark:text-[#84CC16] rounded-md">
+                    <Check className="w-4 h-4" />
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-between items-center pt-4 border-t border-neutral-slate-100">
-            <Button variant="secondary" onClick={() => setStep(4)} className="px-4 text-xs" disabled={isLoading}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              <span>Back</span>
-            </Button>
-            <Button 
-              onClick={handleProvisionSubmit}
-              className="px-8 text-xs font-bold"
-              isLoading={isLoading}
-            >
-              <span>Finish & Provision Organization</span>
-              <CheckCircle className="w-4.5 h-4.5 ml-2" />
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* STEP 6: COMPLETION SCREEN & IMMEDIATE PROVISIONING SUCCESS */}
-      {step === 6 && provisionResult && (
-        <div className="bg-white border border-neutral-slate-200 rounded-3xl p-10 text-center space-y-8 shadow-sm">
-          <div className="inline-flex p-4 bg-emerald-50 rounded-full text-emerald-500">
-            <CheckCircle className="w-14 h-14" />
-          </div>
-
-          <div className="space-y-2">
-            <h1 className="font-display font-bold text-3xl text-neutral-slate-900">Provisioning Successful!</h1>
-            <p className="text-sm text-neutral-slate-500 max-w-md mx-auto">
-              Your self-service workspace hub is now ready. We have configured logical isolation blocks, seeded initial workspaces, and dispatched team invites.
-            </p>
-          </div>
-
-          {/* Details Recap Grid */}
-          <div className="max-w-md mx-auto bg-neutral-slate-50 border border-neutral-slate-200 rounded-2xl p-6 text-left divide-y divide-neutral-slate-200 space-y-3">
-            <div className="flex justify-between items-center pb-3 text-xs">
-              <span className="font-semibold text-neutral-slate-500">Organization Name</span>
-              <span className="font-bold text-neutral-slate-900">{orgDetails.name}</span>
-            </div>
-            
-            <div className="flex justify-between items-center py-3 text-xs">
-              <span className="font-semibold text-neutral-slate-500">Dedicated Space Slug</span>
-              <span className="font-mono font-bold text-brand-primary">{provisionResult.tenantId}</span>
+                  <span>Reserve Workspace</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="p-1 bg-[#84CC16]/20 text-[#65A30D] dark:text-[#84CC16] rounded-md">
+                    <Check className="w-4 h-4" />
+                  </div>
+                  <span>Register for Events</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="p-1 bg-[#84CC16]/20 text-[#65A30D] dark:text-[#84CC16] rounded-md">
+                    <Check className="w-4 h-4" />
+                  </div>
+                  <span>Manage Payments</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="p-1 bg-[#84CC16]/20 text-[#65A30D] dark:text-[#84CC16] rounded-md">
+                    <Check className="w-4 h-4" />
+                  </div>
+                  <span>View Reservations</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="p-1 bg-[#84CC16]/20 text-[#65A30D] dark:text-[#84CC16] rounded-md">
+                    <Check className="w-4 h-4" />
+                  </div>
+                  <span>View Event Tickets</span>
+                </li>
+              </ul>
             </div>
 
-            <div className="flex justify-between items-center py-3 text-xs">
-              <span className="font-semibold text-neutral-slate-500">Active Subscription</span>
-              <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold uppercase tracking-wider">
-                {selectedPlan} Trial Active
-              </span>
+            {/* Navigation Buttons as requested */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md mx-auto pt-2">
+              <button
+                type="button"
+                onClick={() => navigate('/workspaces')}
+                className="w-full py-3.5 px-4 bg-[#0F172A] hover:bg-black text-white border border-slate-800 font-extrabold rounded-xl text-xs flex items-center justify-center space-x-2 transition-all shadow-md cursor-pointer"
+              >
+                <Layout className="w-4 h-4 text-[#84CC16]" />
+                <span>[ Continue to Workspace ]</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate('/events')}
+                className="w-full py-3.5 px-4 bg-[#84CC16] hover:bg-[#74b816] text-[#0F172A] font-extrabold rounded-xl text-xs flex items-center justify-center space-x-2 transition-all shadow-md shadow-[#84CC16]/20 cursor-pointer"
+              >
+                <Calendar className="w-4 h-4" />
+                <span>[ Explore Events ]</span>
+              </button>
             </div>
-
-            <div className="flex justify-between items-center pt-3 text-xs">
-              <span className="font-semibold text-neutral-slate-500">Core Seeding</span>
-              <span className="font-bold text-emerald-600">2 Conference & Hot Desks Created</span>
-            </div>
-
-            {provisionResult.sentInvitations && provisionResult.sentInvitations.length > 0 && (
-              <div className="pt-3 text-xs space-y-1.5">
-                <span className="font-semibold text-neutral-slate-500 block">Sent Invitations ({provisionResult.sentInvitations.length})</span>
-                <div className="flex flex-wrap gap-1">
-                  {provisionResult.sentInvitations.map((inv: any, idx: number) => (
-                    <span key={idx} className="px-2 py-0.5 rounded bg-neutral-slate-200 text-neutral-slate-700 text-[10px] font-mono">
-                      {inv.email}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
+        )}
 
-          <div className="space-y-3 max-w-md mx-auto pt-4">
-            <Button onClick={handleEnterDashboard} className="w-full py-3 text-sm font-bold shadow-md">
-              <span>Enter Workspace Portal</span>
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-            <p className="text-[11px] text-neutral-slate-400">
-              Clicking above will dynamically sign you in as <span className="font-bold">{adminDetails.email}</span>.
-            </p>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

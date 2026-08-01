@@ -35,8 +35,10 @@ axiosInstance.interceptors.request.use(
 
     // Check if JWT token has been stored in local storage
     const token = localStorage.getItem('weventure_jwt_token');
-    if (token) {
+    if (token && token !== 'undefined' && token !== 'null' && token.trim() !== '') {
       config.headers['Authorization'] = `Bearer ${token}`;
+    } else if (token === 'undefined' || token === 'null' || (token && !token.trim())) {
+      localStorage.removeItem('weventure_jwt_token');
     }
     
     return config;
@@ -63,6 +65,7 @@ axiosInstance.interceptors.response.use(
       status === 401 ||
       apiError.code === 'UNAUTHORIZED' ||
       apiError.message === 'jwt expired' ||
+      apiError.message === 'jwt malformed' ||
       apiError.message === 'Authentication token has expired'
     ) {
       localStorage.removeItem('weventure_jwt_token');

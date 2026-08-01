@@ -294,14 +294,27 @@ export class BookingService {
 
     await this.logActivity(tenantId, user, 'APPROVE_BOOKING', id);
 
-    // Send real-time notification to user of booking approval
+    // Auto-generate Invoice for user payment if one does not exist yet
+    let generatedInvoice = null;
+    try {
+      const existingInvoice = await Invoice.findOne({ bookingId: id, tenantId }).exec();
+      if (!existingInvoice) {
+        generatedInvoice = await this.generateBookingInvoice(id, tenantId, user);
+      } else {
+        generatedInvoice = existingInvoice;
+      }
+    } catch (invErr) {
+      console.error('Auto invoice creation on booking approval:', invErr);
+    }
+
+    // Send real-time notification to user of booking approval & invoice
     await notificationService.createNotification({
       tenantId,
       userId: booking.userId,
-      title: 'Workspace Booking Approved!',
-      message: `Your reservation request has been approved by WeVentureHub team. Next, an administrative agreement will be prepared.`,
+      title: 'Workspace Reservation Approved!',
+      message: `Your reservation request for "${booking.spaceId}" has been approved by WeVentureHub. An invoice (${generatedInvoice?.invoiceNumber || 'issued'}) has been generated. Please proceed to payment.`,
       category: NotificationCategory.BOOKING,
-      link: '/dashboard/bookings',
+      link: '/dashboard/invoices',
       sendEmail: true,
       userEmail: booking.userEmail,
     });

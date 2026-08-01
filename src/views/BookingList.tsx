@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { 
   CalendarRange, 
   QrCode, 
@@ -21,12 +22,22 @@ import {
   CheckSquare,
   Sparkles,
   Layers,
-  HelpCircle
+  HelpCircle,
+  Mail,
+  Phone,
+  MapPin,
+  Users,
+  Briefcase,
+  ShieldAlert,
+  Ticket,
+  Search,
+  Tag
 } from 'lucide-react';
 import { useAppSelector } from '../store';
 import { bookingApi } from '../lib/bookingApi';
 import { workspaceApi } from '../lib/workspaceApi';
 import { paymentApi } from '../lib/paymentApi';
+import { ticketingApi } from '../lib/ticketingApi';
 import { UserRole } from '../types';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
@@ -48,17 +59,47 @@ interface BookingRecord {
   notes?: string;
   documentUrl?: string;
   agreementId?: string;
+  
+  // Attached Registration Details
+  primaryName?: string;
+  primaryEmail?: string;
+  phone?: string;
+  company?: string;
+  address?: string;
+  billingDetails?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    company?: string;
+    address?: string;
+    emergencyContact?: {
+      name?: string;
+      relationship?: string;
+      phone?: string;
+    };
+  };
+  emergencyContact?: any;
+  userType?: 'individual' | 'group' | 'company';
+  userTypeDetails?: any;
+  workspaceBookingInfo?: any;
+  workspace?: any;
+  participantFile?: string;
 }
 
 export default function BookingList() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAppSelector((state) => state.auth);
 
+  // Active Category Tab: Workspaces vs Events
+  const [activeTab, setActiveTab] = useState<'WORKSPACES' | 'EVENTS'>('WORKSPACES');
+
   // Filter state
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // UI state for Modals & Actions
-  const [activeBooking, setActiveBooking] = useState<BookingRecord | null>(null);
+  const [activeBooking, setActiveBooking] = useState<any | null>(null);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
 
@@ -67,6 +108,22 @@ export default function BookingList() {
   const [signatureName, setSignatureName] = useState<string>('');
   const [agreementDetails, setAgreementDetails] = useState<any>(null);
   const [isAgreementDetailsLoading, setIsAgreementDetailsLoading] = useState<boolean>(false);
+
+  // Local storage state for user reservations
+  const [localWorkspaces, setLocalWorkspaces] = useState<any[]>([]);
+  const [localEventRegs, setLocalEventRegs] = useState<any[]>([]);
+
+  useEffect(() => {
+    try {
+      const storedWorkspaces = JSON.parse(localStorage.getItem('weventurehub_user_bookings') || '[]');
+      setLocalWorkspaces(storedWorkspaces);
+
+      const storedEvents = JSON.parse(localStorage.getItem('weventurehub_user_registrations') || '[]');
+      setLocalEventRegs(storedEvents);
+    } catch (e) {
+      console.error('Failed to parse local storage bookings:', e);
+    }
+  }, []);
 
   // Administrative Lease Drafting Modal
   const [draftBookingId, setDraftBookingId] = useState<string | null>(null);
@@ -83,7 +140,7 @@ export default function BookingList() {
     additionalNotes: 'Complimentary tea, artisan coffee, and reception services included.',
   });
   const [draftTerms, setDraftTerms] = useState('Standard WeVentureHub commercial occupancy regulations apply. Tenant agrees to respect common space guidelines.');
-  const [draftConditions = 'Workspace utilization is strictly contingent upon regular payment compliance.', setDraftConditions] = useState('Workspace utilization is strictly contingent upon regular payment compliance.');
+  const [draftConditions, setDraftConditions] = useState('Workspace utilization is strictly contingent upon regular payment compliance.');
 
   // User Roles Check
   const isAdminOrStaff = 
@@ -129,9 +186,132 @@ export default function BookingList() {
     }
   });
 
-  const bookings: BookingRecord[] = bookingsResponse?.data || [];
+  // Query Event Registrations
+  const { 
+    data: eventRegistrationsResponse,
+    refetch: refetchEventRegs
+  } = useQuery({
+    queryKey: ['all-event-registrations', isAdminOrStaff],
+    queryFn: async () => {
+      try {
+        if (isAdminOrStaff) {
+          return await ticketingApi.getAllRegistrations(1, 100);
+        } else {
+          const myRegs = await ticketingApi.getMyRegistrations();
+          return { docs: myRegs || [], total: myRegs?.length || 0 };
+        }
+      } catch (e) {
+        return { docs: [], total: 0 };
+      }
+    }
+  });
+
   const workspaces: any[] = workspacesResponse?.data || [];
   const invoices: any[] = invoicesList || [];
+
+  // Transform & Merge Workspace Bookings
+  const apiBookings: any[] = bookingsResponse?.data || [];
+  
+  const formattedLocalWorkspaces = localWorkspaces.map((item: any) => ({
+    id: item.id || `WVH-LOCAL-${Math.floor(Math.random() * 90000)}`,
+    spaceId: item.workspace?.id || item.workspace?.slug || 'executive-suite',
+    userId: item.primaryEmail || 'user',
+    userEmail: item.primaryEmail || item.email || item.userEmail || '',
+    startTime: item.workspaceBookingInfo?.bookingDate 
+      ? `${item.workspaceBookingInfo.bookingDate}T${item.workspaceBookingInfo.startTime || '09:00'}:00.000Z`
+      : new Date().toISOString(),
+    endTime: item.workspaceBookingInfo?.bookingDate 
+      ? `${item.workspaceBookingInfo.bookingDate}T${item.workspaceBookingInfo.endTime || '17:00'}:00.000Z`
+      : new Date(Date.now() + 8 * 3600 * 1000).toISOString(),
+    totalAmount: Number(item.totalAmount) || 120,
+    status: 'CONFIRMED' as const,
+    purpose: item.workspaceBookingInfo?.specialRequests || item.purpose || 'Workspace Reservation',
+    qrCode: item.id || 'WVH-RES-PASS',
+    billingPlanName: item.workspace?.type || 'Hot Desk',
+    teamSize: item.workspaceBookingInfo?.desksRequested || item.userTypeDetails?.participantCount || item.userTypeDetails?.employeeCount || 1,
+    notes: item.specialRequests || item.notes || '',
+    documentUrl: item.participantFile || item.documentUrl || '',
+    
+    // Detailed Contact Information
+    primaryName: item.primaryName || item.userTypeDetails?.fullName || item.userTypeDetails?.teamLeaderName || item.userTypeDetails?.contactPerson,
+    phone: item.phone || item.userTypeDetails?.phone || item.userTypeDetails?.groupPhone || item.userTypeDetails?.companyPhone,
+    billingDetails: item.billingDetails || {
+      name: item.primaryName,
+      email: item.primaryEmail,
+      phone: item.phone,
+      company: item.userTypeDetails?.companyName || item.userTypeDetails?.groupName || item.organization,
+      address: item.userTypeDetails?.companyAddress || '',
+    },
+    userType: item.userType,
+    userTypeDetails: item.userTypeDetails,
+    workspace: item.workspace,
+    workspaceBookingInfo: item.workspaceBookingInfo
+  }));
+
+  const combinedBookings: BookingRecord[] = [...formattedLocalWorkspaces];
+  apiBookings.forEach((bkg: any) => {
+    if (!combinedBookings.some((cb) => cb.id === bkg.id)) {
+      combinedBookings.push(bkg);
+    }
+  });
+
+  // Filter Workspace Bookings
+  const filteredWorkspaceBookings = combinedBookings.filter((bkg) => {
+    const matchesStatus = statusFilter === 'ALL' || bkg.status === statusFilter;
+    
+    const nameStr = (bkg.billingDetails?.name || bkg.primaryName || bkg.userEmail || '').toLowerCase();
+    const emailStr = (bkg.billingDetails?.email || bkg.userEmail || bkg.primaryEmail || '').toLowerCase();
+    const phoneStr = (bkg.billingDetails?.phone || bkg.phone || '').toLowerCase();
+    const companyStr = (bkg.billingDetails?.company || bkg.company || '').toLowerCase();
+    const q = searchQuery.toLowerCase().trim();
+
+    const matchesSearch = !q || nameStr.includes(q) || emailStr.includes(q) || phoneStr.includes(q) || companyStr.includes(q) || bkg.id.toLowerCase().includes(q);
+
+    return matchesStatus && matchesSearch;
+  });
+
+  // Transform & Merge Event Registrations
+  const apiEventRegs: any[] = eventRegistrationsResponse?.docs || [];
+
+  const formattedLocalEventRegs = localEventRegs.map((item: any) => ({
+    id: item.id || `WVH-EVT-${Math.floor(Math.random() * 90000)}`,
+    eventId: item.event?.id || 'evt-1',
+    eventTitle: item.event?.title || 'WeVentureHub Summit',
+    eventDate: item.event?.date || '2026-08-20',
+    eventTime: item.event?.time || '09:00 AM - 04:00 PM',
+    eventLocation: item.event?.location || 'Main Event Hall',
+    attendeeName: item.primaryName || item.userTypeDetails?.fullName || item.userTypeDetails?.teamLeaderName || item.userTypeDetails?.contactPerson || 'Attendee',
+    attendeeEmail: item.primaryEmail || item.userTypeDetails?.email || item.userTypeDetails?.groupEmail || item.userTypeDetails?.businessEmail || '',
+    attendeePhone: item.phone || item.userTypeDetails?.phone || item.userTypeDetails?.groupPhone || item.userTypeDetails?.companyPhone || '',
+    attendeeCompany: item.userTypeDetails?.companyName || item.userTypeDetails?.groupName || item.userTypeDetails?.organization || item.organization || '',
+    ticketNumber: item.id,
+    userType: item.userType || 'individual',
+    userTypeDetails: item.userTypeDetails,
+    status: 'CONFIRMED',
+    checkedIn: false,
+    totalAmount: item.totalAmount || '0.00',
+    dateSubmitted: item.dateSubmitted || new Date().toISOString()
+  }));
+
+  const combinedEventRegs: any[] = [...formattedLocalEventRegs];
+  apiEventRegs.forEach((reg: any) => {
+    if (!combinedEventRegs.some((cr) => cr.id === reg.id)) {
+      combinedEventRegs.push(reg);
+    }
+  });
+
+  const filteredEventRegs = combinedEventRegs.filter((reg) => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
+
+    const nameStr = (reg.attendeeName || reg.primaryName || '').toLowerCase();
+    const emailStr = (reg.attendeeEmail || reg.primaryEmail || reg.userEmail || '').toLowerCase();
+    const phoneStr = (reg.attendeePhone || reg.phone || '').toLowerCase();
+    const companyStr = (reg.attendeeCompany || reg.organization || '').toLowerCase();
+    const eventStr = (reg.eventTitle || '').toLowerCase();
+
+    return nameStr.includes(q) || emailStr.includes(q) || phoneStr.includes(q) || companyStr.includes(q) || eventStr.includes(q) || reg.id.toLowerCase().includes(q);
+  });
 
   // Helper to find workspace name
   const findWorkspace = (spaceId: string) => {
@@ -274,28 +454,20 @@ export default function BookingList() {
     }
   };
 
-  // ArifPay Checkout Flow Initiation
-  const handleCheckoutInvoice = async (invoice: any) => {
-    try {
-      setErrorBanner(null);
-      const res = await paymentApi.createPayment({
-        amount: invoice.outstandingBalance || invoice.amount,
-        provider: 'ARIFPAY', // Primary payment gateway integration
+  // Navigate to Secure Checkout Gateway for Invoice Payment
+  const handleCheckoutInvoice = (invoice: any) => {
+    navigate('/dashboard/checkout', {
+      state: {
         targetType: 'INVOICE',
         targetId: invoice.id,
+        amount: invoice.outstandingBalance || invoice.amount,
         currency: invoice.currency || 'ETB',
+        title: invoice.workspaceName ? `Invoice for ${invoice.workspaceName}` : `Invoice ${invoice.invoiceNumber}`,
+        description: `WeVentureHub Approved Reservation Invoice (${invoice.invoiceNumber})`,
+        invoiceNumber: invoice.invoiceNumber,
         billingDetails: invoice.billingDetails,
-      });
-
-      if (res && res.paymentLink) {
-        // Safe redirect to external ArifPay checkout H5 HPP
-        window.open(res.paymentLink, '_blank');
-      } else {
-        throw new Error('ArifPay failed to return dynamic payment link.');
       }
-    } catch (e: any) {
-      setErrorBanner(e.message || 'ArifPay checkout initialization failed.');
-    }
+    });
   };
 
   // Download printable invoice details format
@@ -304,7 +476,6 @@ export default function BookingList() {
       const token = localStorage.getItem('weventure_jwt_token') || '';
       const tenantId = localStorage.getItem('weventure_tenant_id') || 'weventurehub';
       const url = `/api/v1/payments/invoices/${id}/download?token=${encodeURIComponent(token)}&tenantId=${encodeURIComponent(tenantId)}`;
-      // Open in a new tab to initiate binary file transfer
       window.open(url, '_blank');
     } catch (e: any) {
       setErrorBanner('Failed to download invoice file.');
@@ -316,8 +487,8 @@ export default function BookingList() {
       {/* View Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="font-display font-bold text-2xl text-gray-900">Workspace Billing & Reservations</h1>
-          <p className="text-sm text-neutral-slate-400 mt-1">Review WeVentureHub active passes, corporate agreement review boards, and transactional invoices.</p>
+          <h1 className="font-display font-bold text-2xl text-gray-900">Reservations & Event Registrations</h1>
+          <p className="text-sm text-neutral-slate-400 mt-1">Review WeVentureHub workspace passes, contact profiles, and event admission records.</p>
         </div>
         <Button 
           variant="secondary" 
@@ -325,6 +496,7 @@ export default function BookingList() {
           onClick={() => {
             refetchBookings();
             refetchInvoices();
+            refetchEventRegs();
             queryClient.invalidateQueries({ queryKey: ['workspaces'] });
           }}
         >
@@ -355,294 +527,549 @@ export default function BookingList() {
         </div>
       )}
 
-      {/* Interactive status selectors */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1.5 border-b border-gray-200">
-        <SlidersHorizontal className="w-4.5 h-4.5 text-neutral-slate-400 shrink-0" />
-        {[
-          { key: 'ALL', label: 'Show All' },
-          { key: 'PENDING_REVIEW', label: 'Submitted (Review)' },
-          { key: 'APPROVED', label: 'Approved' },
-          { key: 'AGREEMENT_GENERATED', label: 'Lease Prepared' },
-          { key: 'CUSTOMER_ACCEPTED', label: 'Agreement Executed' },
-          { key: 'CONFIRMED', label: 'Active Passes' },
-          { key: 'CANCELLED', label: 'Cancelled' },
-        ].map((st) => (
+      {/* Category Tabs: Workspace vs Event Bookings */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-gray-200 pb-3">
+        <div className="flex items-center space-x-2 bg-gray-100 p-1 rounded-xl">
           <button
-            key={st.key}
-            onClick={() => setStatusFilter(st.key)}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 ${
-              statusFilter === st.key 
-                ? 'bg-[#84CC16] text-[#111111]' 
-                : 'bg-white border border-gray-200 text-neutral-slate-600 hover:bg-neutral-slate-50'
+            onClick={() => setActiveTab('WORKSPACES')}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              activeTab === 'WORKSPACES'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-800'
             }`}
           >
-            {st.label}
+            <Building className="w-4 h-4" />
+            <span>Workspace Reservations ({filteredWorkspaceBookings.length})</span>
           </button>
-        ))}
+
+          <button
+            onClick={() => setActiveTab('EVENTS')}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              activeTab === 'EVENTS'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            <Ticket className="w-4 h-4" />
+            <span>Event Registrations ({filteredEventRegs.length})</span>
+          </button>
+        </div>
+
+        {/* Search input */}
+        <div className="relative w-full sm:w-64">
+          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search name, email, phone, company..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full text-xs pl-9 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-brand-primary"
+          />
+        </div>
       </div>
 
-      {/* Grid List */}
-      {isBookingsLoading ? (
-        <div className="p-12 text-center text-neutral-slate-400">
-          <div className="animate-spin w-8 h-8 border-4 border-[#84CC16] border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-sm font-bold">Synchronizing reservations cache...</p>
-        </div>
-      ) : bookings.length === 0 ? (
-        <div className="p-12 text-center border-2 border-dashed rounded-2xl bg-white border-[#E5E7EB]">
-          <CalendarRange className="w-10 h-10 text-[#9CA3AF] mx-auto mb-3" />
-          <h3 className="font-display font-bold text-base text-[#111827]">No Reservations Found</h3>
-          <p className="text-xs text-[#4B5563] max-w-xs mx-auto mt-1">
-            You don't have any workspace bookings matching this corporate category.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {bookings.map((bkg) => {
-            const workspace = findWorkspace(bkg.spaceId);
-            const { date, time } = formatDateTimeRange(bkg.startTime, bkg.endTime);
-            const bkgInvoices = findInvoicesForBooking(bkg.id);
-
-            return (
-              <div key={bkg.id} className="bento-card relative overflow-hidden flex flex-col justify-between border border-gray-150 shadow-sm rounded-xl p-5 bg-white space-y-4">
-                {/* Visual Status bar top */}
-                <div className={`absolute top-0 left-0 right-0 h-1.5 ${
-                  bkg.status === 'CONFIRMED' 
-                    ? 'bg-[#84CC16]' 
-                    : bkg.status === 'CUSTOMER_ACCEPTED' 
-                    ? 'bg-cyan-500' 
-                    : bkg.status === 'AGREEMENT_GENERATED' 
-                    ? 'bg-purple-500' 
-                    : bkg.status === 'APPROVED' 
-                    ? 'bg-blue-500' 
-                    : bkg.status === 'PENDING_REVIEW' 
-                    ? 'bg-amber-500' 
-                    : 'bg-neutral-slate-300'
-                }`} />
-
-                <div className="space-y-4 pt-1">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-display font-bold text-base text-gray-900">
-                        {workspace ? workspace.name : 'Professional Space'}
-                      </h3>
-                      <p className="text-xs text-neutral-slate-400 font-mono mt-0.5">Booking Reference: {bkg.id}</p>
-                      
-                      <div className="flex flex-wrap gap-2 mt-1.5">
-                        <span className="text-[10px] bg-neutral-100 text-neutral-600 font-semibold px-2 py-0.5 rounded">
-                          Plan: {bkg.billingPlanName || 'Hourly'}
-                        </span>
-                        {bkg.teamSize && (
-                          <span className="text-[10px] bg-indigo-50 text-indigo-600 font-semibold px-2 py-0.5 rounded">
-                            Team Size: {bkg.teamSize} pax
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
-                      bkg.status === 'CONFIRMED' 
-                        ? 'bg-[#84CC16]/20 text-[#4D7C0F]' 
-                        : bkg.status === 'CUSTOMER_ACCEPTED' 
-                        ? 'bg-cyan-50 text-cyan-600' 
-                        : bkg.status === 'AGREEMENT_GENERATED' 
-                        ? 'bg-purple-50 text-purple-600' 
-                        : bkg.status === 'APPROVED' 
-                        ? 'bg-blue-50 text-blue-600' 
-                        : bkg.status === 'PENDING_REVIEW' 
-                        ? 'bg-amber-50 text-amber-600' 
-                        : 'bg-neutral-slate-100 text-neutral-slate-500'
-                    }`}>
-                      {bkg.status.replace('_', ' ')}
-                    </span>
-                  </div>
-
-                  {/* Booking schedule */}
-                  <div className="grid grid-cols-2 gap-2 text-xs text-neutral-slate-600 border-t pt-3">
-                    <div className="flex items-center space-x-2">
-                      <CalendarRange className="w-4 h-4 text-neutral-slate-400 shrink-0" />
-                      <span>{date}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Clock className="w-4 h-4 text-neutral-slate-400 shrink-0" />
-                      <span className="truncate">{time}</span>
-                    </div>
-                  </div>
-
-                  {/* Purpose or custom notes */}
-                  {bkg.purpose && (
-                    <p className="text-xs text-neutral-slate-500 italic bg-gray-50 px-2.5 py-1.5 rounded-lg border border-gray-100">
-                      <strong>Purpose:</strong> {bkg.purpose}
-                    </p>
-                  )}
-
-                  {/* Client Metadata block */}
-                  {isAdminOrStaff && (
-                    <div className="bg-neutral-50 p-2.5 rounded-lg border border-neutral-100 text-[11px] font-mono space-y-1">
-                      <p className="text-neutral-500"><strong>Customer:</strong> {bkg.userEmail}</p>
-                      {bkg.notes && <p className="text-neutral-500"><strong>Notes:</strong> {bkg.notes}</p>}
-                      {bkg.documentUrl && (
-                        <p>
-                          <strong>Credentials:</strong>{' '}
-                          <a href={bkg.documentUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline">
-                            View Credentials Document
-                          </a>
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Customer Billing Portal - Inline Invoice Panel */}
-                  {bkgInvoices.length > 0 && (
-                    <div className="border-t border-dashed pt-3 mt-2 space-y-2.5">
-                      <h4 className="text-xs font-bold text-gray-800 flex items-center gap-1">
-                        <FileText className="w-3.5 h-3.5 text-neutral-slate-400" />
-                        <span>Corporate Invoices Ledger</span>
-                      </h4>
-                      {bkgInvoices.map((inv) => (
-                        <div key={inv.id} className="bg-[#FAFDF6] border border-[#ECF7D7] rounded-lg p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                          <div>
-                            <p className="text-xs font-mono font-bold text-[#3F6212]">{inv.invoiceNumber}</p>
-                            <p className="text-[10px] text-neutral-slate-400">{inv.billingPeriod}</p>
-                            <span className={`inline-block mt-1 text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                              inv.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                            }`}>
-                              {inv.status}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                            <span className="text-xs font-bold text-gray-900 mr-2">
-                              {inv.amount} {inv.currency || 'ETB'}
-                            </span>
-                            {inv.status !== 'PAID' && (
-                              <button 
-                                onClick={() => handleCheckoutInvoice(inv)}
-                                className="px-2.5 py-1.5 bg-[#84CC16] hover:bg-[#73B612] text-[#111111] font-bold text-[10px] rounded flex items-center gap-1 transition"
-                              >
-                                <CreditCard className="w-3 h-3" />
-                                <span>ArifPay HPP</span>
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleDownloadInvoice(inv.id, inv.invoiceNumber)}
-                              className="p-1.5 border border-gray-200 hover:bg-neutral-100 rounded text-gray-600 transition"
-                              title="Download Invoice PDF representation"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Footer buttons & Action boundaries */}
-                <div className="border-t border-gray-200 pt-4 mt-2 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                  <span className="text-sm font-bold text-gray-900">
-                    Grand Total: ETB {bkg.totalAmount.toLocaleString()}
-                  </span>
-
-                  <div className="flex flex-wrap gap-2 justify-end">
-                    {/* View QR Access Token */}
-                    {bkg.status === 'CONFIRMED' && (
-                      <Button 
-                        variant="secondary" 
-                        size="sm" 
-                        className="flex items-center gap-1.5"
-                        onClick={() => setActiveBooking(bkg)}
-                      >
-                        <QrCode className="w-4 h-4" />
-                        <span>Verification Pass</span>
-                      </Button>
-                    )}
-
-                    {/* Customer Workflow action: Review & Sign Lease */}
-                    {bkg.status === 'AGREEMENT_GENERATED' && (
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        className="bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1.5"
-                        onClick={() => handleOpenSigningModal(bkg)}
-                      >
-                        <Signature className="w-4 h-4" />
-                        <span>Review & Sign Lease</span>
-                      </Button>
-                    )}
-
-                    {/* Admin Actions for submitted requests */}
-                    {isAdminOrStaff && (bkg.status === 'PENDING_REVIEW' || bkg.status === 'PENDING_APPROVAL') && (
-                      <>
-                        <Button 
-                          size="sm"
-                          variant="primary" 
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1"
-                          onClick={() => approveBookingMutation.mutate(bkg.id)}
-                          isLoading={approveBookingMutation.isPending}
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Approve</span>
-                        </Button>
-                        <Button 
-                          size="sm"
-                          variant="danger" 
-                          className="flex items-center gap-1"
-                          onClick={() => rejectBookingMutation.mutate(bkg.id)}
-                          isLoading={rejectBookingMutation.isPending}
-                        >
-                          <XCircle className="w-3.5 h-3.5" />
-                          <span>Decline</span>
-                        </Button>
-                      </>
-                    )}
-
-                    {/* Admin Workflow: Generate Agreement Form */}
-                    {isAdminOrStaff && bkg.status === 'APPROVED' && (
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5"
-                        onClick={() => {
-                          setDraftBookingId(bkg.id);
-                        }}
-                      >
-                        <FileText className="w-4 h-4" />
-                        <span>Draft Corporate Lease</span>
-                      </Button>
-                    )}
-
-                    {/* Admin Workflow: Staff manual Invoice scheduler trigger */}
-                    {isAdminOrStaff && bkg.status === 'CUSTOMER_ACCEPTED' && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="flex items-center gap-1.5"
-                        onClick={() => generateInvoiceMutation.mutate(bkg.id)}
-                        isLoading={generateInvoiceMutation.isPending}
-                      >
-                        <Sparkles className="w-4 h-4" />
-                        <span>Trigger Recurring Invoice</span>
-                      </Button>
-                    )}
-
-                    {/* Cancel button action */}
-                    {bkg.status !== 'CANCELLED' && bkg.status !== 'REJECTED' && bkg.status !== 'CONFIRMED' && (
-                      <button 
-                        onClick={() => handleCancelClick(bkg.id)}
-                        className="p-2 text-rose-500 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-lg transition"
-                        title="Cancel reservation guidelines"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+      {/* Status Filter buttons (Only for Workspace tab) */}
+      {activeTab === 'WORKSPACES' && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1.5 border-b border-gray-200">
+          <SlidersHorizontal className="w-4.5 h-4.5 text-neutral-slate-400 shrink-0" />
+          {[
+            { key: 'ALL', label: 'Show All' },
+            { key: 'PENDING_REVIEW', label: 'Submitted (Review)' },
+            { key: 'APPROVED', label: 'Approved' },
+            { key: 'AGREEMENT_GENERATED', label: 'Lease Prepared' },
+            { key: 'CUSTOMER_ACCEPTED', label: 'Agreement Executed' },
+            { key: 'CONFIRMED', label: 'Active Passes' },
+            { key: 'CANCELLED', label: 'Cancelled' },
+          ].map((st) => (
+            <button
+              key={st.key}
+              onClick={() => setStatusFilter(st.key)}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 ${
+                statusFilter === st.key 
+                  ? 'bg-[#84CC16] text-[#111111]' 
+                  : 'bg-white border border-gray-200 text-neutral-slate-600 hover:bg-neutral-slate-50'
+              }`}
+            >
+              {st.label}
+            </button>
+          ))}
         </div>
       )}
 
+      {/* TAB 1: WORKSPACE RESERVATIONS */}
+      {activeTab === 'WORKSPACES' && (
+        <>
+          {isBookingsLoading ? (
+            <div className="p-12 text-center text-neutral-slate-400">
+              <div className="animate-spin w-8 h-8 border-4 border-[#84CC16] border-t-transparent rounded-full mx-auto mb-4" />
+              <p className="text-sm font-bold">Synchronizing workspace reservations cache...</p>
+            </div>
+          ) : filteredWorkspaceBookings.length === 0 ? (
+            <div className="p-12 text-center border-2 border-dashed rounded-2xl bg-white border-[#E5E7EB]">
+              <CalendarRange className="w-10 h-10 text-[#9CA3AF] mx-auto mb-3" />
+              <h3 className="font-display font-bold text-base text-[#111827]">No Workspace Reservations Found</h3>
+              <p className="text-xs text-[#4B5563] max-w-xs mx-auto mt-1">
+                No workspace bookings match the current filter or search criteria.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {filteredWorkspaceBookings.map((bkg) => {
+                const workspace = bkg.workspace || findWorkspace(bkg.spaceId);
+                const { date, time } = formatDateTimeRange(bkg.startTime, bkg.endTime);
+                const bkgInvoices = findInvoicesForBooking(bkg.id);
+
+                // Extract all contact & profile information
+                const customerName = bkg.billingDetails?.name || bkg.primaryName || bkg.userEmail || (bkg.userTypeDetails?.fullName || bkg.userTypeDetails?.teamLeaderName || bkg.userTypeDetails?.contactPerson);
+                const customerEmail = bkg.billingDetails?.email || bkg.primaryEmail || bkg.userEmail || (bkg.userTypeDetails?.email || bkg.userTypeDetails?.groupEmail || bkg.userTypeDetails?.businessEmail);
+                const customerPhone = bkg.billingDetails?.phone || bkg.phone || (bkg.userTypeDetails?.phone || bkg.userTypeDetails?.groupPhone || bkg.userTypeDetails?.companyPhone) || (bkg.emergencyContact?.phone);
+                const customerCompany = bkg.billingDetails?.company || bkg.company || (bkg.userTypeDetails?.companyName || bkg.userTypeDetails?.groupName || bkg.userTypeDetails?.organization);
+                const customerAddress = bkg.billingDetails?.address || bkg.address || bkg.userTypeDetails?.companyAddress;
+                const userCategory = bkg.userType || (customerCompany ? 'company' : 'individual');
+                const emergencyContact = bkg.billingDetails?.emergencyContact 
+                  ? `${bkg.billingDetails.emergencyContact.name || ''} (${bkg.billingDetails.emergencyContact.relationship || 'Emergency'}): ${bkg.billingDetails.emergencyContact.phone || ''}`
+                  : (bkg.emergencyContact ? `${bkg.emergencyContact.name || ''}: ${bkg.emergencyContact.phone || ''}` : null);
+                const purposeText = bkg.purpose || bkg.workspaceBookingInfo?.specialRequests || bkg.notes;
+                const docUrl = bkg.documentUrl || bkg.participantFile;
+
+                return (
+                  <div key={bkg.id} className="bento-card relative overflow-hidden flex flex-col justify-between border border-gray-150 shadow-sm rounded-2xl p-6 bg-white space-y-4">
+                    {/* Visual Status bar top */}
+                    <div className={`absolute top-0 left-0 right-0 h-1.5 ${
+                      bkg.status === 'CONFIRMED' 
+                        ? 'bg-[#84CC16]' 
+                        : bkg.status === 'CUSTOMER_ACCEPTED' 
+                        ? 'bg-cyan-500' 
+                        : bkg.status === 'AGREEMENT_GENERATED' 
+                        ? 'bg-purple-500' 
+                        : bkg.status === 'APPROVED' 
+                        ? 'bg-blue-500' 
+                        : bkg.status === 'PENDING_REVIEW' 
+                        ? 'bg-amber-500' 
+                        : 'bg-neutral-slate-300'
+                    }`} />
+
+                    <div className="space-y-4 pt-1">
+                      <div className="flex justify-between items-start gap-2">
+                        <div>
+                          <h3 className="font-display font-bold text-base text-gray-900">
+                            {workspace ? workspace.name : 'Professional Space'}
+                          </h3>
+                          <p className="text-xs text-neutral-slate-400 font-mono mt-0.5">Reservation Ref: {bkg.id}</p>
+                          
+                          <div className="flex flex-wrap gap-2 mt-1.5">
+                            <span className="text-[10px] bg-neutral-100 text-neutral-600 font-semibold px-2 py-0.5 rounded">
+                              Plan: {bkg.billingPlanName || 'Hot Desk'}
+                            </span>
+                            {bkg.teamSize && (
+                              <span className="text-[10px] bg-indigo-50 text-indigo-600 font-semibold px-2 py-0.5 rounded">
+                                Seats/Desks: {bkg.teamSize} pax
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full shrink-0 ${
+                          bkg.status === 'CONFIRMED' 
+                            ? 'bg-[#84CC16]/20 text-[#4D7C0F]' 
+                            : bkg.status === 'CUSTOMER_ACCEPTED' 
+                            ? 'bg-cyan-50 text-cyan-600' 
+                            : bkg.status === 'AGREEMENT_GENERATED' 
+                            ? 'bg-purple-50 text-purple-600' 
+                            : bkg.status === 'APPROVED' 
+                            ? 'bg-blue-50 text-blue-600' 
+                            : bkg.status === 'PENDING_REVIEW' 
+                            ? 'bg-amber-50 text-amber-600' 
+                            : 'bg-neutral-slate-100 text-neutral-slate-500'
+                        }`}>
+                          {bkg.status.replace('_', ' ')}
+                        </span>
+                      </div>
+
+                      {/* Booking schedule */}
+                      <div className="grid grid-cols-2 gap-2 text-xs text-neutral-slate-600 border-t pt-3">
+                        <div className="flex items-center space-x-2">
+                          <CalendarRange className="w-4 h-4 text-neutral-slate-400 shrink-0" />
+                          <span>{date}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Clock className="w-4 h-4 text-neutral-slate-400 shrink-0" />
+                          <span className="truncate">{time}</span>
+                        </div>
+                      </div>
+
+                      {/* DETAILED REGISTRANT CONTACT INFORMATION PANEL */}
+                      <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-xs space-y-2 text-slate-700">
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-1.5 font-bold text-slate-800">
+                          <div className="flex items-center space-x-1.5 text-brand-primary">
+                            <User className="w-3.5 h-3.5" />
+                            <span>Registrant Profile & Contact Info</span>
+                          </div>
+                          {userCategory && (
+                            <span className="text-[9px] uppercase font-mono px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-extrabold">
+                              {userCategory}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                          {customerName && (
+                            <div className="flex items-center space-x-1.5">
+                              <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span><strong className="text-slate-900">Name:</strong> {customerName}</span>
+                            </div>
+                          )}
+
+                          {customerEmail && (
+                            <div className="flex items-center space-x-1.5">
+                              <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className="truncate">
+                                <strong className="text-slate-900">Email:</strong>{' '}
+                                <a href={`mailto:${customerEmail}`} className="text-blue-600 hover:underline">
+                                  {customerEmail}
+                                </a>
+                              </span>
+                            </div>
+                          )}
+
+                          {customerPhone && (
+                            <div className="flex items-center space-x-1.5">
+                              <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span>
+                                <strong className="text-slate-900">Phone:</strong>{' '}
+                                <a href={`tel:${customerPhone}`} className="text-emerald-700 font-bold hover:underline">
+                                  {customerPhone}
+                                </a>
+                              </span>
+                            </div>
+                          )}
+
+                          {customerCompany && (
+                            <div className="flex items-center space-x-1.5">
+                              <Building className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span><strong className="text-slate-900">Company:</strong> {customerCompany}</span>
+                            </div>
+                          )}
+
+                          {customerAddress && (
+                            <div className="flex items-center space-x-1.5 sm:col-span-2">
+                              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span><strong className="text-slate-900">Address:</strong> {customerAddress}</span>
+                            </div>
+                          )}
+
+                          {emergencyContact && (
+                            <div className="flex items-center space-x-1.5 sm:col-span-2 text-rose-600 bg-rose-50 p-1.5 rounded-lg border border-rose-100">
+                              <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+                              <span><strong>Emergency Contact:</strong> {emergencyContact}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {purposeText && (
+                          <div className="border-t border-slate-200/80 pt-1.5 text-[11px] text-slate-600">
+                            <strong className="text-slate-900">Purpose / Special Requests:</strong> {purposeText}
+                          </div>
+                        )}
+
+                        {docUrl && (
+                          <div className="border-t border-slate-200/80 pt-1.5 text-[11px]">
+                            <strong className="text-slate-900">Attached Document:</strong>{' '}
+                            <a href={docUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline font-semibold">
+                              View Attached Credentials File
+                            </a>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Customer Billing Portal - Inline Invoice Panel */}
+                      {bkgInvoices.length > 0 && (
+                        <div className="border-t border-dashed pt-3 mt-2 space-y-2.5">
+                          <h4 className="text-xs font-bold text-gray-800 flex items-center gap-1">
+                            <FileText className="w-3.5 h-3.5 text-neutral-slate-400" />
+                            <span>Corporate Invoices Ledger</span>
+                          </h4>
+                          {bkgInvoices.map((inv) => (
+                            <div key={inv.id} className="bg-[#FAFDF6] border border-[#ECF7D7] rounded-lg p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                              <div>
+                                <p className="text-xs font-mono font-bold text-[#3F6212]">{inv.invoiceNumber}</p>
+                                <p className="text-[10px] text-neutral-slate-400">{inv.billingPeriod}</p>
+                                <span className={`inline-block mt-1 text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                                  inv.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                                }`}>
+                                  {inv.status}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                                <span className="text-xs font-bold text-gray-900 mr-2">
+                                  {inv.amount} {inv.currency || 'ETB'}
+                                </span>
+                                 {inv.status !== 'PAID' && (
+                                  <button 
+                                    onClick={() => handleCheckoutInvoice(inv)}
+                                    className="px-2.5 py-1.5 bg-[#84CC16] hover:bg-[#73B612] text-[#111111] font-bold text-[10px] rounded flex items-center gap-1 transition shadow-xs"
+                                  >
+                                    <CreditCard className="w-3.5 h-3.5" />
+                                    <span>Pay Invoice (Secure Gateway)</span>
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => handleDownloadInvoice(inv.id, inv.invoiceNumber)}
+                                  className="p-1.5 border border-gray-200 hover:bg-neutral-100 rounded text-gray-600 transition"
+                                  title="Download Invoice PDF representation"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer buttons & Action boundaries */}
+                    <div className="border-t border-gray-200 pt-4 mt-2 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                      <span className="text-sm font-bold text-gray-900">
+                        Grand Total: ETB {bkg.totalAmount.toLocaleString()}
+                      </span>
+
+                      <div className="flex flex-wrap gap-2 justify-end">
+                        {/* View QR Access Token */}
+                        {bkg.status === 'CONFIRMED' && (
+                          <Button 
+                            variant="secondary" 
+                            size="sm" 
+                            className="flex items-center gap-1.5 text-xs"
+                            onClick={() => setActiveBooking(bkg)}
+                          >
+                            <QrCode className="w-4 h-4" />
+                            <span>Verification Pass</span>
+                          </Button>
+                        )}
+
+                        {/* Customer Workflow action: Review & Sign Lease */}
+                        {bkg.status === 'AGREEMENT_GENERATED' && (
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            className="bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1.5 text-xs"
+                            onClick={() => handleOpenSigningModal(bkg)}
+                          >
+                            <Signature className="w-4 h-4" />
+                            <span>Review & Sign Lease</span>
+                          </Button>
+                        )}
+
+                        {/* Admin Actions for submitted requests */}
+                        {isAdminOrStaff && (bkg.status === 'PENDING_REVIEW' || bkg.status === 'PENDING_APPROVAL') && (
+                          <>
+                            <Button 
+                              size="sm"
+                              variant="primary" 
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 text-xs"
+                              onClick={() => approveBookingMutation.mutate(bkg.id)}
+                              isLoading={approveBookingMutation.isPending}
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Approve</span>
+                            </Button>
+                            <Button 
+                              size="sm"
+                              variant="danger" 
+                              className="flex items-center gap-1 text-xs"
+                              onClick={() => rejectBookingMutation.mutate(bkg.id)}
+                              isLoading={rejectBookingMutation.isPending}
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                              <span>Decline</span>
+                            </Button>
+                          </>
+                        )}
+
+                        {/* Admin Workflow: Generate Agreement Form */}
+                        {isAdminOrStaff && bkg.status === 'APPROVED' && (
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5 text-xs"
+                            onClick={() => {
+                              setDraftBookingId(bkg.id);
+                            }}
+                          >
+                            <FileText className="w-4 h-4" />
+                            <span>Draft Corporate Lease</span>
+                          </Button>
+                        )}
+
+                        {/* Admin Workflow: Staff manual Invoice scheduler trigger */}
+                        {isAdminOrStaff && bkg.status === 'CUSTOMER_ACCEPTED' && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="flex items-center gap-1.5 text-xs"
+                            onClick={() => generateInvoiceMutation.mutate(bkg.id)}
+                            isLoading={generateInvoiceMutation.isPending}
+                          >
+                            <Sparkles className="w-4 h-4" />
+                            <span>Trigger Recurring Invoice</span>
+                          </Button>
+                        )}
+
+                        {/* Cancel button action */}
+                        {bkg.status !== 'CANCELLED' && bkg.status !== 'REJECTED' && bkg.status !== 'CONFIRMED' && (
+                          <button 
+                            onClick={() => handleCancelClick(bkg.id)}
+                            className="p-2 text-rose-500 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-lg transition"
+                            title="Cancel reservation guidelines"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* TAB 2: EVENT REGISTRATIONS & TICKETS */}
+      {activeTab === 'EVENTS' && (
+        <>
+          {filteredEventRegs.length === 0 ? (
+            <div className="p-12 text-center border-2 border-dashed rounded-2xl bg-white border-gray-200">
+              <Ticket className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+              <h3 className="font-display font-bold text-base text-gray-900">No Event Registrations Found</h3>
+              <p className="text-xs text-gray-500 max-w-xs mx-auto mt-1">
+                No event tickets or attendee registrations match your query.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {filteredEventRegs.map((reg) => (
+                <div key={reg.id} className="relative overflow-hidden flex flex-col justify-between border border-gray-150 shadow-sm rounded-2xl p-6 bg-white space-y-4">
+                  
+                  {/* Visual Status Bar */}
+                  <div className="absolute top-0 left-0 right-0 h-1.5 bg-brand-accent" />
+
+                  <div className="space-y-4 pt-1">
+                    <div className="flex justify-between items-start gap-2">
+                      <div>
+                        <div className="inline-flex items-center space-x-1.5 text-[10px] font-extrabold uppercase tracking-wider text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-md mb-1">
+                          <Ticket className="w-3 h-3" />
+                          <span>Event Ticket Pass</span>
+                        </div>
+                        <h3 className="font-display font-bold text-base text-gray-900">
+                          {reg.eventTitle || 'WeVentureHub Event'}
+                        </h3>
+                        <p className="text-xs text-neutral-slate-400 font-mono mt-0.5">Ticket Ref: {reg.ticketNumber || reg.id}</p>
+                      </div>
+
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
+                        reg.checkedIn 
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-blue-50 text-blue-700'
+                      }`}>
+                        {reg.checkedIn ? 'Checked In' : 'Valid Pass'}
+                      </span>
+                    </div>
+
+                    {/* Event Schedule & Location */}
+                    <div className="grid grid-cols-2 gap-2 text-xs text-neutral-slate-600 border-t pt-3">
+                      <div className="flex items-center space-x-2">
+                        <CalendarRange className="w-4 h-4 text-neutral-slate-400 shrink-0" />
+                        <span>{reg.eventDate || 'Aug 20, 2026'}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <MapPin className="w-4 h-4 text-neutral-slate-400 shrink-0" />
+                        <span className="truncate">{reg.eventLocation || 'Main Hall'}</span>
+                      </div>
+                    </div>
+
+                    {/* ATTENDEE DETAILED PROFILE & CONTACT CARD */}
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-xs space-y-2 text-slate-700">
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-1.5 font-bold text-slate-800">
+                        <div className="flex items-center space-x-1.5 text-brand-primary">
+                          <User className="w-3.5 h-3.5" />
+                          <span>Attendee Contact Information</span>
+                        </div>
+                        {reg.userType && (
+                          <span className="text-[9px] uppercase font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold">
+                            {reg.userType} Registration
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                        {reg.attendeeName && (
+                          <div className="flex items-center space-x-1.5">
+                            <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span><strong className="text-slate-900">Attendee:</strong> {reg.attendeeName}</span>
+                          </div>
+                        )}
+
+                        {reg.attendeeEmail && (
+                          <div className="flex items-center space-x-1.5">
+                            <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span className="truncate">
+                              <strong className="text-slate-900">Email:</strong>{' '}
+                              <a href={`mailto:${reg.attendeeEmail}`} className="text-blue-600 hover:underline">
+                                {reg.attendeeEmail}
+                              </a>
+                            </span>
+                          </div>
+                        )}
+
+                        {reg.attendeePhone && (
+                          <div className="flex items-center space-x-1.5">
+                            <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span>
+                              <strong className="text-slate-900">Phone:</strong>{' '}
+                              <a href={`tel:${reg.attendeePhone}`} className="text-emerald-700 font-bold hover:underline">
+                                {reg.attendeePhone}
+                              </a>
+                            </span>
+                          </div>
+                        )}
+
+                        {reg.attendeeCompany && (
+                          <div className="flex items-center space-x-1.5">
+                            <Building className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span><strong className="text-slate-900">Organization:</strong> {reg.attendeeCompany}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Card Footer */}
+                  <div className="border-t border-gray-200 pt-4 mt-2 flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-500 font-mono">
+                      Pass Ref: {reg.ticketNumber || reg.id}
+                    </span>
+
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="flex items-center space-x-1.5 text-xs"
+                      onClick={() => setActiveBooking(reg)}
+                    >
+                      <QrCode className="w-4 h-4 text-brand-primary" />
+                      <span>View Ticket QR Pass</span>
+                    </Button>
+                  </div>
+
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
       {/* QR Access Modal */}
-      <Modal isOpen={!!activeBooking} onClose={() => setActiveBooking(null)} title="Encrypted Access Pass">
+      <Modal isOpen={!!activeBooking} onClose={() => setActiveBooking(null)} title="Encrypted Digital Pass">
         {activeBooking && (
           <div className="text-center space-y-6 py-6 font-sans">
             <div className="p-4 bg-gray-50 rounded-2xl w-48 h-48 flex items-center justify-center mx-auto shadow-inner border border-gray-100">
@@ -654,14 +1081,16 @@ export default function BookingList() {
 
             <div className="space-y-2">
               <h3 className="font-display font-bold text-lg text-gray-900">
-                {findWorkspace(activeBooking.spaceId)?.name || 'Professional Workspace'}
+                {activeBooking.eventTitle || findWorkspace(activeBooking.spaceId)?.name || 'WeVentureHub Pass'}
               </h3>
               <p className="text-xs text-[#84CC16] font-mono font-bold uppercase tracking-wider bg-emerald-50 px-3 py-1 rounded-full inline-block">
-                PASS: {activeBooking.qrCode}
+                TICKET REF: {activeBooking.ticketNumber || activeBooking.qrCode || activeBooking.id}
               </p>
-              <p className="text-xs text-neutral-slate-400 leading-relaxed px-4">
-                Present this encrypted access ticket pass to the WeVentureHub check-in kiosk or desk operator to unlock facilities.
-              </p>
+              <div className="text-xs text-neutral-slate-500 space-y-1 pt-2">
+                <p><strong>Name:</strong> {activeBooking.attendeeName || activeBooking.primaryName || activeBooking.userEmail}</p>
+                <p><strong>Email:</strong> {activeBooking.attendeeEmail || activeBooking.primaryEmail || activeBooking.userEmail}</p>
+                {(activeBooking.attendeePhone || activeBooking.phone) && <p><strong>Phone:</strong> {activeBooking.attendeePhone || activeBooking.phone}</p>}
+              </div>
             </div>
           </div>
         )}

@@ -795,8 +795,23 @@ export function AdminTicketingDashboard() {
                       filteredRegistrations.map((reg) => (
                         <tr key={reg.id} className="hover:bg-neutral-slate-50/50 dark:hover:bg-neutral-slate-950/20">
                           <td className="p-4 text-left">
-                            <span className="font-bold text-gray-900 block">{reg.attendeeName}</span>
-                            <span className="text-[11px] text-neutral-slate-400 block mt-0.5">{reg.attendeeEmail}</span>
+                            <span className="font-bold text-gray-900 block">{reg.attendeeName || (reg as any).primaryName}</span>
+                            <span className="text-[11px] text-neutral-slate-400 block mt-0.5">{reg.attendeeEmail || (reg as any).primaryEmail}</span>
+                            {((reg as any).attendeePhone || (reg as any).phone || (reg as any).userTypeDetails?.phone || (reg as any).userTypeDetails?.groupPhone || (reg as any).userTypeDetails?.companyPhone) && (
+                              <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium block mt-0.5">
+                                📞 {(reg as any).attendeePhone || (reg as any).phone || (reg as any).userTypeDetails?.phone || (reg as any).userTypeDetails?.groupPhone || (reg as any).userTypeDetails?.companyPhone}
+                              </span>
+                            )}
+                            {((reg as any).attendeeCompany || (reg as any).organization || (reg as any).userTypeDetails?.companyName || (reg as any).userTypeDetails?.groupName) && (
+                              <span className="text-[11px] text-slate-600 dark:text-slate-300 block mt-0.5">
+                                🏢 {(reg as any).attendeeCompany || (reg as any).organization || (reg as any).userTypeDetails?.companyName || (reg as any).userTypeDetails?.groupName}
+                              </span>
+                            )}
+                            {(reg as any).userType && (
+                              <span className="inline-block mt-1 text-[9px] uppercase font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-extrabold border border-blue-200">
+                                {(reg as any).userType} Pass
+                              </span>
+                            )}
                           </td>
                           <td className="p-4 font-mono font-semibold text-left">{reg.ticketNumber}</td>
                           <td className="p-4 text-left">

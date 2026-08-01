@@ -120,7 +120,7 @@ export default function CheckoutPage() {
         setVerificationSuccess(true);
         setPaymentSuccess(true);
         setTimeout(() => {
-          navigate(targetType === 'ORDER' ? '/dashboard/events' : '/dashboard/bookings');
+          navigate(targetType === 'ORDER' ? '/dashboard/events' : targetType === 'INVOICE' ? '/dashboard/invoices' : '/dashboard/bookings');
         }, 3000);
       } else {
         setErrorMessage(`Payment is still ${data.status.toLowerCase()}. Please complete checkout first.`);

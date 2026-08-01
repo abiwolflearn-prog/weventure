@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { notificationController } from '../controllers/NotificationController';
-import { authGuard } from '../middleware/authGuard';
+import { authGuard, optionalAuthGuard } from '../middleware/authGuard';
 import { hasRoles } from '../middleware/roleGuard';
 import { UserRole } from '../types';
 
@@ -15,11 +15,11 @@ notificationRouter.patch('/notifications/:id/read', authGuard, notificationContr
 // Mark all notifications as read
 notificationRouter.post('/notifications/read-all', authGuard, notificationController.markAllRead);
 
-// Retrieve timeline activities (accessible to all authenticated users of the tenant)
-notificationRouter.get('/activities', authGuard, notificationController.getActivities);
+// Retrieve timeline activities (accessible to all visitors/users of the tenant)
+notificationRouter.get('/activities', optionalAuthGuard, notificationController.getActivities);
 
 // Retrieve active published announcements
-notificationRouter.get('/announcements', authGuard, notificationController.getAnnouncements);
+notificationRouter.get('/announcements', optionalAuthGuard, notificationController.getAnnouncements);
 
 // Create a targeted or global Announcement (Admin/Staff only)
 notificationRouter.post(
