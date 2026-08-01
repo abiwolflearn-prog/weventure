@@ -15,7 +15,7 @@ const getApiBaseUrl = (): string => {
     }
     return `${cleanUrl}/api/v1`;
   }
-  return 'https://weventurehub.onrender.com/api/v1';
+  return '/api/v1';
 };
 
 export const axiosInstance = axios.create({

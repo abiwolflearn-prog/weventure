@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { QueryClientProvider } from '@tanstack/react-query';
 
@@ -22,6 +22,7 @@ import AboutPage from './views/AboutPage';
 import StartupPage from './views/StartupPage';
 import ContactPage from './views/ContactPage';
 import LoginPage from './views/LoginPage';
+import AdminLoginPage from './views/AdminLoginPage';
 import RegisterPage from './views/RegisterPage';
 import AcceptInvitePage from './views/AcceptInvitePage';
 import DashboardSummary from './views/DashboardSummary';
@@ -46,18 +47,46 @@ import StartupManagementPage from './views/StartupManagementPage';
 import AssistantAdminDashboard from './components/assistant/AssistantAdminDashboard';
 
 /**
- * Access Guard to restrict access to authenticated tenant members
+ * Access Guard to restrict access to authenticated members/admins
  */
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({ children, fallbackPath }: { children: React.ReactNode; fallbackPath?: string }) {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const location = useLocation();
   
   if (!isAuthenticated) {
+    if (fallbackPath) return <Navigate to={fallbackPath} replace />;
+    if (location.pathname.startsWith('/superadmin')) return <Navigate to="/superadmin" replace />;
+    if (location.pathname.startsWith('/admin')) return <Navigate to="/admin" replace />;
     return <Navigate to="/login" replace />;
   }
   return <>{children}</>;
 }
 
 export default function App() {
+  const dashboardRoutes = (
+    <>
+      <Route index element={<DashboardSummary />} />
+      <Route path="crm" element={<CrmDashboard />} />
+      <Route path="analytics" element={<AnalyticsDashboard />} />
+      <Route path="reports" element={<ReportsPage />} />
+      <Route path="workspaces" element={<WorkspaceList />} />
+      <Route path="bookings" element={<BookingList />} />
+      <Route path="events" element={<EventsCatalog />} />
+      <Route path="settings" element={<SettingsPage />} />
+      <Route path="organizations" element={<OrganizationsPage />} />
+      <Route path="checkout" element={<CheckoutPage />} />
+      <Route path="billing" element={<BillingPage />} />
+      <Route path="invoices" element={<InvoicesPage />} />
+      <Route path="transactions" element={<TransactionsPage />} />
+      <Route path="announcements" element={<AnnouncementsPage />} />
+      <Route path="integrations" element={<IntegrationsPage />} />
+      <Route path="emails" element={<EmailCenterPage />} />
+      <Route path="cms" element={<CmsManagementPage />} />
+      <Route path="startups" element={<StartupManagementPage />} />
+      <Route path="assistant" element={<AssistantAdminDashboard />} />
+    </>
+  );
+
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
@@ -77,41 +106,49 @@ export default function App() {
               <Route path="/contact" element={<ContactPage />} />
             </Route>
 
-            {/* Authentication Layer */}
+            {/* Authentication Layer - Separate Portals */}
             <Route element={<AuthLayout />}>
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/admin" element={<AdminLoginPage />} />
+              <Route path="/superadmin" element={<AdminLoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/accept-invite" element={<AcceptInvitePage />} />
             </Route>
 
-            {/* Restricted Operator Dashboard Layout */}
+            {/* User Dashboard */}
             <Route
               path="/dashboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute fallbackPath="/login">
                   <DashboardLayout />
                 </ProtectedRoute>
               }
             >
-              <Route index element={<DashboardSummary />} />
-              <Route path="crm" element={<CrmDashboard />} />
-              <Route path="analytics" element={<AnalyticsDashboard />} />
-              <Route path="reports" element={<ReportsPage />} />
-              <Route path="workspaces" element={<WorkspaceList />} />
-              <Route path="bookings" element={<BookingList />} />
-              <Route path="events" element={<EventsCatalog />} />
-              <Route path="settings" element={<SettingsPage />} />
-              <Route path="organizations" element={<OrganizationsPage />} />
-              <Route path="checkout" element={<CheckoutPage />} />
-              <Route path="billing" element={<BillingPage />} />
-              <Route path="invoices" element={<InvoicesPage />} />
-              <Route path="transactions" element={<TransactionsPage />} />
-              <Route path="announcements" element={<AnnouncementsPage />} />
-              <Route path="integrations" element={<IntegrationsPage />} />
-              <Route path="emails" element={<EmailCenterPage />} />
-              <Route path="cms" element={<CmsManagementPage />} />
-              <Route path="startups" element={<StartupManagementPage />} />
-              <Route path="assistant" element={<AssistantAdminDashboard />} />
+              {dashboardRoutes}
+            </Route>
+
+            {/* Admin Portal Dashboard */}
+            <Route
+              path="/admin/dashboard"
+              element={
+                <ProtectedRoute fallbackPath="/admin">
+                  <DashboardLayout />
+                </ProtectedRoute>
+              }
+            >
+              {dashboardRoutes}
+            </Route>
+
+            {/* Super Admin Portal Dashboard */}
+            <Route
+              path="/superadmin/dashboard"
+              element={
+                <ProtectedRoute fallbackPath="/superadmin">
+                  <DashboardLayout />
+                </ProtectedRoute>
+              }
+            >
+              {dashboardRoutes}
             </Route>
 
             {/* Global Fallback Route */}
@@ -122,3 +159,4 @@ export default function App() {
     </Provider>
   );
 }
+

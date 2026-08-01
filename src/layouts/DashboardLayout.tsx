@@ -108,7 +108,24 @@ export default function DashboardLayout() {
 
   const handleLogout = () => {
     dispatch(logout());
-    navigate('/login');
+    if (user?.role === UserRole.SUPER_ADMIN) {
+      navigate('/superadmin');
+    } else if (user?.role === UserRole.TENANT_ADMIN || user?.role === UserRole.STAFF) {
+      navigate('/admin');
+    } else {
+      navigate('/login');
+    }
+  };
+
+  const currentPrefix = location.pathname.startsWith('/superadmin/dashboard')
+    ? '/superadmin/dashboard'
+    : location.pathname.startsWith('/admin/dashboard')
+    ? '/admin/dashboard'
+    : '/dashboard';
+
+  const getItemPath = (itemPath: string) => {
+    const sub = itemPath.replace('/dashboard', '');
+    return `${currentPrefix}${sub}`;
   };
 
   // RBAC Filtering of Sidebar Items
@@ -140,7 +157,7 @@ export default function DashboardLayout() {
       >
         {/* Header Branding */}
         <div className="h-16 flex items-center justify-between px-4.5 border-b border-slate-800/60">
-          <Link to="/dashboard" className="flex items-center space-x-3 overflow-hidden select-none">
+          <Link to={currentPrefix} className="flex items-center space-x-3 overflow-hidden select-none">
             <WeVentureLogo size="24" mode="dark" className="shrink-0" />
             {sidebarExpanded && (
               <span className="font-display font-bold text-lg tracking-tight select-none whitespace-nowrap text-white">
@@ -163,11 +180,12 @@ export default function DashboardLayout() {
         <nav className="flex-grow py-6 px-3 space-y-1.5 overflow-y-auto">
           {filteredSidebarItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            const targetPath = getItemPath(item.path);
+            const isActive = location.pathname === targetPath || (item.path === '/dashboard' && location.pathname === currentPrefix);
             return (
               <Link
                 key={item.name}
-                to={item.path}
+                to={targetPath}
                 className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 ${
                   isActive ? navItemActive : navItemHover
                 }`}

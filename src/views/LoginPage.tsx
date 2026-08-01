@@ -1,9 +1,9 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
-import { zodResolver } from '@hookform/resolvers/zod'; // We'll write/mock a simplified form setup or write a neat schema
+import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Building, Key, Mail, ShieldAlert } from 'lucide-react';
+import { User, Key, Mail, ShieldAlert, ArrowRight } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store';
 import { loginStart, loginSuccess, loginFailure } from '../store/authSlice';
 import { Input } from '../components/Input';
@@ -12,9 +12,8 @@ import { UserRole } from '../types';
 import { axiosInstance } from '../lib/axiosInstance';
 
 const loginSchema = z.object({
-  email: z.string().email({ message: 'Must be a valid enterprise email address' }),
-  password: z.string().min(8, { message: 'Password must be at least 8 characters long' }),
-  tenantId: z.string().min(2, { message: 'Tenant identifier must be supplied' }),
+  email: z.string().email({ message: 'Must be a valid email address' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
 });
 
 type LoginFields = z.infer<typeof loginSchema>;
@@ -25,73 +24,51 @@ export default function LoginPage() {
   const { loading, error } = useAppSelector((state) => state.auth);
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFields>({
-    resolver: zodResolver ? zodResolver(loginSchema) : undefined, // fallback safety if resolver issues
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email: 'alex.chen@work.com',
       password: 'SecurePassword123!',
-      tenantId: 'weventurehub',
     }
   });
 
   const onSubmit = async (data: LoginFields) => {
     dispatch(loginStart());
     try {
-      // Perform actual full-stack API login
+      // Authenticate via User Portal endpoint
       const response = await axiosInstance.post('/auth/login', {
         email: data.email,
         password: data.password,
-        tenantId: data.tenantId,
-      });
-
-      const { user, token } = response.data.data;
-      
-      // Store token securely on client for interceptor injection
-      localStorage.setItem('weventure_jwt_token', token);
-      localStorage.setItem('weventure_tenant_id', user.tenantId);
-
-      dispatch(loginSuccess(user));
-      navigate('/dashboard');
-    } catch (err: any) {
-      dispatch(loginFailure(err.message || 'Authentication unsuccessful.'));
-    }
-  };
-
-  const handleQuickLogin = async (role: UserRole) => {
-    dispatch(loginStart());
-    try {
-      const email = role === UserRole.TENANT_ADMIN ? 'admin@weventurehub.com' : 'staff@weventurehub.com';
-      
-      // Perform actual full-stack API login with requested bypass role
-      const response = await axiosInstance.post('/auth/login', {
-        email,
-        password: 'SecurePassword123!',
         tenantId: 'weventurehub',
-        role,
+        role: UserRole.HUB_MEMBER,
       });
 
       const { user, token } = response.data.data;
-
+      
       localStorage.setItem('weventure_jwt_token', token);
       localStorage.setItem('weventure_tenant_id', user.tenantId);
 
       dispatch(loginSuccess(user));
       navigate('/dashboard');
     } catch (err: any) {
-      dispatch(loginFailure(err.message || 'Developer access bypass failed.'));
+      dispatch(loginFailure(err.response?.data?.error?.message || err.message || 'User authentication failed. Check credentials.'));
     }
   };
 
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h1 className="font-display font-bold text-3xl">Portal Log In</h1>
+        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold uppercase tracking-wider mb-2">
+          <User className="w-3.5 h-3.5" />
+          <span>User & Member Portal</span>
+        </div>
+        <h1 className="font-display font-bold text-3xl text-neutral-slate-900">User Login</h1>
         <p className="text-sm text-neutral-slate-500">
-          Access your workspaces and registered events instantly.
+          Welcome back! Access your WeVentureHub workspaces, registered events, and member dashboard.
         </p>
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-600 rounded-lg text-xs font-semibold flex items-center space-x-2">
+        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-xs font-semibold flex items-center space-x-2">
           <ShieldAlert className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -100,7 +77,7 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <Input
           {...register('email')}
-          label="Enterprise Email"
+          label="Email Address"
           id="email"
           type="email"
           error={errors.email?.message}
@@ -124,42 +101,31 @@ export default function LoginPage() {
           <a href="#reset" className="text-brand-primary hover:underline">Forgot password?</a>
         </div>
 
-        <Button type="submit" isLoading={loading} className="w-full">
-          Sign In
+        <Button type="submit" isLoading={loading} className="w-full flex items-center justify-center space-x-2">
+          <span>Sign In to Dashboard</span>
+          <ArrowRight className="w-4 h-4" />
         </Button>
       </form>
 
-      {/* Developer quick accessibility overrides */}
-      <div className="border-t border-neutral-slate-200 pt-6 space-y-3">
-        <span className="text-xs font-bold uppercase tracking-wider text-neutral-slate-400 block text-center">
-          Developer Access Bypasses
-        </span>
-        <div className="grid grid-cols-2 gap-3">
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            onClick={() => handleQuickLogin(UserRole.TENANT_ADMIN)}
-            className="text-[11px]"
-          >
-            Log in as Admin
-          </Button>
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            onClick={() => handleQuickLogin(UserRole.STAFF)}
-            className="text-[11px]"
-          >
-            Log in as Staff
-          </Button>
+      <div className="border-t border-neutral-slate-200 pt-5 space-y-3">
+        <p className="text-center text-xs text-neutral-slate-500">
+          Don&apos;t have a member account?{' '}
+          <Link to="/register" className="text-brand-primary hover:underline font-bold">
+            Register Member Account
+          </Link>
+        </p>
+
+        <div className="flex justify-center space-x-4 text-xs font-medium text-neutral-slate-400">
+          <Link to="/admin" className="hover:text-neutral-slate-700 transition">
+            Admin Portal (/admin)
+          </Link>
+          <span>•</span>
+          <Link to="/superadmin" className="hover:text-neutral-slate-700 transition">
+            Super Admin Portal (/superadmin)
+          </Link>
         </div>
       </div>
-
-      <p className="text-center text-xs text-neutral-slate-500">
-        Don&apos;t have an account?{' '}
-        <Link to="/register" className="text-brand-primary hover:underline font-semibold">
-          Register Member Account
-        </Link>
-      </p>
     </div>
   );
 }
+
