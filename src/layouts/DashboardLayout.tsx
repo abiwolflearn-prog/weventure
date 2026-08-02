@@ -22,7 +22,6 @@ import {
   FileSpreadsheet,
   Users,
   Mail,
-  Globe,
   Rocket
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store';
@@ -98,7 +97,6 @@ export default function DashboardLayout() {
     { name: 'Payment Gateway', path: '/dashboard/checkout', icon: CreditCard },
     { name: 'System Settings', path: '/dashboard/settings', icon: Settings, requiredPermission: Permission.SETTINGS_UPDATE },
     { name: 'Email Center', path: '/dashboard/emails', icon: Mail },
-    { name: 'Website CMS', path: '/dashboard/cms', icon: Globe, requiredPermission: Permission.SETTINGS_UPDATE },
     { name: 'Startup Programs', path: '/dashboard/startups', icon: Rocket, requiredPermission: Permission.ANALYTICS_READ, adminOnly: true },
   ];
 

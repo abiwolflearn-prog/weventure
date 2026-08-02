@@ -234,10 +234,10 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="bg-[#111111] min-h-screen text-white font-sans overflow-x-hidden">
+    <div className="bg-white dark:bg-[#111111] min-h-screen text-neutral-900 dark:text-white font-sans overflow-x-hidden transition-colors duration-300">
       
       {/* 1. HERO SECTION */}
-      <section id="home" className="relative overflow-hidden pt-12 pb-24 sm:pt-14 sm:pb-32 bg-[#111111]">
+      <section id="home" className="relative overflow-hidden pt-12 pb-24 sm:pt-14 sm:pb-32 bg-white dark:bg-[#111111]">
         {/* Animated Background Mesh & Floating Blobs */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <motion.div 
@@ -274,20 +274,22 @@ export default function LandingPage() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="inline-flex items-center space-x-2 px-4.5 py-2 rounded-full bg-neutral-850 text-brand-accent text-xs font-semibold mb-8 border border-neutral-800 shadow-sm backdrop-blur-sm"
+            className="inline-flex items-center space-x-2 px-4.5 py-2 rounded-full bg-white dark:bg-[#111111] text-brand-accent text-xs font-semibold mb-8 border border-neutral-200 dark:border-neutral-800 shadow-sm backdrop-blur-sm"
           >
             <Sparkles className="w-4 h-4 text-brand-accent animate-pulse" />
-            <span className="tracking-wide text-neutral-200">Co-working, Accelerator Programs & Dynamic Tech Portal</span>
+            <span className="tracking-wide text-neutral-600 dark:text-neutral-200">Co-working, Accelerator Programs & Dynamic Tech Portal</span>
           </motion.div>
 
           <motion.h1 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className="font-sans font-bold text-4xl sm:text-6xl tracking-tight leading-[1.1] mb-6 text-white"
+            className="font-sans font-bold text-4xl sm:text-6xl tracking-tight leading-[1.1] mb-6 max-w-4xl mx-auto"
           >
-            {mainTitleWords}{' '}
-            <span className="text-brand-accent bg-gradient-to-r from-brand-accent via-emerald-400 to-teal-400 bg-clip-text [-webkit-background-clip:text] sm:text-transparent font-extrabold inline-block">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-lime-300 via-emerald-400 to-teal-300 drop-shadow-sm">
+              {mainTitleWords}
+            </span>{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-lime-400 to-emerald-400 drop-shadow-md">
               {highlightTitleWords}
             </span>
           </motion.h1>
@@ -296,7 +298,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="max-w-3xl mx-auto text-base sm:text-lg text-neutral-slate-300 leading-relaxed mb-10 font-medium"
+            className="max-w-3xl mx-auto text-base sm:text-lg text-neutral-600 dark:text-neutral-slate-300 leading-relaxed mb-10 font-medium"
           >
             {displaySubtitle}
           </motion.p>
@@ -317,7 +319,7 @@ export default function LandingPage() {
             </Link>
             <Link to="/login">
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button variant="secondary" size="lg" className="w-full sm:w-auto h-12.5 text-base font-bold !bg-neutral-800 !text-white !border-neutral-700 hover:!bg-neutral-700 hover:!text-white rounded-xl transition shadow-sm">
+                <Button variant="secondary" size="lg" className="w-full sm:w-auto h-12.5 text-base font-bold bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-xl transition shadow-sm">
                   <span>Access Member Portal</span>
                 </Button>
               </motion.div>
@@ -396,7 +398,7 @@ export default function LandingPage() {
 
 
       {/* 3. FEATURED WORKSPACES (DYNAMIC) */}
-      <section className="py-24 bg-[#111111] border-b border-neutral-800">
+      <section className="py-24 bg-white dark:bg-[#111111] border-b border-neutral-200 dark:border-neutral-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12">
             <motion.div
@@ -406,8 +408,8 @@ export default function LandingPage() {
               transition={{ duration: 0.6 }}
             >
               <div className="text-xs font-bold text-brand-accent tracking-wider uppercase mb-2">Live Availability</div>
-              <h2 className="font-sans text-3xl font-bold text-white">Featured On-Site Spaces</h2>
-              <p className="text-sm text-neutral-slate-400 mt-2 font-medium">Bookable physical rooms and desks featuring fast infrastructure and complete tech arrays.</p>
+              <h2 className="font-sans text-3xl font-bold text-neutral-900 dark:text-white">Featured On-Site Spaces</h2>
+              <p className="text-sm text-neutral-500 dark:text-neutral-slate-400 mt-2 font-medium">Bookable physical rooms and desks featuring fast infrastructure and complete tech arrays.</p>
             </motion.div>
             <Link to="/workspaces" className="mt-4 sm:mt-0 inline-flex items-center text-brand-accent font-bold text-sm hover:underline group">
               <span>View all workrooms</span>
@@ -440,7 +442,7 @@ export default function LandingPage() {
                       visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
                     }}
                     whileHover={{ y: -8 }}
-                    className="bg-[#181818] rounded-3xl border border-neutral-800 overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 flex flex-col justify-between"
+                    className="bg-neutral-50 dark:bg-[#181818] rounded-3xl border border-neutral-200 dark:border-neutral-800 overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 flex flex-col justify-between"
                   >
                     <div>
                       <div className="h-52 bg-neutral-900 relative overflow-hidden group">
@@ -508,7 +510,7 @@ export default function LandingPage() {
 
       {/* 4. UPCOMING EVENTS (DYNAMIC) */}
       {featuredEvents && featuredEvents.length > 0 && (
-        <section className="py-24 bg-[#141414] border-b border-neutral-800">
+        <section className="py-24 bg-neutral-50 dark:bg-[#141414] border-b border-neutral-200 dark:border-neutral-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12">
               <motion.div
@@ -518,8 +520,8 @@ export default function LandingPage() {
                 transition={{ duration: 0.6 }}
               >
                 <div className="text-xs font-bold text-brand-accent tracking-wider uppercase mb-2">Accelerator Ecosystem</div>
-                <h2 className="font-sans text-3xl font-bold text-white">Dynamic Featured Events</h2>
-                <p className="text-sm text-neutral-slate-400 mt-2 font-medium">Enroll in live-synchronized workshops, hackathons, and cohort days hosted at WeVentureHub.</p>
+                <h2 className="font-sans text-3xl font-bold text-neutral-900 dark:text-white">Dynamic Featured Events</h2>
+                <p className="text-sm text-neutral-500 dark:text-neutral-slate-400 mt-2 font-medium">Enroll in live-synchronized workshops, hackathons, and cohort days hosted at WeVentureHub.</p>
               </motion.div>
               <Link to="/events" className="mt-4 sm:mt-0 inline-flex items-center text-brand-accent font-bold text-sm hover:underline group">
                 <span>View all events</span>
@@ -547,7 +549,7 @@ export default function LandingPage() {
                       visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
                     }}
                     whileHover={{ y: -6 }}
-                    className="bg-[#1c1c1c] rounded-3xl border border-neutral-800 overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 flex flex-col sm:flex-row"
+                    className="bg-white dark:bg-[#1c1c1c] rounded-3xl border border-neutral-200 dark:border-neutral-800 overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 flex flex-col sm:flex-row"
                   >
                     <div className="sm:w-1/3 h-52 sm:h-auto bg-neutral-900 relative overflow-hidden group shrink-0">
                       <img 
@@ -602,18 +604,18 @@ export default function LandingPage() {
       )}
 
       {/* 5. ECOSYSTEM BENTO FEATURES */}
-      <section id="features" className="py-24 border-b border-neutral-800 bg-[#111111]">
+      <section id="features" className="py-24 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#111111]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <motion.h2 
               initial={{ opacity: 0, y: 15 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="font-sans text-3xl sm:text-4xl font-bold tracking-tight mb-4 text-white"
+              className="font-sans text-3xl sm:text-4xl font-bold tracking-tight mb-4 text-neutral-900 dark:text-white"
             >
               Ecosystem Platform Features
             </motion.h2>
-            <p className="text-sm sm:text-base text-neutral-slate-400 max-w-xl mx-auto leading-relaxed font-medium">
+            <p className="text-sm sm:text-base text-neutral-500 dark:text-neutral-slate-400 max-w-xl mx-auto leading-relaxed font-medium">
               Explore how WeVentureHub’s integrated digital experience optimizes your day-to-day work, learnings, and pitch pathways.
             </p>
           </div>
@@ -636,9 +638,9 @@ export default function LandingPage() {
                   visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
                 }}
                 whileHover={{ y: -5 }}
-                className="bg-[#181818] border border-neutral-800 hover:border-brand-accent/50 rounded-2xl p-8 transition-colors duration-200 hover:shadow-lg shadow-sm"
+                className="bg-neutral-50 dark:bg-[#181818] border border-neutral-200 dark:border-neutral-800 hover:border-brand-accent/50 rounded-2xl p-8 transition-colors duration-200 hover:shadow-lg shadow-sm"
               >
-                <div className="p-3 bg-neutral-800 border border-neutral-700 rounded-xl inline-block mb-5 shadow-sm text-brand-accent">
+                <div className="p-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl inline-block mb-5 shadow-sm text-brand-accent">
                   {feat.icon}
                 </div>
                 <h3 className="font-sans font-bold text-lg text-white mb-2">{feat.title}</h3>
@@ -650,7 +652,7 @@ export default function LandingPage() {
       </section>
 
       {/* 6. STARTUP ACCELERATORS (DYNAMIC) */}
-      <section className="py-24 bg-[#141414] border-b border-neutral-800">
+      <section className="py-24 bg-neutral-50 dark:bg-[#141414] border-b border-neutral-200 dark:border-neutral-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <div className="text-xs font-bold text-brand-accent tracking-wider uppercase mb-2">Venture Acceleration</div>
@@ -658,11 +660,11 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 15 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="font-sans text-3xl sm:text-4xl font-bold tracking-tight mb-4 text-white"
+              className="font-sans text-3xl sm:text-4xl font-bold tracking-tight mb-4 text-neutral-900 dark:text-white"
             >
               Dynamic Startup Programs
             </motion.h2>
-            <p className="text-sm sm:text-base text-neutral-slate-400 max-w-xl mx-auto leading-relaxed font-medium">
+            <p className="text-sm sm:text-base text-neutral-500 dark:text-neutral-slate-400 max-w-xl mx-auto leading-relaxed font-medium">
               Synchronized programs to scale enterprise solutions, obtain pre-seed capital, and receive dedicated technical coaching.
             </p>
           </div>
@@ -685,7 +687,7 @@ export default function LandingPage() {
                   visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 90 } }
                 }}
                 whileHover={{ y: -6 }}
-                className="bg-[#1c1c1c] border border-neutral-800 rounded-3xl p-8 shadow-sm flex flex-col justify-between hover:shadow-xl transition-shadow duration-300"
+                className="bg-white dark:bg-[#1c1c1c] border border-neutral-200 dark:border-neutral-800 rounded-3xl p-8 shadow-sm flex flex-col justify-between hover:shadow-xl transition-shadow duration-300"
               >
                 <div>
                   <div className="flex items-center justify-between mb-5">
@@ -715,7 +717,7 @@ export default function LandingPage() {
 
       {/* 7. DYNAMIC TESTIMONIALS */}
       {testimonials && testimonials.length > 0 && (
-        <section className="py-24 bg-[#111111] border-b border-neutral-800">
+        <section className="py-24 bg-white dark:bg-[#111111] border-b border-neutral-200 dark:border-neutral-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <div className="text-xs font-bold text-brand-accent tracking-wider uppercase mb-2">Testimonials</div>
@@ -723,11 +725,11 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 15 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                className="font-sans text-3xl font-bold text-white"
+                className="font-sans text-3xl font-bold text-neutral-900 dark:text-white"
               >
                 What Our Builders Say
               </motion.h2>
-              <p className="text-sm text-neutral-slate-400 mt-2 font-medium">Real reviews from dynamic startup teams and remote engineers at WeVentureHub.</p>
+              <p className="text-sm text-neutral-500 dark:text-neutral-slate-400 mt-2 font-medium">Real reviews from dynamic startup teams and remote engineers at WeVentureHub.</p>
             </div>
 
             <motion.div 
@@ -748,7 +750,7 @@ export default function LandingPage() {
                     visible: { opacity: 1, y: 0 }
                   }}
                   whileHover={{ y: -5 }}
-                  className="bg-[#181818] border border-neutral-800 rounded-3xl p-8 shadow-sm hover:shadow-xl transition-shadow duration-300 flex flex-col justify-between"
+                  className="bg-neutral-50 dark:bg-[#181818] border border-neutral-200 dark:border-neutral-800 rounded-3xl p-8 shadow-sm hover:shadow-xl transition-shadow duration-300 flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex items-center gap-1 text-amber-400 mb-5">
@@ -756,11 +758,11 @@ export default function LandingPage() {
                         <Star key={i} className="w-4 h-4 fill-current text-amber-500" />
                       ))}
                     </div>
-                    <p className="text-[14px] text-neutral-slate-300 leading-relaxed mb-6 font-medium italic">
+                    <p className="text-[14px] text-neutral-600 dark:text-neutral-slate-300 leading-relaxed mb-6 font-medium italic">
                       "{test.content}"
                     </p>
                   </div>
-                  <div className="flex items-center gap-3 pt-4 border-t border-neutral-800">
+                  <div className="flex items-center gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-800">
                     {test.authorAvatarUrl ? (
                       <img 
                         src={test.authorAvatarUrl} 
@@ -784,24 +786,21 @@ export default function LandingPage() {
           </div>
         </section>
       )}      {/* 8. PROMO ROW */}
-      <section className="py-24 bg-[#141414] text-white relative overflow-hidden border-b border-neutral-800">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(17,17,17,1),rgba(20,20,20,1))]" />
+      <section className="py-24 bg-neutral-50 dark:bg-[#141414] text-neutral-900 dark:text-white relative overflow-hidden border-b border-neutral-200 dark:border-neutral-800">
+        <div className="absolute inset-0 bg-neutral-100 dark:bg-[radial-gradient(circle_at_bottom_left,rgba(17,17,17,1),rgba(20,20,20,1))]" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
               <span className="bg-brand-accent/20 text-brand-accent text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                 Limited Time Promotion
               </span>
-              <h2 className="font-sans text-4xl font-extrabold tracking-tight leading-tight">
+              <h2 className="font-sans text-4xl font-extrabold tracking-tight leading-tight text-neutral-900 dark:text-white">
                 {promoTitle}
               </h2>
-              <p className="text-base text-neutral-slate-300 max-w-lg leading-relaxed font-medium">
+              <p className="text-base text-neutral-600 dark:text-neutral-slate-300 max-w-lg leading-relaxed font-medium">
                 {promoSubtitle}
               </p>
-              <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-black text-brand-accent">{promoPrice}</span>
-                <span className="text-sm text-neutral-slate-400">/ exclusive billing rate</span>
-              </div>
+
               <div className="pt-4">
                 <Link to="/get-started">
                   <Button variant="success" className="font-extrabold px-8 h-12 rounded-xl shadow-md">
@@ -823,30 +822,30 @@ export default function LandingPage() {
       </section>
 
       {/* 10. CONTACT FORM */}
-      <section id="contact" className="py-24 bg-[#111111]">
+      <section id="contact" className="py-24 bg-white dark:bg-[#111111]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             
             {/* Info Side */}
             <div className="space-y-6">
               <div className="text-xs font-bold text-brand-accent tracking-wider uppercase mb-2">Need Assistance?</div>
-              <h2 className="font-sans text-3xl sm:text-4xl font-bold tracking-tight text-white">
+              <h2 className="font-sans text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-white">
                 Contact Our Site Coordinators
               </h2>
-              <p className="text-sm sm:text-base text-neutral-slate-400 leading-relaxed max-w-md font-medium">
+              <p className="text-sm sm:text-base text-neutral-500 dark:text-neutral-slate-400 leading-relaxed max-w-md font-medium">
                 Have questions about accelerators, booking workspaces, mentoring opportunities, or sponsoring events? We’re here to help.
               </p>
 
               <div className="space-y-4 pt-4">
-                <div className="flex items-center space-x-3 text-neutral-slate-300 font-medium">
+                <div className="flex items-center space-x-3 text-neutral-600 dark:text-neutral-slate-300 font-medium">
                   <Mail className="w-5 h-5 text-brand-accent" />
                   <span className="text-sm">info@weventurehub.com</span>
                 </div>
-                <div className="flex items-center space-x-3 text-neutral-slate-300 font-medium">
+                <div className="flex items-center space-x-3 text-neutral-600 dark:text-neutral-slate-300 font-medium">
                   <Phone className="w-5 h-5 text-brand-accent" />
                   <span className="text-sm">091 124 3503</span>
                 </div>
-                <div className="flex items-center space-x-3 text-neutral-slate-300 font-medium">
+                <div className="flex items-center space-x-3 text-neutral-600 dark:text-neutral-slate-300 font-medium">
                   <MapPin className="w-5 h-5 text-brand-accent" />
                   <span className="text-sm">Airport Road, Sur Construction second floor, Addis Ababa</span>
                 </div>
@@ -854,12 +853,12 @@ export default function LandingPage() {
             </div>
 
             {/* Form Side */}
-            <div className="bg-[#181818] rounded-2xl border border-neutral-800 p-8 shadow-sm">
+            <div className="bg-neutral-50 dark:bg-[#181818] rounded-2xl border border-neutral-200 dark:border-neutral-800 p-8 shadow-sm">
               <form onSubmit={handleContactSubmit} className="space-y-4">
-                <h3 className="font-sans font-bold text-lg text-white mb-2">Send an Inquiry</h3>
+                <h3 className="font-sans font-bold text-lg text-neutral-900 dark:text-white mb-2">Send an Inquiry</h3>
                 
                 <div>
-                  <label htmlFor="contact_name" className="block text-xs font-bold text-neutral-slate-400 mb-1">Your Name</label>
+                  <label htmlFor="contact_name" className="block text-xs font-bold text-neutral-500 dark:text-neutral-slate-400 mb-1">Your Name</label>
                   <input 
                     id="contact_name"
                     type="text" 
@@ -867,7 +866,7 @@ export default function LandingPage() {
                     value={contactForm.name}
                     onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
                     placeholder="Alex Chen"
-                    className="w-full px-4 py-2.5 text-sm rounded-lg bg-neutral-900 border border-neutral-800 focus:outline-none focus:ring-2 focus:ring-brand-accent/20 focus:border-brand-accent font-medium text-white placeholder-neutral-500"
+                    className="w-full px-4 py-2.5 text-sm rounded-lg bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-brand-accent/20 focus:border-brand-accent font-medium text-neutral-900 dark:text-white placeholder-neutral-500"
                   />
                 </div>
 

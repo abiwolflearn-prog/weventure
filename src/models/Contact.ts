@@ -13,6 +13,7 @@ export interface IContactDocument extends Document {
   lastName: string;
   email: string;
   phone?: string;
+  customerType?: 'Individual' | 'Company' | 'Group' | 'Government' | 'NGO';
   status: 'ACTIVE' | 'LEAD' | 'INACTIVE';
   leadSource?: string;
   companyId?: string | mongoose.Types.ObjectId;
@@ -30,6 +31,11 @@ const ContactSchema = new Schema<IContactDocument>(
     lastName: { type: String, required: true, trim: true },
     email: { type: String, required: true, trim: true },
     phone: { type: String, trim: true },
+    customerType: {
+      type: String,
+      enum: ['Individual', 'Company', 'Group', 'Government', 'NGO'],
+      default: 'Individual',
+    },
     status: {
       type: String,
       enum: ['ACTIVE', 'LEAD', 'INACTIVE'],

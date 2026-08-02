@@ -99,6 +99,7 @@ export default function WorkspaceList() {
   const [wsDailyPrice, setWsDailyPrice] = useState('200');
   const [wsWeeklyPrice, setWsWeeklyPrice] = useState('800');
   const [wsMonthlyPrice, setWsMonthlyPrice] = useState('2800');
+  const [wsYearlyPrice, setWsYearlyPrice] = useState('28000');
   const [wsCurrency, setWsCurrency] = useState('USD');
   const [wsAmenitiesText, setWsAmenitiesText] = useState('Whiteboard, Webcam, High-speed WiFi');
   const [wsFeaturesText, setWsFeaturesText] = useState('Ergonomic Chairs, Natural Light, Quiet Zone');
@@ -292,6 +293,9 @@ export default function WorkspaceList() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+    },
+    onError: (err: any) => {
+      alert(err.message || 'Failed to update workspace status.');
     }
   });
 
@@ -381,6 +385,7 @@ export default function WorkspaceList() {
       dailyPrice: Number(wsDailyPrice) || 0,
       weeklyPrice: Number(wsWeeklyPrice) || 0,
       monthlyPrice: Number(wsMonthlyPrice) || 0,
+      yearlyPrice: Number(wsYearlyPrice) || 0,
       currency: wsCurrency || 'USD',
       coverImage: wsCoverImage || undefined,
       imageUrl: wsCoverImage || undefined,
@@ -420,6 +425,7 @@ export default function WorkspaceList() {
     setWsDailyPrice((space.dailyPrice !== undefined ? space.dailyPrice : (space.dailyRate || 200)).toString());
     setWsWeeklyPrice((space.weeklyPrice || 800).toString());
     setWsMonthlyPrice((space.monthlyPrice || 2800).toString());
+    setWsYearlyPrice((space.yearlyPrice || 28000).toString());
     setWsCurrency(space.currency || 'USD');
     setWsAmenitiesText(Array.isArray(space.amenities) ? space.amenities.join(', ') : 'Whiteboard, Webcam, High-speed WiFi');
     setWsFeaturesText(Array.isArray(space.features) ? space.features.join(', ') : 'Ergonomic Chairs, Natural Light');
@@ -456,6 +462,7 @@ export default function WorkspaceList() {
     setWsDailyPrice('200');
     setWsWeeklyPrice('800');
     setWsMonthlyPrice('2800');
+    setWsYearlyPrice('28000');
     setWsCurrency('USD');
     setWsAmenitiesText('Whiteboard, Webcam, High-speed WiFi');
     setWsFeaturesText('Ergonomic Chairs, Natural Light');
@@ -637,21 +644,33 @@ export default function WorkspaceList() {
 
         return (
           <div className="flex items-center gap-2">
-            <select
-              value={statusVal}
-              onChange={(e) => updateStatusMutation.mutate({ id: targetId, status: e.target.value as any })}
-              className={`px-2 py-1 rounded-md text-[11px] font-bold outline-none border cursor-pointer ${
+            {isAdminOrStaff ? (
+              <select
+                value={statusVal}
+                onChange={(e) => updateStatusMutation.mutate({ id: targetId, status: e.target.value as any })}
+                className={`px-2 py-1 rounded-md text-[11px] font-bold outline-none border cursor-pointer ${
+                  statusVal === 'published'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : statusVal === 'draft'
+                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                    : 'bg-rose-50 text-rose-700 border-rose-200'
+                }`}
+              >
+                <option value="published">Published</option>
+                <option value="draft">Draft</option>
+                <option value="archived">Archived</option>
+              </select>
+            ) : (
+              <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold capitalize ${
                 statusVal === 'published'
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                   : statusVal === 'draft'
-                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                  : 'bg-rose-50 text-rose-700 border-rose-200'
-              }`}
-            >
-              <option value="published">Published</option>
-              <option value="draft">Draft</option>
-              <option value="archived">Archived</option>
-            </select>
+                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                  : 'bg-rose-50 text-rose-700 border border-rose-200'
+              }`}>
+                {statusVal}
+              </span>
+            )}
           </div>
         );
       }
@@ -1062,7 +1081,7 @@ export default function WorkspaceList() {
             />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <Input 
               label="Hourly Price" 
               type="number" 
@@ -1089,6 +1108,13 @@ export default function WorkspaceList() {
               type="number" 
               value={wsMonthlyPrice} 
               onChange={(e) => setWsMonthlyPrice(e.target.value)}
+              className="w-full rounded-[10px] border-[#E5E7EB]"
+            />
+            <Input 
+              label="Yearly Price" 
+              type="number" 
+              value={wsYearlyPrice} 
+              onChange={(e) => setWsYearlyPrice(e.target.value)}
               className="w-full rounded-[10px] border-[#E5E7EB]"
             />
           </div>

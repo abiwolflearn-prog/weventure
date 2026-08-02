@@ -195,10 +195,18 @@ export default function RegisterPage() {
 
     try {
       const response = await axiosInstance.post('/auth/register', payload);
-      const serverUser = response.data?.data?.user || payload;
-      setCreatedUserPayload(serverUser);
+      const serverData = response.data?.data;
+      const serverUser = serverData?.user || payload;
+      setCreatedUserPayload({
+        ...serverUser,
+        email: payload.email,
+        verificationToken: serverData?.verificationToken,
+        verificationCode: serverData?.verificationCode,
+      });
+      if (serverData?.verificationCode) {
+        setGeneratedOtp(serverData.verificationCode);
+      }
     } catch (err: any) {
-      // Fallback mock registration if network offline
       setCreatedUserPayload(payload);
     } finally {
       setIsLoading(false);
@@ -207,36 +215,27 @@ export default function RegisterPage() {
   };
 
   // Step 3: Verify Account
-  const handleVerifyAccount = () => {
+  const handleVerifyAccount = async () => {
     setIsVerifying(true);
     setErrorMsg(null);
 
-    setTimeout(() => {
+    try {
+      const response = await axiosInstance.post('/auth/verify-email', {
+        email: createdUserPayload?.email,
+        code: verificationCode || generatedOtp,
+        token: createdUserPayload?.verificationToken,
+      });
+
+      if (response.data?.success) {
+        setStep(4); // Advance to Success step
+      } else {
+        setErrorMsg(response.data?.error?.message || 'Verification failed. Please check your code.');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.error?.message || err.message || 'Verification failed. Please check your 6-digit verification code.');
+    } finally {
       setIsVerifying(false);
-
-      // Save user session in localStorage & Redux
-      const authUser = {
-        id: createdUserPayload?.id || `usr_${Math.random().toString(36).substring(2, 8)}`,
-        tenantId: 'weventurehub',
-        userType,
-        email: createdUserPayload?.email || 'user@weventurehub.com',
-        firstName: createdUserPayload?.name?.split(' ')[0] || 'WeVenture',
-        lastName: createdUserPayload?.name?.split(' ').slice(1).join(' ') || 'Member',
-        name: createdUserPayload?.name || 'WeVenture Member',
-        phone: createdUserPayload?.phone || '',
-        profileImage: createdUserPayload?.profileImage || '',
-        companyInfo: createdUserPayload?.companyInfo || null,
-        role: UserRole.HUB_MEMBER,
-        permissions: [Permission.WORKSPACES_READ, Permission.BOOKINGS_CREATE, Permission.EVENTS_READ],
-      };
-
-      localStorage.setItem('weventurehub_user_account', JSON.stringify(authUser));
-      localStorage.setItem('weventure_jwt_token', `mock_token_${Date.now()}`);
-      localStorage.setItem('weventure_tenant_id', 'weventurehub');
-
-      dispatch(loginSuccess(authUser));
-      setStep(4); // Advance to Success step
-    }, 600);
+    }
   };
 
   return (

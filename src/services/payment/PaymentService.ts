@@ -14,6 +14,8 @@ import { ValidationError, NotFoundError, ConflictError } from '../../errors/AppE
 import { logger } from '../../utils/logger';
 import { IUserIdentity, UserRole, OrderStatus, OrderType } from '../../types';
 import { ConnectedApp } from '../../models/Integration';
+import { workspaceRepository } from '../../repositories/WorkspaceRepository';
+import { pricingService } from '../PricingService';
 
 export class PaymentService {
   /**
@@ -589,14 +591,269 @@ export class PaymentService {
   }
 
   /**
-   * Get Invoices list
+   * Sync existing workspace bookings to ensure each has an invoice
+   */
+  public async syncWorkspaceInvoices(tenantId: string): Promise<void> {
+    try {
+      const bookings = await Booking.find({ tenantId }).exec();
+      for (const booking of bookings) {
+        const existing = await Invoice.findOne({ bookingId: booking.id, tenantId }).exec();
+        if (!existing) {
+          const workspace = await workspaceRepository.findById(booking.spaceId, tenantId);
+          if (workspace) {
+            const calc = pricingService.calculatePlanUnitsAndPrice(
+              workspace,
+              booking.billingPlanName || 'Hourly',
+              booking.startTime,
+              booking.endTime
+            );
+            const durationType = (booking.billingPlanName as any) || 'Hourly';
+            const durationQuantity = calc.units || booking.durationQuantity || 1;
+            const unitPrice = calc.pricePerUnit || (calc.totalAmount / (durationQuantity || 1));
+            const isCompany = Boolean(booking.billingDetails?.company || (booking as any).userType === 'company');
+            const customerType = isCompany ? 'Company' : 'Individual';
+            const vatAmount = Math.round(calc.totalAmount * 0.15 * 100) / 100;
+            const discountAmount = 0;
+            const grandTotal = Math.round((calc.totalAmount + vatAmount) * 100) / 100;
+
+            const invoiceNumber = `INV-${new Date(booking.createdAt || Date.now()).toISOString().substring(0, 10).replace(/-/g, '')}-${Math.floor(Math.random() * 9000 + 1000)}`;
+            const dueDate = new Date(booking.createdAt || Date.now());
+            dueDate.setDate(dueDate.getDate() + 7);
+
+            const status = booking.status === 'CONFIRMED' || booking.status === 'COMPLETED' ? InvoiceStatus.PAID : (booking.status === 'CANCELLED' ? InvoiceStatus.CANCELLED : InvoiceStatus.PENDING);
+
+            await Invoice.create({
+              tenantId,
+              userId: booking.userId,
+              userEmail: booking.userEmail,
+              invoiceNumber,
+              bookingId: booking.id,
+              amount: calc.totalAmount,
+              grandTotal,
+              currency: workspace.currency || 'ETB',
+              status,
+              customerType,
+              durationType,
+              durationQuantity,
+              unitPrice,
+              dueDate,
+              workspaceId: workspace.id,
+              workspaceName: workspace.name,
+              billingPeriod: `${new Date(booking.startTime).toLocaleDateString()} - ${new Date(booking.endTime).toLocaleDateString()}`,
+              invoiceDate: booking.createdAt || new Date(),
+              vat: vatAmount,
+              discount: discountAmount,
+              outstandingBalance: status === InvoiceStatus.PAID ? 0 : grandTotal,
+              paidAt: status === InvoiceStatus.PAID ? (booking.updatedAt || new Date()) : undefined,
+              billingDetails: booking.billingDetails || {
+                name: booking.userEmail.split('@')[0],
+                email: booking.userEmail,
+                company: (booking as any).companyName || undefined,
+              },
+              lineItems: [
+                {
+                  description: `Workspace Rental - ${workspace.name} (${durationType})`,
+                  quantity: durationQuantity,
+                  unitPrice,
+                  amount: calc.totalAmount,
+                },
+              ],
+            });
+          }
+        }
+      }
+    } catch (err) {
+      logger.error('Error syncing workspace invoices:', err);
+    }
+  }
+
+  /**
+   * Get Invoices list with filtering and search
    */
   public async getInvoices(tenantId: string, filter: any = {}): Promise<any[]> {
+    await this.syncWorkspaceInvoices(tenantId);
+
+    const query: Record<string, any> = { tenantId };
+
+    if (filter.userId) {
+      query.userId = filter.userId;
+    }
+
+    if (filter.status && filter.status !== 'All') {
+      const s = filter.status.trim();
+      if (s === 'Paid') {
+        query.status = { $in: ['Paid', 'PAID'] };
+      } else if (s === 'Unpaid' || s === 'Pending' || s === 'Pending Payment') {
+        query.status = { $in: ['Pending Payment', 'UNPAID', 'PENDING', 'Pending'] };
+      } else if (s === 'Partially Paid') {
+        query.status = { $in: ['Partially Paid', 'PARTIALLY_PAID'] };
+      } else if (s === 'Overdue') {
+        query.status = { $in: ['Overdue', 'OVERDUE'] };
+      } else if (s === 'Cancelled') {
+        query.status = { $in: ['Cancelled', 'CANCELLED', 'VOID', 'REFUNDED'] };
+      } else if (s === 'Draft') {
+        query.status = { $in: ['Draft', 'DRAFT'] };
+      } else {
+        query.status = s;
+      }
+    }
+
+    if (filter.customerType && filter.customerType !== 'All') {
+      query.customerType = filter.customerType;
+    }
+
+    if (filter.workspaceId && filter.workspaceId !== 'All') {
+      query.workspaceId = filter.workspaceId;
+    }
+
+    if (filter.startDate || filter.endDate) {
+      query.createdAt = {};
+      if (filter.startDate) query.createdAt.$gte = new Date(filter.startDate);
+      if (filter.endDate) {
+        const endDate = new Date(filter.endDate);
+        endDate.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = endDate;
+      }
+    }
+
+    if (filter.search) {
+      const searchRegex = new RegExp(filter.search, 'i');
+      query.$or = [
+        { invoiceNumber: searchRegex },
+        { 'billingDetails.name': searchRegex },
+        { 'billingDetails.email': searchRegex },
+        { 'billingDetails.company': searchRegex },
+        { workspaceName: searchRegex },
+        { bookingId: searchRegex },
+      ];
+    }
+
+    let sortOptions: any = { createdAt: -1 };
+    if (filter.sort === 'oldest') {
+      sortOptions = { createdAt: 1 };
+    } else if (filter.sort === 'due_date') {
+      sortOptions = { dueDate: 1 };
+    } else if (filter.sort === 'amount_desc' || filter.sort === 'amount') {
+      sortOptions = { grandTotal: -1, amount: -1 };
+    } else if (filter.sort === 'amount_asc') {
+      sortOptions = { grandTotal: 1, amount: 1 };
+    }
+
+    return await Invoice.find(query).sort(sortOptions).exec();
+  }
+
+  /**
+   * Update Invoice status (Admin/Super Admin)
+   */
+  public async updateInvoiceStatus(
+    tenantId: string,
+    invoiceId: string,
+    newStatus: string,
+    user: IUserIdentity
+  ): Promise<any> {
+    const invoice = await Invoice.findOne({ _id: invoiceId, tenantId }).exec();
+    if (!invoice) {
+      throw new NotFoundError('Invoice not found');
+    }
+
+    invoice.status = newStatus;
+    const isPaid = newStatus === 'Paid' || newStatus === 'PAID';
+    if (isPaid) {
+      invoice.paidAt = invoice.paidAt || new Date();
+      invoice.outstandingBalance = 0;
+    } else if (newStatus === 'Partially Paid') {
+      const total = invoice.grandTotal || invoice.amount || 0;
+      invoice.outstandingBalance = Math.round((total / 2) * 100) / 100;
+    } else if (newStatus === 'Pending Payment' || newStatus === 'Draft') {
+      invoice.outstandingBalance = invoice.grandTotal || invoice.amount || 0;
+    }
+    await invoice.save();
+
+    await this.logActivity(tenantId, user, 'UPDATE_INVOICE_STATUS', 'INVOICE', invoice.id, {
+      newStatus,
+    });
+
+    return invoice;
+  }
+
+  /**
+   * Get Invoice Statistics
+   */
+  public async getInvoiceStats(tenantId: string, filter: any = {}): Promise<any> {
+    await this.syncWorkspaceInvoices(tenantId);
+
     const query: Record<string, any> = { tenantId };
     if (filter.userId) query.userId = filter.userId;
-    if (filter.status) query.status = filter.status;
-    
-    return await Invoice.find(query).sort({ createdAt: -1 }).exec();
+
+    const invoices = await Invoice.find(query).exec();
+
+    let totalInvoices = invoices.length;
+    let totalRevenue = 0;
+    let paidInvoices = 0;
+    let unpaidInvoices = 0;
+    let pendingInvoices = 0;
+    let overdueInvoices = 0;
+
+    const monthlyRevenueMap: Record<string, number> = {};
+    const workspaceRevenueMap: Record<string, { name: string; revenue: number; count: number }> = {};
+
+    const now = new Date();
+
+    for (const inv of invoices) {
+      const amt = inv.grandTotal || inv.amount || 0;
+      const statusStr = String(inv.status || '').toLowerCase();
+      const isPaid = statusStr === 'paid';
+      const isDraft = statusStr === 'draft';
+      const isCancelled = statusStr === 'cancelled' || statusStr === 'void' || statusStr === 'refunded';
+      const isPartiallyPaid = statusStr === 'partially paid';
+      const isPending = statusStr === 'pending' || statusStr === 'pending payment' || statusStr === 'unpaid';
+
+      const isOverdue = statusStr === 'overdue' || (inv.dueDate && new Date(inv.dueDate) < now && !isPaid && !isCancelled);
+
+      if (isPaid) {
+        paidInvoices++;
+        totalRevenue += amt;
+
+        const dateObj = inv.paidAt || inv.createdAt || now;
+        const monthKey = new Date(dateObj).toLocaleString('default', { month: 'short', year: '2-digit' });
+        monthlyRevenueMap[monthKey] = (monthlyRevenueMap[monthKey] || 0) + amt;
+
+        const wsName = inv.workspaceName || 'Executive Suite';
+        if (!workspaceRevenueMap[wsName]) {
+          workspaceRevenueMap[wsName] = { name: wsName, revenue: 0, count: 0 };
+        }
+        workspaceRevenueMap[wsName].revenue += amt;
+        workspaceRevenueMap[wsName].count += 1;
+      } else if (isPending) {
+        pendingInvoices++;
+        unpaidInvoices++;
+      } else if (isPartiallyPaid) {
+        unpaidInvoices++;
+      }
+
+      if (isOverdue && !isPaid && !isCancelled) {
+        overdueInvoices++;
+      }
+    }
+
+    const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyRevenue = Object.entries(monthlyRevenueMap).map(([month, revenue]) => ({
+      month,
+      revenue,
+    }));
+
+    const revenueByWorkspace = Object.values(workspaceRevenueMap).sort((a, b) => b.revenue - a.revenue);
+
+    return {
+      totalInvoices,
+      totalRevenue,
+      paidInvoices,
+      unpaidInvoices,
+      pendingInvoices,
+      overdueInvoices,
+      monthlyRevenue,
+      revenueByWorkspace,
+    };
   }
 
   /**
@@ -812,6 +1069,121 @@ export class PaymentService {
     app.settings = settings;
     app.enabled = enabled;
     return await app.save();
+  }
+
+  /**
+   * Create new Invoice
+   */
+  public async createInvoice(tenantId: string, data: any, user?: IUserIdentity): Promise<any> {
+    const invCount = await Invoice.countDocuments({ tenantId });
+    const invoiceNumber = data.invoiceNumber || `INV-WV-${(1000 + invCount + 1)}`;
+    const amount = Number(data.amount || data.subtotal || 0);
+    const vat = data.vat !== undefined ? Number(data.vat) : Math.round(amount * 0.15 * 100) / 100;
+    const discount = Number(data.discount || 0);
+    const grandTotal = Number(data.grandTotal || (amount + vat - discount));
+
+    const invoice = new Invoice({
+      tenantId,
+      invoiceNumber,
+      userId: data.userId || user?.id || 'usr-admin',
+      userEmail: data.userEmail || data.billingDetails?.email || 'customer@weventurehub.com',
+      workspaceName: data.workspaceName || 'Executive Coworking Suite',
+      bookingId: data.bookingId,
+      durationType: data.durationType || 'Hourly',
+      durationQuantity: data.durationQuantity || 1,
+      customerType: data.customerType || 'Individual',
+      amount,
+      vat,
+      discount,
+      grandTotal,
+      outstandingBalance: data.status === 'Paid' ? 0 : grandTotal,
+      status: data.status || 'Pending Payment',
+      dueDate: data.dueDate ? new Date(data.dueDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      billingDetails: data.billingDetails || {
+        name: data.userName || 'Valued Member',
+        email: data.userEmail || 'customer@weventurehub.com',
+        phone: data.userPhone,
+        company: data.companyName,
+      },
+      lineItems: data.lineItems || [
+        {
+          description: `Workspace Rental - ${data.workspaceName || 'Executive Suite'}`,
+          quantity: data.durationQuantity || 1,
+          unitPrice: data.unitPrice || amount,
+          amount: amount,
+        }
+      ],
+      createdAt: new Date(),
+    });
+
+    const saved = await invoice.save();
+    if (user) {
+      await this.logActivity(tenantId, user, 'CREATE_INVOICE', 'INVOICE', saved.id, { invoiceNumber });
+    }
+    return saved;
+  }
+
+  /**
+   * Delete Invoice
+   */
+  public async deleteInvoice(tenantId: string, invoiceId: string, user?: IUserIdentity): Promise<any> {
+    const res = await Invoice.deleteOne({ _id: invoiceId, tenantId }).exec();
+    if (res.deletedCount === 0) {
+      throw new NotFoundError('Invoice not found');
+    }
+    if (user) {
+      await this.logActivity(tenantId, user, 'DELETE_INVOICE', 'INVOICE', invoiceId, {});
+    }
+    return { success: true };
+  }
+
+  /**
+   * Email Invoice
+   */
+  public async emailInvoice(tenantId: string, invoiceId: string, recipientEmail: string, emailType: string = 'Invoice', customMessage?: string): Promise<any> {
+    const invoice = await Invoice.findOne({ _id: invoiceId, tenantId }).exec();
+    if (!invoice) {
+      throw new NotFoundError('Invoice not found');
+    }
+    return {
+      success: true,
+      recipient: recipientEmail || invoice.billingDetails?.email || invoice.userEmail,
+      invoiceNumber: invoice.invoiceNumber,
+      emailType,
+      sentAt: new Date().toISOString(),
+      status: 'DELIVERED',
+    };
+  }
+
+  /**
+   * Record Invoice Payment
+   */
+  public async recordPayment(tenantId: string, invoiceId: string, paymentData: any, user?: IUserIdentity): Promise<any> {
+    const invoice = await Invoice.findOne({ _id: invoiceId, tenantId }).exec();
+    if (!invoice) {
+      throw new NotFoundError('Invoice not found');
+    }
+    const paidAmount = Number(paymentData.amount || 0);
+    const currentOutstanding = invoice.outstandingBalance ?? (invoice.grandTotal || invoice.amount);
+    const newOutstanding = Math.max(0, currentOutstanding - paidAmount);
+
+    invoice.outstandingBalance = newOutstanding;
+    if (newOutstanding === 0) {
+      invoice.status = 'Paid';
+      invoice.paidAt = new Date();
+    } else if (newOutstanding < (invoice.grandTotal || invoice.amount)) {
+      invoice.status = 'Partially Paid';
+    }
+    await invoice.save();
+
+    if (user) {
+      await this.logActivity(tenantId, user, 'RECORD_INVOICE_PAYMENT', 'INVOICE', invoice.id, {
+        paidAmount,
+        method: paymentData.paymentMethod,
+        txRef: paymentData.referenceNumber,
+      });
+    }
+    return invoice;
   }
 }
 

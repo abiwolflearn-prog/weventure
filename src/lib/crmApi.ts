@@ -20,6 +20,7 @@ export interface ICrmContact {
   lastName: string;
   email: string;
   phone?: string;
+  customerType?: 'Individual' | 'Company' | 'Group' | 'Government' | 'NGO';
   status: 'ACTIVE' | 'LEAD' | 'INACTIVE';
   leadSource?: string;
   companyId?: string | any;

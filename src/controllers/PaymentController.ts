@@ -87,9 +87,29 @@ export class PaymentController {
   }
 
   /**
-   * Retrieve list of invoices
+   * Retrieve list of invoices with filters
    */
   public async getInvoices(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId!;
+      const user = req.user as IUserIdentity;
+
+      const filter: any = { ...req.query };
+      if (user.role === UserRole.EXTERNAL_USER) {
+        filter.userId = user.id;
+      }
+
+      const invoices = await paymentService.getInvoices(tenantId, filter);
+      ApiResponse.success(res, invoices, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Retrieve invoice statistics
+   */
+  public async getInvoiceStats(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const tenantId = req.tenantId!;
       const user = req.user as IUserIdentity;
@@ -99,8 +119,88 @@ export class PaymentController {
         filter.userId = user.id;
       }
 
-      const invoices = await paymentService.getInvoices(tenantId, filter);
-      ApiResponse.success(res, invoices, 200);
+      const stats = await paymentService.getInvoiceStats(tenantId, filter);
+      ApiResponse.success(res, stats, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Create a new invoice
+   */
+  public async createInvoice(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId!;
+      const user = req.user as IUserIdentity;
+      const created = await paymentService.createInvoice(tenantId, req.body, user);
+      ApiResponse.success(res, created, 201, { message: 'Invoice created successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Delete an invoice
+   */
+  public async deleteInvoice(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId!;
+      const user = req.user as IUserIdentity;
+      const { id } = req.params;
+      await paymentService.deleteInvoice(tenantId, id, user);
+      ApiResponse.success(res, { deleted: true }, 200, { message: 'Invoice deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Email an invoice
+   */
+  public async emailInvoice(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId!;
+      const { id } = req.params;
+      const { recipient, emailType, message } = req.body;
+      const result = await paymentService.emailInvoice(tenantId, id, recipient, emailType, message);
+      ApiResponse.success(res, result, 200, { message: `Invoice email queued for ${result.recipient}` });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Record payment for an invoice
+   */
+  public async recordPayment(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId!;
+      const user = req.user as IUserIdentity;
+      const { id } = req.params;
+      const updated = await paymentService.recordPayment(tenantId, id, req.body, user);
+      ApiResponse.success(res, updated, 200, { message: 'Invoice payment recorded successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Update invoice status (Admin/Super Admin)
+   */
+  public async updateInvoiceStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId!;
+      const user = req.user as IUserIdentity;
+      const { id } = req.params;
+      const { status } = req.body;
+
+      if (!status) {
+        throw new ValidationError('Status field is required');
+      }
+
+      const updated = await paymentService.updateInvoiceStatus(tenantId, id, status, user);
+      ApiResponse.success(res, updated, 200, { message: 'Invoice status updated successfully' });
     } catch (error) {
       next(error);
     }

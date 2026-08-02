@@ -21,6 +21,10 @@ export interface IUserDocument extends Document {
     industry?: string;
     employees?: number;
   };
+  isEmailVerified?: boolean;
+  emailVerificationToken?: string;
+  emailVerificationOtp?: string;
+  emailVerificationExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,6 +50,10 @@ const UserSchema = new Schema<IUserDocument>(
       industry: { type: String },
       employees: { type: Number },
     },
+    isEmailVerified: { type: Boolean, default: false },
+    emailVerificationToken: { type: String },
+    emailVerificationOtp: { type: String },
+    emailVerificationExpires: { type: Date },
   },
   { timestamps: true }
 );

@@ -78,9 +78,19 @@ export default function LoginPage() {
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-semibold flex items-center space-x-2">
-          <ShieldAlert className="w-4 h-4 shrink-0" />
-          <span>{error}</span>
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-semibold flex flex-col space-y-2">
+          <div className="flex items-center space-x-2">
+            <ShieldAlert className="w-4 h-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+          {error.toLowerCase().includes('verify your email') && (
+            <div className="pt-1 border-t border-rose-200/60 dark:border-rose-900/60 flex items-center justify-between">
+              <span className="text-slate-600 dark:text-slate-400">Need to confirm your email address?</span>
+              <Link to="/verify-email" className="font-bold text-[#65A30D] dark:text-[#84CC16] hover:underline">
+                Verify Email Now &rarr;
+              </Link>
+            </div>
+          )}
         </div>
       )}
 

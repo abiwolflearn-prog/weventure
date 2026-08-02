@@ -134,6 +134,10 @@ export default function StartupPage() {
     }
     setFormSuccessMessage(null);
     setIsAppModalOpen(true);
+    const el = document.getElementById('application-form-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const handleAppSubmit = (e: React.FormEvent) => {
@@ -255,9 +259,9 @@ export default function StartupPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#111111] text-white">
+    <div className="min-h-screen bg-white dark:bg-[#111111] text-neutral-900 dark:text-white transition-colors duration-300">
       {/* 1. HERO SECTION */}
-      <section className="relative pt-20 pb-28 border-b border-neutral-800 overflow-hidden bg-gradient-to-b from-[#161616] via-[#111111] to-[#111111]">
+      <section className="relative pt-20 pb-28 border-b border-neutral-200 dark:border-neutral-800 overflow-hidden bg-white dark:bg-gradient-to-b dark:from-[#161616] dark:via-[#111111] dark:to-[#111111]">
         {/* Background Decorative Glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-brand-accent/10 blur-[130px] rounded-full pointer-events-none" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
@@ -265,10 +269,10 @@ export default function StartupPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="inline-flex items-center space-x-2 bg-neutral-900/80 border border-neutral-800 text-brand-accent text-xs font-bold px-4 py-1.5 rounded-full mb-6 backdrop-blur-md"
+            className="inline-flex items-center space-x-2 bg-neutral-100 dark:bg-neutral-900/80 border border-neutral-200 dark:border-neutral-800 text-brand-accent text-xs font-bold px-4 py-1.5 rounded-full mb-6 backdrop-blur-md"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>WeVentureHub Startup Innovation Ecosystem</span>
+            <span className="text-neutral-600 dark:text-neutral-200">WeVentureHub Startup Innovation Ecosystem</span>
           </motion.div>
 
           <motion.h1
@@ -289,7 +293,7 @@ export default function StartupPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-base sm:text-lg text-neutral-slate-300 max-w-2xl mx-auto mt-6 font-medium leading-relaxed"
+            className="text-base sm:text-lg text-neutral-600 dark:text-neutral-slate-300 max-w-2xl mx-auto mt-6 font-medium leading-relaxed"
           >
             Join a vibrant innovation ecosystem where founders, mentors, investors, and industry experts help turn ideas into successful, venture-backed businesses.
           </motion.p>
@@ -310,41 +314,41 @@ export default function StartupPage() {
             <Button
               variant="secondary"
               onClick={() => setIsConsultModalOpen(true)}
-              className="w-full sm:w-auto font-bold px-8 py-3.5 text-sm rounded-xl border-neutral-700 bg-neutral-900 hover:bg-neutral-800"
+              className="w-full sm:w-auto font-bold px-8 py-3.5 text-sm rounded-xl border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800"
             >
               Book a Consultation
             </Button>
           </motion.div>
 
           {/* Quick Metrics Banner */}
-          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto pt-8 border-t border-neutral-800/80">
+          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto pt-8 border-t border-neutral-200 dark:border-neutral-800/80">
             <div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-white">120+</div>
-              <div className="text-xs text-neutral-slate-400 font-medium mt-1">Startups Accelerated</div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-neutral-900 dark:text-white">120+</div>
+              <div className="text-xs text-neutral-500 dark:text-neutral-slate-400 font-medium mt-1">Startups Accelerated</div>
             </div>
             <div>
               <div className="text-2xl sm:text-3xl font-extrabold text-brand-accent">$4.2M+</div>
-              <div className="text-xs text-neutral-slate-400 font-medium mt-1">Capital Raised</div>
+              <div className="text-xs text-neutral-500 dark:text-neutral-slate-400 font-medium mt-1">Capital Raised</div>
             </div>
             <div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-white">50+</div>
-              <div className="text-xs text-neutral-slate-400 font-medium mt-1">Resident Mentors</div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-neutral-900 dark:text-white">50+</div>
+              <div className="text-xs text-neutral-500 dark:text-neutral-slate-400 font-medium mt-1">Resident Mentors</div>
             </div>
             <div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-white">92%</div>
-              <div className="text-xs text-neutral-slate-400 font-medium mt-1">Survival Rate</div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-neutral-900 dark:text-white">92%</div>
+              <div className="text-xs text-neutral-500 dark:text-neutral-slate-400 font-medium mt-1">Survival Rate</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* 2. STARTUP PROGRAMS SECTION */}
-      <section className="py-24 bg-[#141414] border-b border-neutral-800">
+      <section className="py-24 bg-neutral-50 dark:bg-[#141414] border-b border-neutral-200 dark:border-neutral-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <div className="text-xs font-bold text-brand-accent tracking-wider uppercase mb-2">Tailored Pathways</div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white">Startup Programs</h2>
-            <p className="text-sm sm:text-base text-neutral-slate-400 max-w-2xl mx-auto mt-3 font-medium">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 dark:text-white">Startup Programs</h2>
+            <p className="text-sm sm:text-base text-neutral-500 dark:text-neutral-slate-400 max-w-2xl mx-auto mt-3 font-medium">
               Explore our structured acceleration and incubation tracks tailored for founders at every stage of their startup journey.
             </p>
           </div>
@@ -359,14 +363,14 @@ export default function StartupPage() {
                   <motion.div
                     key={prog.id}
                     whileHover={{ y: -5 }}
-                    className="bg-[#1c1c1c] border border-neutral-800 rounded-2xl p-7 flex flex-col justify-between hover:border-brand-accent/50 transition-all shadow-sm hover:shadow-xl"
+                    className="bg-white dark:bg-[#1c1c1c] border border-neutral-200 dark:border-neutral-800 rounded-2xl p-7 flex flex-col justify-between hover:border-brand-accent/50 transition-all shadow-sm hover:shadow-xl"
                   >
                     <div>
                       <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-neutral-900 border border-neutral-800 rounded-xl">
+                        <div className="p-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl">
                           {IconComponent}
                         </div>
-                        <span className="text-[11px] font-bold text-brand-accent bg-neutral-900 px-3 py-1 rounded-full border border-neutral-800">
+                        <span className="text-[11px] font-bold text-brand-accent bg-neutral-50 dark:bg-neutral-900 px-3 py-1 rounded-full border border-neutral-200 dark:border-neutral-800">
                           {prog.duration}
                         </span>
                       </div>

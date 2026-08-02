@@ -26,6 +26,7 @@ import LoginPage from './views/LoginPage';
 import AdminLoginPage from './views/AdminLoginPage';
 import RegisterPage from './views/RegisterPage';
 import AcceptInvitePage from './views/AcceptInvitePage';
+import VerifyEmailPage from './views/VerifyEmailPage';
 import DashboardSummary from './views/DashboardSummary';
 import CrmDashboard from './views/CrmDashboard';
 import WorkspaceList from './views/WorkspaceList';
@@ -43,7 +44,6 @@ import ReportsPage from './views/ReportsPage';
 import BillingPage from './views/BillingPage';
 import IntegrationsPage from './views/IntegrationsPage';
 import EmailCenterPage from './views/EmailCenterPage';
-import CmsManagementPage from './views/CmsManagementPage';
 import StartupManagementPage from './views/StartupManagementPage';
 import AssistantAdminDashboard from './components/assistant/AssistantAdminDashboard';
 import BookingRegistrationPage from './views/BookingRegistrationPage';
@@ -82,88 +82,88 @@ export default function App() {
       <Route path="transactions" element={<TransactionsPage />} />
       <Route path="announcements" element={<AnnouncementsPage />} />
       <Route path="emails" element={<EmailCenterPage />} />
-      <Route path="cms" element={<CmsManagementPage />} />
+      <Route path="startups" element={<StartupManagementPage />} />
     </>
   );
 
   const adminDashboardRoutes = (
     <>
       {userDashboardRoutes}
-      <Route path="startups" element={<StartupManagementPage />} />
     </>
   );
 
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-        <HashRouter>
-          <Routes>
-            {/* Public Marketing Layer */}
-            <Route element={<PublicShell />}>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/events" element={<EventMarketplace />} />
-              <Route path="/events/:slug" element={<EventDetailsPage />} />
-              <Route path="/workspaces" element={<WorkspaceMarketplace />} />
-              <Route path="/workspaces/:id" element={<WorkspaceDetailsPage />} />
-              <Route path="/organizers/:id" element={<OrganizerProfilePage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/startup" element={<StartupPage />} />
-              <Route path="/pricing" element={<StartupPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/get-started" element={<GetStartedPage />} />
-              <Route path="/booking" element={<BookingRegistrationPage />} />
-            </Route>
+          <HashRouter>
+            <Routes>
+              {/* Public Marketing Layer */}
+              <Route element={<PublicShell />}>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/events" element={<EventMarketplace />} />
+                <Route path="/events/:slug" element={<EventDetailsPage />} />
+                <Route path="/workspaces" element={<WorkspaceMarketplace />} />
+                <Route path="/workspaces/:id" element={<WorkspaceDetailsPage />} />
+                <Route path="/organizers/:id" element={<OrganizerProfilePage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/startup" element={<StartupPage />} />
+                <Route path="/pricing" element={<StartupPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="/get-started" element={<GetStartedPage />} />
+                <Route path="/booking" element={<BookingRegistrationPage />} />
+              </Route>
 
-            {/* Authentication Layer - Separate Portals */}
-            <Route element={<AuthLayout />}>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/admin" element={<AdminLoginPage />} />
-              <Route path="/superadmin" element={<AdminLoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/accept-invite" element={<AcceptInvitePage />} />
-            </Route>
+              {/* Authentication Layer - Separate Portals */}
+              <Route element={<AuthLayout />}>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/admin" element={<AdminLoginPage />} />
+                <Route path="/superadmin" element={<AdminLoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/accept-invite" element={<AcceptInvitePage />} />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
+              </Route>
 
-            {/* User Dashboard */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute fallbackPath="/login">
-                  <DashboardLayout />
-                </ProtectedRoute>
-              }
-            >
-              {userDashboardRoutes}
-            </Route>
+              {/* User Dashboard */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute fallbackPath="/login">
+                    <DashboardLayout />
+                  </ProtectedRoute>
+                }
+              >
+                {userDashboardRoutes}
+              </Route>
 
-            {/* Admin Portal Dashboard */}
-            <Route
-              path="/admin/dashboard"
-              element={
-                <ProtectedRoute fallbackPath="/admin">
-                  <DashboardLayout />
-                </ProtectedRoute>
-              }
-            >
-              {adminDashboardRoutes}
-            </Route>
+              {/* Admin Portal Dashboard */}
+              <Route
+                path="/admin/dashboard"
+                element={
+                  <ProtectedRoute fallbackPath="/admin">
+                    <DashboardLayout />
+                  </ProtectedRoute>
+                }
+              >
+                {adminDashboardRoutes}
+              </Route>
 
-            {/* Super Admin Portal Dashboard */}
-            <Route
-              path="/superadmin/dashboard"
-              element={
-                <ProtectedRoute fallbackPath="/superadmin">
-                  <DashboardLayout />
-                </ProtectedRoute>
-              }
-            >
-              {adminDashboardRoutes}
-            </Route>
+              {/* Super Admin Portal Dashboard */}
+              <Route
+                path="/superadmin/dashboard"
+                element={
+                  <ProtectedRoute fallbackPath="/superadmin">
+                    <DashboardLayout />
+                  </ProtectedRoute>
+                }
+              >
+                {adminDashboardRoutes}
+              </Route>
 
-            {/* Global Fallback Route */}
-            <Route path="/checkout" element={<Navigate to="/dashboard/checkout" replace />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </HashRouter>
+              {/* Global Fallback Route */}
+              <Route path="/checkout" element={<Navigate to="/dashboard/checkout" replace />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </HashRouter>
       </QueryClientProvider>
     </Provider>
   );

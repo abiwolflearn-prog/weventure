@@ -9,6 +9,8 @@
   /* WeVentureHub Premium Minimalist Brand Palette */
   --color-brand-primary: #84CC16;
   --color-brand-primary-hover: #65A30D;
+  --color-brand-blue: #0284C7;
+  --color-brand-blue-hover: #0369A1;
   --color-brand-secondary: #111111;
   --color-brand-accent: #A3E635; 
   --color-brand-accent-hover: #84CC16;
@@ -73,11 +75,43 @@
 @layer base {
   body {
     /* Strict global accessibility settings: minimum body text 16px, weight 500, contrast primary-900 */
-    @apply font-sans bg-white text-neutral-slate-900 antialiased selection:bg-brand-primary selection:text-white text-base font-medium;
+    @apply font-sans bg-white dark:bg-[#111111] text-neutral-slate-900 dark:text-white antialiased selection:bg-brand-primary selection:text-white text-base font-medium;
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-display font-bold tracking-tight;
+  }
+}
+
+/* Printable Document & A4 Layout Optimizations */
+@media print {
+  body {
+    background-color: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  #printable-invoice {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 1.5cm !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    page-break-inside: avoid;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 1cm;
   }
 }
 

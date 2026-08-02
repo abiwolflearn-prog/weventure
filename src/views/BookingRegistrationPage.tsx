@@ -30,6 +30,7 @@ import { useAppSelector } from '../store';
 import { axiosInstance } from '../lib/axiosInstance';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
+import { formatBookingDuration, DurationType, getWorkspaceUnitPrice, calculateBookingPrices } from '../utils/duration';
 
 // Interfaces for form data
 export type RegistrationType = 'workspace' | 'event';
@@ -103,6 +104,8 @@ export default function BookingRegistrationPage() {
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('17:00');
   const [desksRequested, setDesksRequested] = useState<number>(1);
+  const [durationType, setDurationType] = useState<DurationType>('Daily');
+  const [durationQuantity, setDurationQuantity] = useState<number>(1);
   const [purposeOfBooking, setPurposeOfBooking] = useState('Team Sprint & Client Presentation');
   const [additionalServices, setAdditionalServices] = useState<string[]>(['Projector & AV Setup', 'Catering & Coffee Service']);
   const [specialRequests, setSpecialRequests] = useState('');
@@ -117,6 +120,14 @@ export default function BookingRegistrationPage() {
       setRegType('event');
     } else if (searchParams.get('type') === 'workspace') {
       setRegType('workspace');
+    }
+    const paramType = searchParams.get('durationType') as DurationType;
+    const paramQty = searchParams.get('durationQuantity');
+    if (paramType && ['Hourly', 'Daily', 'Weekly', 'Monthly', 'Yearly'].includes(paramType)) {
+      setDurationType(paramType);
+    }
+    if (paramQty && parseInt(paramQty, 10) > 0) {
+      setDurationQuantity(parseInt(paramQty, 10));
     }
   }, [searchParams]);
 
@@ -185,6 +196,13 @@ export default function BookingRegistrationPage() {
     }
   };
 
+  const priceBreakdown = calculateBookingPrices(
+    selectedWorkspace,
+    durationType,
+    durationQuantity,
+    desksRequested
+  );
+
   // Submission Handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -232,10 +250,14 @@ export default function BookingRegistrationPage() {
           startTime,
           endTime,
           desksRequested,
-          specialRequests
+          specialRequests,
+          durationType,
+          durationQuantity,
+          unitPrice: priceBreakdown.unitPrice,
+          formattedDuration: formatBookingDuration(durationType, durationQuantity),
         } : null,
         totalAmount: isWorkspace 
-          ? ((selectedWorkspace?.hourlyRate || 15) * 8 * desksRequested * 1.15).toFixed(2)
+          ? priceBreakdown.totalAmount.toFixed(2)
           : ((selectedEvent?.ticketPrice || 0) * (userType === 'group' ? participantCount : (userType === 'company' ? employeeCount : 1))).toFixed(2)
       };
 
@@ -334,6 +356,9 @@ export default function BookingRegistrationPage() {
                     <p className="text-neutral-300"><span className="text-neutral-500">Date:</span> {submittedResult.workspaceBookingInfo.bookingDate}</p>
                     <p className="text-neutral-300"><span className="text-neutral-500">Hours:</span> {submittedResult.workspaceBookingInfo.startTime} - {submittedResult.workspaceBookingInfo.endTime}</p>
                     <p className="text-neutral-300"><span className="text-neutral-500">Desks/Seats:</span> {submittedResult.workspaceBookingInfo.desksRequested}</p>
+                    {submittedResult.workspaceBookingInfo?.formattedDuration && (
+                      <p className="text-neutral-300"><span className="text-neutral-500">Duration:</span> <span className="text-brand-accent font-bold">{submittedResult.workspaceBookingInfo.formattedDuration}</span></p>
+                    )}
                     <p className="text-emerald-400 font-bold mt-1">Status: Confirmed & Paid</p>
                   </div>
                 </div>
@@ -363,7 +388,7 @@ export default function BookingRegistrationPage() {
                     <thead className="bg-neutral-950 text-neutral-400 uppercase font-bold tracking-wider">
                       <tr>
                         <th className="p-4">Description</th>
-                        <th className="p-4 text-center">Rate / Hour</th>
+                        <th className="p-4 text-center">Unit Price ({submittedResult.workspaceBookingInfo?.durationType || 'Daily'})</th>
                         <th className="p-4 text-center">Duration / Desks</th>
                         <th className="p-4 text-right">Amount</th>
                       </tr>
@@ -374,15 +399,23 @@ export default function BookingRegistrationPage() {
                           {submittedResult.workspace?.name || 'Workspace Reservation'}
                           <p className="text-[11px] text-neutral-500 font-normal">{submittedResult.workspaceBookingInfo.bookingDate} ({submittedResult.workspaceBookingInfo.startTime} - {submittedResult.workspaceBookingInfo.endTime})</p>
                         </td>
-                        <td className="p-4 text-center">${submittedResult.workspace?.hourlyRate || 15}.00</td>
-                        <td className="p-4 text-center">8 Hours × {submittedResult.workspaceBookingInfo.desksRequested} Desk(s)</td>
-                        <td className="p-4 text-right font-bold text-white">${((submittedResult.workspace?.hourlyRate || 15) * 8 * submittedResult.workspaceBookingInfo.desksRequested).toFixed(2)}</td>
+                        <td className="p-4 text-center font-mono">
+                          ${Number(submittedResult.workspaceBookingInfo?.unitPrice || getWorkspaceUnitPrice(submittedResult.workspace, submittedResult.workspaceBookingInfo?.durationType || 'Daily')).toFixed(2)}
+                        </td>
+                        <td className="p-4 text-center">
+                          {submittedResult.workspaceBookingInfo?.formattedDuration || formatBookingDuration(submittedResult.workspaceBookingInfo?.durationType, submittedResult.workspaceBookingInfo?.durationQuantity)} × {submittedResult.workspaceBookingInfo.desksRequested} Desk(s)
+                        </td>
+                        <td className="p-4 text-right font-bold text-white font-mono">
+                          ${(Number(submittedResult.totalAmount) / 1.15).toFixed(2)}
+                        </td>
                       </tr>
                       <tr>
                         <td className="p-4 text-neutral-400">VAT / Service Tax (15%)</td>
                         <td className="p-4 text-center">-</td>
                         <td className="p-4 text-center">-</td>
-                        <td className="p-4 text-right font-semibold text-neutral-400">${(((submittedResult.workspace?.hourlyRate || 15) * 8 * submittedResult.workspaceBookingInfo.desksRequested) * 0.15).toFixed(2)}</td>
+                        <td className="p-4 text-right font-semibold text-neutral-400 font-mono">
+                          ${(Number(submittedResult.totalAmount) - (Number(submittedResult.totalAmount) / 1.15)).toFixed(2)}
+                        </td>
                       </tr>
                     </tbody>
                     <tfoot className="bg-neutral-950 font-bold text-white border-t border-neutral-800">
@@ -1023,6 +1056,91 @@ export default function BookingRegistrationPage() {
 
               {/* Reservation Input Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-neutral-800 pt-6">
+                {/* Booking Duration Section */}
+                <div className="sm:col-span-3 bg-neutral-950 p-5 rounded-2xl border border-neutral-800 space-y-4">
+                  <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+                    <div className="flex items-center space-x-2">
+                      <Clock className="w-4 h-4 text-brand-accent" />
+                      <span className="text-xs font-bold text-white uppercase tracking-wider">Booking Duration</span>
+                    </div>
+                    {durationType && durationQuantity > 0 && (
+                      <span className="px-3 py-1 rounded-full bg-brand-accent/20 border border-brand-accent/40 text-brand-accent font-extrabold text-xs">
+                        {formatBookingDuration(durationType, durationQuantity)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-neutral-300 mb-1">Duration Type *</label>
+                      <select
+                        value={durationType}
+                        onChange={(e) => setDurationType(e.target.value as DurationType)}
+                        className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-primary"
+                      >
+                        <option value="Hourly">Hourly</option>
+                        <option value="Daily">Daily</option>
+                        <option value="Weekly">Weekly</option>
+                        <option value="Monthly">Monthly</option>
+                        <option value="Yearly">Yearly</option>
+                      </select>
+                    </div>
+
+                    {durationType && (
+                      <div>
+                        <label className="block text-xs font-bold text-neutral-300 mb-1">Quantity *</label>
+                        <input
+                          type="number"
+                          min={1}
+                          step={1}
+                          required
+                          value={durationQuantity}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            setDurationQuantity(isNaN(val) || val < 1 ? 1 : val);
+                          }}
+                          className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-primary"
+                          placeholder="e.g. 1, 2, 3, 18"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Live Price Preview Box */}
+                  <div className="bg-neutral-900 p-4 rounded-xl border border-neutral-800 space-y-2.5">
+                    <div className="flex items-center justify-between text-xs text-neutral-400">
+                      <span>Unit Price ({durationType}):</span>
+                      <span className="font-bold text-white font-mono">
+                        ${priceBreakdown.unitPrice.toFixed(2)} / {durationType.toLowerCase().replace('ly', '').replace('i', 'y')}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-neutral-400">
+                      <span>Selected Duration & Desks:</span>
+                      <span className="font-extrabold text-brand-accent">
+                        {formatBookingDuration(durationType, durationQuantity)} ({desksRequested} Desk{desksRequested > 1 ? 's' : ''})
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-neutral-400">
+                      <span>Subtotal:</span>
+                      <span className="font-bold text-neutral-200 font-mono">
+                        ${priceBreakdown.subtotal.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-neutral-400">
+                      <span>VAT / Taxes (15%):</span>
+                      <span className="font-semibold text-neutral-400 font-mono">
+                        ${priceBreakdown.serviceFee.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="pt-2 border-t border-neutral-800 flex items-center justify-between">
+                      <span className="text-xs font-bold text-white uppercase tracking-wider">Total Calculated Price:</span>
+                      <span className="text-lg font-extrabold text-brand-accent font-mono">
+                        ${priceBreakdown.totalAmount.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-neutral-300 mb-1">Reservation Date *</label>
                   <input 

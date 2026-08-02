@@ -4,6 +4,9 @@ import { AuditLog } from '../models/AuditLog';
 import { IBookingDocument } from '../models/Booking';
 import { Agreement } from '../models/Agreement';
 import { Invoice, InvoiceStatus } from '../models/Invoice';
+import { Contact } from '../models/Contact';
+import { Lead } from '../models/Lead';
+import { CrmActivity } from '../models/CrmActivity';
 import { IUserIdentity, UserRole } from '../types';
 import { ValidationError, NotFoundError, ConflictError, ForbiddenError } from '../errors/AppError';
 import { notificationService, NotificationCategory } from './NotificationService';
@@ -59,6 +62,10 @@ export class BookingService {
       teamSize?: number;
       notes?: string;
       documentUrl?: string;
+      durationType?: 'Hourly' | 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
+      durationQuantity?: number;
+      unitPrice?: number;
+      formattedDuration?: string;
     },
     user: IUserIdentity
   ): Promise<IBookingDocument> {
@@ -182,9 +189,72 @@ export class BookingService {
       teamSize: data.teamSize ? Number(data.teamSize) : undefined,
       notes: data.notes,
       documentUrl: data.documentUrl,
+      durationType: data.durationType,
+      durationQuantity: data.durationQuantity ? Number(data.durationQuantity) : undefined,
+      unitPrice: data.unitPrice ? Number(data.unitPrice) : undefined,
+      formattedDuration: data.formattedDuration,
     };
 
     const booking = await bookingRepository.create(bookingPayload);
+
+    // Automatically sync / create CRM Contact & Lead for Admin CRM & Contact Page
+    try {
+      const contactEmail = (data.billingDetails?.email || user.email).toLowerCase();
+      const contactName = data.billingDetails?.name || `${user.firstName} ${user.lastName}`;
+      const nameParts = contactName.trim().split(' ');
+      const firstName = nameParts[0] || user.firstName || 'Client';
+      const lastName = nameParts.slice(1).join(' ') || user.lastName || 'Member';
+      const phone = data.billingDetails?.phone || '';
+
+      let contact = await Contact.findOne({ tenantId, email: { $regex: new RegExp(`^${contactEmail}$`, 'i') } }).exec();
+      if (!contact) {
+        contact = await Contact.create({
+          tenantId,
+          firstName,
+          lastName,
+          email: contactEmail,
+          phone,
+          status: 'ACTIVE',
+          customerType: data.billingDetails?.company ? 'Company' : 'Individual',
+          leadSource: 'Workspace Booking',
+          tags: ['Workspace Booking', workspace.name],
+        });
+      } else {
+        if (!contact.tags.includes('Workspace Booking')) {
+          contact.tags.push('Workspace Booking');
+        }
+        if (!contact.tags.includes(workspace.name)) {
+          contact.tags.push(workspace.name);
+        }
+        await contact.save();
+      }
+
+      await Lead.create({
+        tenantId,
+        contactId: contact._id,
+        title: `Workspace Booking: ${workspace.name} (${billingPlanName})`,
+        dealValue: totalAmount || 0,
+        pipelineStage: 'WON',
+        status: 'ACTIVE',
+        notes: [{
+          author: 'System Booking Engine',
+          content: `Automated lead created from workspace reservation for ${workspace.name}. Amount: ${totalAmount} ETB. Plan: ${billingPlanName}.`,
+          createdAt: new Date(),
+        }],
+      });
+
+      await CrmActivity.create({
+        tenantId,
+        contactId: contact._id,
+        title: `Workspace Booked: ${workspace.name}`,
+        type: 'MEETING',
+        description: `Reserved ${workspace.name} from ${start.toLocaleString()} to ${end.toLocaleString()}. Total: ${totalAmount} ETB.`,
+        date: new Date(),
+      });
+    } catch (crmErr) {
+      console.error('Failed to sync booking to CRM contacts/leads:', crmErr);
+    }
+
     await this.logActivity(tenantId, user, 'CREATE_BOOKING', booking.id, { 
       spaceName: workspace.name, 
       status, 
@@ -579,6 +649,15 @@ export class BookingService {
     // Compute prices with accurate VAT/discount/deposits
     const calc = pricingService.calculatePlanUnitsAndPrice(workspace, booking.billingPlanName || 'Hourly', booking.startTime, booking.endTime);
 
+    const durationType = (booking.billingPlanName as any) || 'Hourly';
+    const durationQuantity = calc.units || booking.durationQuantity || 1;
+    const unitPrice = calc.pricePerUnit || (calc.totalAmount / (durationQuantity || 1));
+    const isCompany = Boolean(booking.billingDetails?.company || (booking as any).userType === 'company');
+    const customerType = isCompany ? 'Company' : 'Individual';
+    const vatAmount = Math.round(calc.totalAmount * 0.15 * 100) / 100;
+    const discountAmount = 0;
+    const grandTotal = Math.round((calc.totalAmount + vatAmount) * 100) / 100;
+
     const invoiceNumber = `INV-${new Date().toISOString().substring(0, 10).replace(/-/g, '')}-${Math.floor(Math.random() * 9000 + 1000)}`;
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 5); // 5 days grace period
@@ -590,27 +669,33 @@ export class BookingService {
       invoiceNumber,
       bookingId: booking.id,
       amount: calc.totalAmount,
+      grandTotal: grandTotal,
       currency: workspace.currency || 'ETB',
-      status: InvoiceStatus.UNPAID,
+      status: InvoiceStatus.PENDING,
+      customerType,
+      durationType,
+      durationQuantity,
+      unitPrice,
       dueDate,
       agreementNumber: agreement?.agreementNumber,
       workspaceId: workspace.id,
       workspaceName: workspace.name,
       billingPeriod: `${new Date(booking.startTime).toLocaleDateString()} - ${new Date(booking.endTime).toLocaleDateString()}`,
       invoiceDate: new Date(),
-      vat: agreement?.billingPlan?.vat || 0,
-      discount: agreement?.billingPlan?.discount || 0,
+      vat: vatAmount,
+      discount: discountAmount,
       deposit: agreement?.billingPlan?.deposit || 0,
-      outstandingBalance: calc.totalAmount,
+      outstandingBalance: grandTotal,
       billingDetails: booking.billingDetails || {
         name: booking.userEmail.split('@')[0],
         email: booking.userEmail,
+        company: (booking as any).companyName || undefined,
       },
       lineItems: [
         {
-          description: `Tenancy Workspace Rental Charge - ${workspace.name} (${booking.billingPlanName || 'Hourly'})`,
-          quantity: 1,
-          unitPrice: calc.totalAmount,
+          description: `Workspace Rental: ${workspace.name} (${durationType} Plan)\nPeriod: ${new Date(booking.startTime).toLocaleString()} to ${new Date(booking.endTime).toLocaleString()}\nPurpose: ${booking.purpose || 'Workspace Utilization'}${booking.teamSize ? ` | Team Size: ${booking.teamSize}` : ''}${booking.qrCode ? ` | QR Pass: ${booking.qrCode}` : ''}`,
+          quantity: durationQuantity,
+          unitPrice: unitPrice,
           amount: calc.totalAmount,
         }
       ],

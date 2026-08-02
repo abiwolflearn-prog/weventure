@@ -35,8 +35,38 @@ export const paymentApi = {
     return response.data.data;
   },
 
-  getInvoices: async () => {
-    const response = await axiosInstance.get('/payments/invoices');
+  getInvoices: async (params?: Record<string, any>) => {
+    const response = await axiosInstance.get('/payments/invoices', { params });
+    return response.data.data;
+  },
+
+  createInvoice: async (payload: any) => {
+    const response = await axiosInstance.post('/payments/invoices', payload);
+    return response.data.data;
+  },
+
+  deleteInvoice: async (id: string) => {
+    const response = await axiosInstance.delete(`/payments/invoices/${id}`);
+    return response.data.data;
+  },
+
+  emailInvoice: async (id: string, recipient?: string, emailType?: string, message?: string) => {
+    const response = await axiosInstance.post(`/payments/invoices/${id}/email`, { recipient, emailType, message });
+    return response.data.data;
+  },
+
+  recordPayment: async (id: string, paymentData: { amount: number; paymentMethod: string; referenceNumber?: string; notes?: string }) => {
+    const response = await axiosInstance.post(`/payments/invoices/${id}/payments`, paymentData);
+    return response.data.data;
+  },
+
+  getInvoiceStats: async () => {
+    const response = await axiosInstance.get('/payments/invoices/stats');
+    return response.data.data;
+  },
+
+  updateInvoiceStatus: async (id: string, status: string) => {
+    const response = await axiosInstance.patch(`/payments/invoices/${id}/status`, { status });
     return response.data.data;
   },
 

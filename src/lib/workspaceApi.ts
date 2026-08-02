@@ -33,6 +33,7 @@ export interface IWorkspace {
   dailyRate?: number;
   weeklyPrice: number;
   monthlyPrice: number;
+  yearlyPrice?: number;
   currency: string;
   coverImage?: string;
   imageUrl?: string;
@@ -80,6 +81,7 @@ export interface IWorkspacePayload {
   dailyPrice?: number;
   weeklyPrice?: number;
   monthlyPrice?: number;
+  yearlyPrice?: number;
   currency?: string;
   coverImage?: string;
   imageUrl?: string;

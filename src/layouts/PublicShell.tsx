@@ -1,18 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Building, Globe, Menu, X, ChevronRight } from 'lucide-react';
+import { Building, Globe, Menu, X, ChevronRight, Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FloatingSocialLinks } from '../components/FloatingSocialLinks';
 import WeVentureLogo from '../components/WeVentureLogo';
 import WeVentureAssistant from '../components/assistant/WeVentureAssistant';
 import GetStartedModal from '../components/GetStartedModal';
+import { ParticleBackground } from '../components/ParticleBackground';
 import { publicApi } from '../lib/publicApi';
+import { useTheme } from '../context/ThemeContext';
 
 export default function PublicShell() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isGetStartedModalOpen, setIsGetStartedModalOpen] = useState(false);
   const location = useLocation();
+  const isDarkMode = true;
 
   const navLinks = [
     { name: 'Home', path: '/' },
@@ -24,19 +27,20 @@ export default function PublicShell() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#111111]">
+    <div className={`min-h-screen flex flex-col relative transition-colors duration-300 ${isDarkMode ? 'bg-[#111111] text-white' : 'bg-[#F8FAFC] text-neutral-900'}`}>
+      <ParticleBackground />
       {/* Navigation Header */}
-      <header className="sticky top-0 z-50 bg-neutral-slate-900/90 backdrop-blur-md border-b border-neutral-slate-800/80">
+      <header className={`sticky top-0 z-50 backdrop-blur-md border-b transition-colors duration-300 ${isDarkMode ? 'bg-neutral-slate-900/90 border-neutral-slate-800/80 text-white' : 'bg-white/90 border-neutral-200 text-neutral-900'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center space-x-2 shrink-0">
-            <WeVentureLogo size="32" mode="dark" className="drop-shadow-sm" />
-            <span className="font-display font-bold text-xl tracking-tight text-white">
+            <WeVentureLogo size="32" mode={isDarkMode ? "dark" : "light"} className="drop-shadow-sm" />
+            <span className={`font-display font-bold text-xl tracking-tight ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
               WeVenture<span className="text-brand-accent">Hub</span>
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8 text-sm font-medium text-neutral-slate-300">
+          <nav className={`hidden md:flex items-center space-x-8 text-sm font-medium ${isDarkMode ? 'text-neutral-slate-300' : 'text-neutral-600'}`}>
             {navLinks.map((link) => (
               <Link 
                 key={link.name} 
@@ -44,7 +48,7 @@ export default function PublicShell() {
                 className={`transition-colors duration-200 ${
                   location.pathname === link.path 
                     ? 'text-brand-accent font-bold' 
-                    : 'hover:text-brand-accent'
+                    : isDarkMode ? 'hover:text-brand-accent' : 'hover:text-brand-accent'
                 }`}
               >
                 {link.name}
@@ -57,7 +61,7 @@ export default function PublicShell() {
             <div className="hidden sm:flex items-center space-x-3">
               <Link 
                 to="/login" 
-                className="text-sm font-medium text-neutral-slate-300 hover:text-brand-accent transition-colors py-2 px-3"
+                className={`text-sm font-medium transition-colors py-2 px-3 ${isDarkMode ? 'text-neutral-slate-300 hover:text-brand-accent' : 'text-neutral-700 hover:text-brand-accent'}`}
               >
                 Log In
               </Link>
@@ -73,7 +77,7 @@ export default function PublicShell() {
             {/* Mobile Hamburger Button */}
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="md:hidden p-2 -mr-2 rounded-xl text-neutral-slate-300 hover:text-white hover:bg-neutral-slate-800/50 transition-colors focus:outline-none"
+              className={`md:hidden p-2 -mr-2 rounded-xl transition-colors focus:outline-none ${isDarkMode ? 'text-neutral-slate-300 hover:text-white hover:bg-neutral-slate-800/50' : 'text-neutral-700 hover:text-black hover:bg-neutral-100'}`}
               aria-label="Open navigation menu"
             >
               <Menu className="w-6 h-6" />
@@ -174,7 +178,7 @@ export default function PublicShell() {
       />
 
       {/* Main Viewport with Page Transition */}
-      <main className="flex-grow">
+      <main className="flex-grow relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
@@ -186,7 +190,7 @@ export default function PublicShell() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-neutral-slate-900 text-neutral-slate-400 py-12 border-t border-neutral-slate-800">
+      <footer className="relative z-10 bg-neutral-slate-900 text-neutral-slate-400 py-12 border-t border-neutral-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center space-x-2">
             <WeVentureLogo size="24" mode="dark" />

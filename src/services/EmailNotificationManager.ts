@@ -22,8 +22,9 @@ class EmailNotificationManager {
     });
   }
 
-  public async sendEmailVerification(user: { email: string; firstName?: string; name?: string }, otpCode: string, expiryMinutes = 15): Promise<void> {
+  public async sendEmailVerification(user: { email: string; firstName?: string; name?: string }, verificationToken: string, otpCode: string, expiryMinutes = 60): Promise<void> {
     const userName = user.firstName || user.name || 'Valued Member';
+    const verifyUrl = `${this.appUrl}/#/verify-email?token=${verificationToken}&code=${otpCode}&email=${encodeURIComponent(user.email)}`;
     await emailService.enqueueEmail({
       templateKey: 'email_verification',
       recipientEmail: user.email,
@@ -31,8 +32,9 @@ class EmailNotificationManager {
       variables: {
         userName,
         otpCode,
+        verificationToken,
         expiryMinutes,
-        verifyUrl: `${this.appUrl}/verify-email?code=${otpCode}&email=${encodeURIComponent(user.email)}`,
+        verifyUrl,
       },
       priority: 'high',
     });

@@ -21,6 +21,10 @@ export interface IBookingDocument extends Document {
   qrCode: string;
   billingPlanId?: string;
   billingPlanName?: 'Hourly' | 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly';
+  durationType?: 'Hourly' | 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
+  durationQuantity?: number;
+  unitPrice?: number;
+  formattedDuration?: string;
   signedAgreementText?: string;
   signedAt?: Date;
   emergencyContact?: {
@@ -64,6 +68,10 @@ const BookingSchema = new Schema<IBookingDocument>(
     qrCode: { type: String, required: true },
     billingPlanId: { type: String },
     billingPlanName: { type: String, enum: ['Hourly', 'Daily', 'Weekly', 'Monthly', 'Quarterly', 'Yearly'] },
+    durationType: { type: String, enum: ['Hourly', 'Daily', 'Weekly', 'Monthly', 'Yearly'] },
+    durationQuantity: { type: Number, min: 1 },
+    unitPrice: { type: Number, min: 0 },
+    formattedDuration: { type: String },
     signedAgreementText: { type: String },
     signedAt: { type: Date },
     emergencyContact: {

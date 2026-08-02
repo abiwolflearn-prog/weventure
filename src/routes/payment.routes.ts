@@ -42,8 +42,19 @@ paymentRouter.get('/transactions', authGuard, paymentController.getTransactions)
  * Invoice endpoints
  */
 paymentRouter.get('/invoices', authGuard, paymentController.getInvoices);
+paymentRouter.post('/invoices', authGuard, hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF]), paymentController.createInvoice);
+paymentRouter.get('/invoices/stats', authGuard, paymentController.getInvoiceStats);
 paymentRouter.get('/invoices/:id', authGuard, paymentController.getInvoiceById);
+paymentRouter.delete('/invoices/:id', authGuard, hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN]), paymentController.deleteInvoice);
 paymentRouter.get('/invoices/:id/download', authGuard, paymentController.downloadInvoicePdf);
+paymentRouter.post('/invoices/:id/email', authGuard, paymentController.emailInvoice);
+paymentRouter.post('/invoices/:id/payments', authGuard, hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF]), paymentController.recordPayment);
+paymentRouter.patch(
+  '/invoices/:id/status',
+  authGuard,
+  hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF]),
+  paymentController.updateInvoiceStatus
+);
 
 /**
  * Refund endpoints

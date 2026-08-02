@@ -191,22 +191,22 @@ export default function StartupManagementPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-white border border-slate-200 rounded-2xl shadow-sm min-h-screen text-slate-900">
+    <div className="p-6 space-y-6 bg-white border border-gray-200 rounded-2xl shadow-sm min-h-screen text-[#111827]">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-200">
         <div>
           <div className="flex items-center space-x-2">
             <Rocket className="w-6 h-6 text-brand-primary" />
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Startup Program & Applications Management</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-[#111827]">Startup Program & Applications Management</h1>
           </div>
-          <p className="text-xs text-slate-600 mt-1 font-medium">
+          <p className="text-xs text-[#6B7280] mt-1 font-medium">
             Review founder applications, manage startup cohorts, and update innovation program tracks for WeVentureHub.
           </p>
         </div>
 
         <div className="flex items-center space-x-3">
           {activeTab === 'applications' && (
-            <Button variant="secondary" onClick={handleExportCsv} className="text-xs font-bold py-2 px-3.5 border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200">
+            <Button variant="secondary" onClick={handleExportCsv} className="text-xs font-bold py-2 px-3.5 border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200">
               <Download className="w-3.5 h-3.5 mr-1.5" /> Export CSV
             </Button>
           )}
@@ -220,19 +220,19 @@ export default function StartupManagementPage() {
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+        <div className="p-5 bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-between">
           <div>
-            <div className="text-xs text-slate-500 font-medium">Total Applications</div>
-            <div className="text-2xl font-extrabold text-slate-900 mt-1">{totalApps}</div>
+            <div className="text-xs text-gray-500 font-medium">Total Applications</div>
+            <div className="text-2xl font-extrabold text-[#111827] mt-1">{totalApps}</div>
           </div>
           <div className="p-3 bg-blue-100 border border-blue-200 rounded-xl text-blue-600">
             <FileText className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+        <div className="p-5 bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-between">
           <div>
-            <div className="text-xs text-slate-500 font-medium">Pending Intake</div>
+            <div className="text-xs text-gray-500 font-medium">Pending Intake</div>
             <div className="text-2xl font-extrabold text-amber-600 mt-1">{pendingApps}</div>
           </div>
           <div className="p-3 bg-amber-100 border border-amber-200 rounded-xl text-amber-600">
@@ -240,9 +240,9 @@ export default function StartupManagementPage() {
           </div>
         </div>
 
-        <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+        <div className="p-5 bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-between">
           <div>
-            <div className="text-xs text-slate-500 font-medium">Approved Startups</div>
+            <div className="text-xs text-gray-500 font-medium">Approved Startups</div>
             <div className="text-2xl font-extrabold text-emerald-600 mt-1">{approvedApps}</div>
           </div>
           <div className="p-3 bg-emerald-100 border border-emerald-200 rounded-xl text-emerald-600">
@@ -250,9 +250,9 @@ export default function StartupManagementPage() {
           </div>
         </div>
 
-        <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+        <div className="p-5 bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-between">
           <div>
-            <div className="text-xs text-slate-500 font-medium">Active Programs</div>
+            <div className="text-xs text-gray-500 font-medium">Active Programs</div>
             <div className="text-2xl font-extrabold text-purple-600 mt-1">{totalPrograms}</div>
           </div>
           <div className="p-3 bg-purple-100 border border-purple-200 rounded-xl text-purple-600">
@@ -262,13 +262,13 @@ export default function StartupManagementPage() {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex border-b border-slate-200 space-x-6 text-sm font-bold">
+      <div className="flex border-b border-gray-200 space-x-6 text-sm font-bold">
         <button
           onClick={() => setActiveTab('applications')}
           className={`pb-3 transition-colors border-b-2 ${
             activeTab === 'applications'
               ? 'border-brand-primary text-brand-primary'
-              : 'border-transparent text-slate-500 hover:text-slate-900'
+              : 'border-transparent text-gray-500 hover:text-[#111827]'
           }`}
         >
           Startup Applications ({totalApps})
@@ -278,7 +278,7 @@ export default function StartupManagementPage() {
           className={`pb-3 transition-colors border-b-2 ${
             activeTab === 'programs'
               ? 'border-brand-primary text-brand-primary'
-              : 'border-transparent text-slate-500 hover:text-slate-900'
+              : 'border-transparent text-gray-500 hover:text-[#111827]'
           }`}
         >
           Program Tracks ({totalPrograms})
@@ -289,24 +289,24 @@ export default function StartupManagementPage() {
       {activeTab === 'applications' && (
         <div className="space-y-4">
           {/* Controls Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-gray-50 border border-gray-200 rounded-2xl">
             <div className="relative w-full sm:w-80">
-              <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3.5 top-3 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search startup or founder name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl text-xs pl-10 pr-4 py-2.5 focus:border-brand-primary focus:outline-none"
+                className="w-full bg-white border border-gray-300 text-[#111827] rounded-xl text-xs pl-10 pr-4 py-2.5 focus:border-brand-primary focus:outline-none"
               />
             </div>
 
             <div className="flex items-center space-x-3 w-full sm:w-auto">
-              <span className="text-xs text-slate-600 font-medium whitespace-nowrap">Filter Status:</span>
+              <span className="text-xs text-[#6B7280] font-medium whitespace-nowrap">Filter Status:</span>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-white border border-slate-300 text-slate-900 text-xs font-medium rounded-xl px-3 py-2 focus:border-brand-primary focus:outline-none"
+                className="bg-white border border-gray-300 text-[#111827] text-xs font-medium rounded-xl px-3 py-2 focus:border-brand-primary focus:outline-none"
               >
                 <option value="all">All Statuses</option>
                 <option value="pending">Pending</option>
@@ -319,16 +319,16 @@ export default function StartupManagementPage() {
           </div>
 
           {/* Applications Table */}
-          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
             {isAppsLoading ? (
-              <div className="p-12 text-center text-xs text-slate-500">Loading applications...</div>
+              <div className="p-12 text-center text-xs text-gray-500">Loading applications...</div>
             ) : !applications || applications.length === 0 ? (
-              <div className="p-12 text-center text-xs text-slate-500 font-medium">No startup applications found matching your filter criteria.</div>
+              <div className="p-12 text-center text-xs text-gray-500 font-medium">No startup applications found matching your filter criteria.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-200 text-slate-600 uppercase text-[10px] font-bold bg-slate-50">
+                    <tr className="border-b border-gray-200 text-[#6B7280] uppercase text-[10px] font-bold bg-gray-50">
                       <th className="p-4">Startup & Founder</th>
                       <th className="p-4">Track / Program</th>
                       <th className="p-4">Industry & Stage</th>
@@ -338,23 +338,23 @@ export default function StartupManagementPage() {
                       <th className="p-4 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200 font-medium text-slate-800">
+                  <tbody className="divide-y divide-slate-200 font-medium text-gray-800">
                     {applications.map((app) => (
-                      <tr key={app.id} className="hover:bg-slate-50 transition-colors">
+                      <tr key={app.id} className="hover:bg-gray-50 transition-colors">
                         <td className="p-4">
-                          <div className="font-bold text-slate-900 text-sm">{app.startupName}</div>
-                          <div className="text-[11px] text-slate-500">{app.founderName} ({app.email})</div>
+                          <div className="font-bold text-[#111827] text-sm">{app.startupName}</div>
+                          <div className="text-[11px] text-gray-500">{app.founderName} ({app.email})</div>
                         </td>
                         <td className="p-4 text-xs font-semibold text-brand-primary">
                           {app.programTitle || 'General Incubation'}
                         </td>
                         <td className="p-4">
-                          <div className="text-slate-900 font-medium">{app.industry}</div>
-                          <div className="text-[10px] text-slate-500">{app.startupStage}</div>
+                          <div className="text-[#111827] font-medium">{app.industry}</div>
+                          <div className="text-[10px] text-gray-500">{app.startupStage}</div>
                         </td>
-                        <td className="p-4 text-slate-700">{app.teamSize}</td>
+                        <td className="p-4 text-gray-700">{app.teamSize}</td>
                         <td className="p-4">{getStatusBadge(app.status)}</td>
-                        <td className="p-4 text-slate-500 text-[11px]">
+                        <td className="p-4 text-gray-500 text-[11px]">
                           {new Date(app.createdAt).toLocaleDateString()}
                         </td>
                         <td className="p-4 text-right space-x-2">
@@ -391,12 +391,12 @@ export default function StartupManagementPage() {
       {activeTab === 'programs' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {isProgramsLoading ? (
-            <div className="col-span-3 text-center py-12 text-xs text-slate-500">Loading programs...</div>
+            <div className="col-span-3 text-center py-12 text-xs text-gray-500">Loading programs...</div>
           ) : (
             programs?.map((prog) => (
               <div
                 key={prog.id}
-                className="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow"
+                className="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow"
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">
@@ -408,18 +408,18 @@ export default function StartupManagementPage() {
                     </span>
                   </div>
 
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">{prog.title}</h3>
-                  <p className="text-xs text-slate-600 font-medium leading-relaxed mb-4 line-clamp-3">
+                  <h3 className="text-lg font-bold text-[#111827] mb-2">{prog.title}</h3>
+                  <p className="text-xs text-[#6B7280] font-medium leading-relaxed mb-4 line-clamp-3">
                     {prog.shortDescription}
                   </p>
 
-                  <div className="space-y-1.5 text-xs text-slate-700 mb-6">
+                  <div className="space-y-1.5 text-xs text-gray-700 mb-6">
                     <div><strong>Duration:</strong> {prog.duration}</div>
                     <div><strong>Cohort Size:</strong> {prog.cohortSize} teams</div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end space-x-2 pt-4 border-t border-slate-200">
+                <div className="flex items-center justify-end space-x-2 pt-4 border-t border-gray-200">
                   <button
                     onClick={() => handleOpenProgramModal(prog)}
                     className="text-xs font-bold py-1.5 px-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition-colors flex items-center gap-1"
@@ -451,11 +451,11 @@ export default function StartupManagementPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-7 relative shadow-2xl overflow-y-auto max-h-[90vh] text-slate-900"
+              className="bg-white border border-gray-200 rounded-3xl max-w-2xl w-full p-7 relative shadow-2xl overflow-y-auto max-h-[90vh] text-[#111827]"
             >
               <button
                 onClick={() => setSelectedApp(null)}
-                className="absolute top-5 right-5 p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 hover:text-slate-900 transition-colors"
+                className="absolute top-5 right-5 p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-500 hover:text-[#111827] transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -465,50 +465,50 @@ export default function StartupManagementPage() {
                   <Rocket className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900">{selectedApp.startupName}</h3>
-                  <p className="text-xs text-slate-500">Founded by {selectedApp.founderName}</p>
+                  <h3 className="text-xl font-bold text-[#111827]">{selectedApp.startupName}</h3>
+                  <p className="text-xs text-gray-500">Founded by {selectedApp.founderName}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl mb-6 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 bg-gray-50 border border-gray-200 rounded-2xl mb-6 text-xs">
                 <div>
-                  <span className="text-slate-500 font-medium block">Email</span>
-                  <span className="text-slate-900 font-semibold">{selectedApp.email}</span>
+                  <span className="text-gray-500 font-medium block">Email</span>
+                  <span className="text-[#111827] font-semibold">{selectedApp.email}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 font-medium block">Phone</span>
-                  <span className="text-slate-900 font-semibold">{selectedApp.phone}</span>
+                  <span className="text-gray-500 font-medium block">Phone</span>
+                  <span className="text-[#111827] font-semibold">{selectedApp.phone}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 font-medium block">Industry</span>
-                  <span className="text-slate-900 font-semibold">{selectedApp.industry}</span>
+                  <span className="text-gray-500 font-medium block">Industry</span>
+                  <span className="text-[#111827] font-semibold">{selectedApp.industry}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 font-medium block">Stage</span>
-                  <span className="text-slate-900 font-semibold">{selectedApp.startupStage}</span>
+                  <span className="text-gray-500 font-medium block">Stage</span>
+                  <span className="text-[#111827] font-semibold">{selectedApp.startupStage}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 font-medium block">Team Size</span>
-                  <span className="text-slate-900 font-semibold">{selectedApp.teamSize}</span>
+                  <span className="text-gray-500 font-medium block">Team Size</span>
+                  <span className="text-[#111827] font-semibold">{selectedApp.teamSize}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 font-medium block">Funding Status</span>
-                  <span className="text-slate-900 font-semibold">{selectedApp.fundingStatus}</span>
+                  <span className="text-gray-500 font-medium block">Funding Status</span>
+                  <span className="text-[#111827] font-semibold">{selectedApp.fundingStatus}</span>
                 </div>
               </div>
 
               <div className="space-y-4 mb-6">
                 <div>
-                  <h4 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Brief Description</h4>
-                  <p className="text-xs text-slate-800 bg-slate-50 p-3.5 border border-slate-200 rounded-xl font-medium leading-relaxed">
+                  <h4 className="text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-1">Brief Description</h4>
+                  <p className="text-xs text-gray-800 bg-gray-50 p-3.5 border border-gray-200 rounded-xl font-medium leading-relaxed">
                     {selectedApp.briefDescription}
                   </p>
                 </div>
 
                 {selectedApp.currentChallenges && (
                   <div>
-                    <h4 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Current Challenges</h4>
-                    <p className="text-xs text-slate-800 bg-slate-50 p-3.5 border border-slate-200 rounded-xl font-medium leading-relaxed">
+                    <h4 className="text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-1">Current Challenges</h4>
+                    <p className="text-xs text-gray-800 bg-gray-50 p-3.5 border border-gray-200 rounded-xl font-medium leading-relaxed">
                       {selectedApp.currentChallenges}
                     </p>
                   </div>
@@ -516,14 +516,14 @@ export default function StartupManagementPage() {
               </div>
 
               {/* Review & Status Section */}
-              <div className="pt-6 border-t border-slate-200 space-y-4">
+              <div className="pt-6 border-t border-gray-200 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Change Application Status</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">Change Application Status</label>
                     <select
                       value={statusInput}
                       onChange={(e) => setStatusInput(e.target.value)}
-                      className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl text-xs font-medium px-3.5 py-2.5 focus:border-brand-primary focus:outline-none"
+                      className="w-full bg-white border border-gray-300 text-[#111827] rounded-xl text-xs font-medium px-3.5 py-2.5 focus:border-brand-primary focus:outline-none"
                     >
                       <option value="pending">Pending</option>
                       <option value="under_review">Under Review</option>
@@ -535,13 +535,13 @@ export default function StartupManagementPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Internal Review Notes</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">Internal Review Notes</label>
                   <textarea
                     rows={3}
                     placeholder="Enter review notes, mentor assignments, or interview schedules..."
                     value={reviewNotesInput}
                     onChange={(e) => setReviewNotesInput(e.target.value)}
-                    className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl text-xs font-medium p-3 focus:border-brand-primary focus:outline-none"
+                    className="w-full bg-white border border-gray-300 text-[#111827] rounded-xl text-xs font-medium p-3 focus:border-brand-primary focus:outline-none"
                   />
                 </div>
 
@@ -572,19 +572,19 @@ export default function StartupManagementPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white border border-slate-200 rounded-3xl max-w-xl w-full p-7 relative shadow-2xl overflow-y-auto max-h-[90vh] text-slate-900"
+              className="bg-white border border-gray-200 rounded-3xl max-w-xl w-full p-7 relative shadow-2xl overflow-y-auto max-h-[90vh] text-[#111827]"
             >
               <button
                 onClick={() => setIsProgramModalOpen(false)}
-                className="absolute top-5 right-5 p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 hover:text-slate-900 transition-colors"
+                className="absolute top-5 right-5 p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-500 hover:text-[#111827] transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
 
-              <h3 className="text-xl font-bold text-slate-900 mb-1">
+              <h3 className="text-xl font-bold text-[#111827] mb-1">
                 {editingProgram ? 'Edit Startup Program' : 'Create Startup Program Track'}
               </h3>
-              <p className="text-xs text-slate-500 mb-6 font-medium">Configure cohort duration, eligibility criteria, and benefits.</p>
+              <p className="text-xs text-gray-500 mb-6 font-medium">Configure cohort duration, eligibility criteria, and benefits.</p>
 
               <form
                 onSubmit={(e) => {
@@ -594,62 +594,62 @@ export default function StartupManagementPage() {
                 className="space-y-4"
               >
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Program Title</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Program Title</label>
                   <Input
                     required
                     placeholder="e.g. Incubation Cohort 2026"
                     value={programForm.title || ''}
                     onChange={(e) => setProgramForm({ ...programForm, title: e.target.value })}
-                    className="!bg-white !border-slate-300 !text-slate-900"
+                    className="!bg-white !border-gray-300 !text-[#111827]"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Category</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Category</label>
                     <Input
                       required
                       placeholder="e.g. Incubation, Validation, Acceleration"
                       value={programForm.category || ''}
                       onChange={(e) => setProgramForm({ ...programForm, category: e.target.value })}
-                      className="!bg-white !border-slate-300 !text-slate-900"
+                      className="!bg-white !border-gray-300 !text-[#111827]"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Duration</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Duration</label>
                     <Input
                       required
                       placeholder="e.g. 12 Weeks"
                       value={programForm.duration || ''}
                       onChange={(e) => setProgramForm({ ...programForm, duration: e.target.value })}
-                      className="!bg-white !border-slate-300 !text-slate-900"
+                      className="!bg-white !border-gray-300 !text-[#111827]"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Short Description</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Short Description</label>
                   <textarea
                     required
                     rows={2}
                     placeholder="Brief overview displayed on program cards..."
                     value={programForm.shortDescription || ''}
                     onChange={(e) => setProgramForm({ ...programForm, shortDescription: e.target.value })}
-                    className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl text-xs font-medium p-3 focus:border-brand-primary focus:outline-none"
+                    className="w-full bg-white border border-gray-300 text-[#111827] rounded-xl text-xs font-medium p-3 focus:border-brand-primary focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Eligibility Target</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Eligibility Target</label>
                   <Input
                     placeholder="e.g. Open to tech founders with MVP"
                     value={programForm.eligibility || ''}
                     onChange={(e) => setProgramForm({ ...programForm, eligibility: e.target.value })}
-                    className="!bg-white !border-slate-300 !text-slate-900"
+                    className="!bg-white !border-gray-300 !text-[#111827]"
                   />
                 </div>
 
-                <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-200">
+                <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
                   <Button variant="secondary" onClick={() => setIsProgramModalOpen(false)} className="text-xs font-bold">
                     Cancel
                   </Button>

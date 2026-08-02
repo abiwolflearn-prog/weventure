@@ -26,6 +26,7 @@ import {
 import { useAppSelector } from '../store';
 import { Button } from '../components/Button';
 import { Link } from 'react-router-dom';
+import { UserRole } from '../types';
 
 // Subcomponents imports
 import StatisticsCard from '../components/dashboard/StatisticsCard';
@@ -41,6 +42,7 @@ import {
 
 export default function DashboardSummary() {
   const { user } = useAppSelector((state) => state.auth);
+  const isAdmin = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.TENANT_ADMIN || user?.role === UserRole.STAFF;
   
   // Interactive simulator states to allow audit of UI states
   const [simulationState, setSimulationState] = useState<'normal' | 'loading' | 'error' | 'empty'>('normal');
@@ -186,13 +188,23 @@ export default function DashboardSummary() {
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 border-b border-[#E5E7EB] pb-6">
         <div>
           <span className="text-[14px] font-bold text-[#84CC16] tracking-wide uppercase font-mono">
-            Leader Hub Management Panel
+            {isAdmin ? 'Leader Hub Management Panel' : 'WeVentureHub Community'}
           </span>
           <h1 className="font-display font-bold text-[32px] text-[#111827] tracking-tight mt-1">
-            Leader Dashboard
+            {isAdmin ? (
+              'Leader Dashboard'
+            ) : (
+              <span className="bg-gradient-to-r from-[#65a30d] via-[#84CC16] to-[#a3e635] bg-clip-text text-transparent">
+                Welcome {user?.firstName || 'Alex'}, to WeVentureHub
+              </span>
+            )}
           </h1>
           <p className="text-[14px] text-[#6B7280] mt-1">
-            Welcome back, <b className="text-[#111827]">{user?.firstName || 'Operator'}</b>! Here is the chronological operational digest for <b className="text-[#84CC16] font-bold uppercase">{activeTenantName}</b>.
+            {isAdmin ? (
+              <>Welcome back, <b className="text-[#111827]">{user?.firstName || 'Operator'}</b>! Here is the chronological operational digest for <b className="text-[#84CC16] font-bold uppercase">{activeTenantName}</b>.</>
+            ) : (
+              <>Explore your upcoming events, workspace bookings, and community updates.</>
+            )}
           </p>
         </div>
 
@@ -220,29 +232,31 @@ export default function DashboardSummary() {
           </div>
 
           {/* Audit Simulator Toolbar */}
-          <div className="flex bg-[#FFFFFF] p-1.5 rounded-[12px] border border-[#E5E7EB] text-[12px] font-bold shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
-            <button
-              onClick={() => setSimulationState('loading')}
-              className="px-3 py-1 text-[#6B7280] hover:text-[#111827] hover:bg-[#F8FAFC] rounded-md transition-all"
-              title="Audit Loading Skeleton view"
-            >
-              Skeleton
-            </button>
-            <button
-              onClick={() => setSimulationState('error')}
-              className="px-3 py-1 text-[#6B7280] hover:text-[#111827] hover:bg-[#F8FAFC] rounded-md transition-all"
-              title="Audit Error card view"
-            >
-              Error
-            </button>
-            <button
-              onClick={() => setSimulationState('empty')}
-              className="px-3 py-1 text-[#6B7280] hover:text-[#111827] hover:bg-[#F8FAFC] rounded-md transition-all"
-              title="Audit Empty ledger view"
-            >
-              Empty
-            </button>
-          </div>
+          {isAdmin && (
+            <div className="flex bg-[#FFFFFF] p-1.5 rounded-[12px] border border-[#E5E7EB] text-[12px] font-bold shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+              <button
+                onClick={() => setSimulationState('loading')}
+                className="px-3 py-1 text-[#6B7280] hover:text-[#111827] hover:bg-[#F8FAFC] rounded-md transition-all"
+                title="Audit Loading Skeleton view"
+              >
+                Skeleton
+              </button>
+              <button
+                onClick={() => setSimulationState('error')}
+                className="px-3 py-1 text-[#6B7280] hover:text-[#111827] hover:bg-[#F8FAFC] rounded-md transition-all"
+                title="Audit Error card view"
+              >
+                Error
+              </button>
+              <button
+                onClick={() => setSimulationState('empty')}
+                className="px-3 py-1 text-[#6B7280] hover:text-[#111827] hover:bg-[#F8FAFC] rounded-md transition-all"
+                title="Audit Empty ledger view"
+              >
+                Empty
+              </button>
+            </div>
+          )}
 
           <Button
             size="sm"
@@ -292,8 +306,8 @@ export default function DashboardSummary() {
         </div>
       </div>
 
-      {/* 3. Five-Column Statistics Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+      {/* Statistics Cards Row */}
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-6`}>
         <StatisticsCard 
           title="Total Events" 
           value="1,248" 
@@ -321,15 +335,17 @@ export default function DashboardSummary() {
           sparklineData={[78, 80, 84, 82, 85, 81, 82]}
           isLoading={isSyncing}
         />
-        <StatisticsCard 
-          title="Revenue" 
-          value="$26,800" 
-          icon={DollarSign} 
-          change="+18.4%" 
-          changeType="positive"
-          sparklineData={[22400, 23500, 24100, 24800, 25900, 26100, 26800]}
-          isLoading={isSyncing}
-        />
+        {isAdmin && (
+          <StatisticsCard 
+            title="Revenue" 
+            value="$26,800" 
+            icon={DollarSign} 
+            change="+18.4%" 
+            changeType="positive"
+            sparklineData={[22400, 23500, 24100, 24800, 25900, 26100, 26800]}
+            isLoading={isSyncing}
+          />
+        )}
         <StatisticsCard 
           title="Community Members" 
           value="1,420" 
@@ -342,27 +358,30 @@ export default function DashboardSummary() {
       </div>
 
       {/* 4. Large Action Tiles for Common Commands */}
-      <QuickActionCards />
+      {isAdmin && <QuickActionCards />}
 
       {/* 5. Performance Charts Visualization Panels (Revenue, Load, Cohort) */}
-      <div className="space-y-4">
-        <div className="flex items-center space-x-2.5">
-          <Activity className="w-4 h-4 text-[#84CC16]" />
-          <h3 className="font-display font-bold text-[14px] text-[#6B7280] uppercase tracking-wider">
-            Workspace Performance Data
-          </h3>
+      {isAdmin && (
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2.5">
+            <Activity className="w-4 h-4 text-[#84CC16]" />
+            <h3 className="font-display font-bold text-[14px] text-[#6B7280] uppercase tracking-wider">
+              Workspace Performance Data
+            </h3>
+          </div>
+          <DashboardCharts />
         </div>
-        <DashboardCharts />
-      </div>
+      )}
 
       {/* 6. Calendar Timeline & Audit Logs Timeline (2-Column Grid) */}
       <div className="grid grid-cols-1 gap-8">
         <CalendarWidget />
-        <RecentActivityWidget />
+        {isAdmin && <RecentActivityWidget />}
       </div>
 
       {/* 7. New Dynamic Operational Modules (Recent Payments, Latest Registrations, Upcoming Events, Announcements) */}
-      <div className="space-y-6">
+      {isAdmin && (
+        <div className="space-y-6">
         <div className="flex items-center space-x-2.5">
           <ShieldCheck className="w-4 h-4 text-[#84CC16]" />
           <h3 className="font-display font-bold text-[14px] text-[#6B7280] uppercase tracking-wider">
@@ -537,6 +556,7 @@ export default function DashboardSummary() {
 
         </div>
       </div>
+      )}
 
     </div>
   );

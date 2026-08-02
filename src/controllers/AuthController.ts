@@ -81,6 +81,12 @@ export class AuthController {
       const permissions = ROLE_PERMISSIONS[userRole] || [];
       const cleanEmail = email.toLowerCase().trim();
 
+      // Check existing user for email verification status
+      const existingUser = await (User as any).findOne({ email: cleanEmail, tenantId: activeTenant });
+      if (existingUser && existingUser.isEmailVerified === false) {
+        throw new UnauthorizedError('Please verify your email before logging in.');
+      }
+
       // Ensure user stored in MongoDB
       const dbUser = await (User as any).findOneAndUpdate(
         { email: cleanEmail, tenantId: activeTenant },
@@ -91,6 +97,7 @@ export class AuthController {
             firstName,
             lastName,
             role: userRole,
+            isEmailVerified: true, // Default true for admin/staff created via direct login
           },
         },
         { upsert: true, new: true }
@@ -150,6 +157,11 @@ export class AuthController {
       const resolvedFirstName = firstName || resolvedName.split(' ')[0] || 'Member';
       const resolvedLastName = lastName || resolvedName.split(' ').slice(1).join(' ') || 'User';
 
+      // Generate secure unique verification token and OTP code
+      const verificationToken = `vrf_${Math.random().toString(36).substring(2, 12)}${Date.now().toString(36)}`;
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
       // Store / Update user in MongoDB User Collection
       let dbUser = await (User as any).findOneAndUpdate(
         { email: cleanEmail, tenantId: activeTenant },
@@ -172,6 +184,10 @@ export class AuthController {
               employees: companyInfo.employees,
             } : undefined,
             role: UserRole.HUB_MEMBER,
+            isEmailVerified: false,
+            emailVerificationToken: verificationToken,
+            emailVerificationOtp: otpCode,
+            emailVerificationExpires: verificationExpires,
           },
         },
         { upsert: true, new: true }
@@ -190,15 +206,141 @@ export class AuthController {
         companyInfo: dbUser.companyInfo,
         role: UserRole.HUB_MEMBER,
         permissions: ROLE_PERMISSIONS[UserRole.HUB_MEMBER],
+        isEmailVerified: false,
       };
 
       // Trigger Welcome Email & Verification OTP via Email Notification Manager
-      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
       await emailNotificationManager.sendWelcomeEmail(user);
-      await emailNotificationManager.sendEmailVerification(user, otpCode, 15);
+      await emailNotificationManager.sendEmailVerification(user, verificationToken, otpCode, 60);
       await emailNotificationManager.sendNewUserRegistrationAdminAlert(user);
 
-      ApiResponse.success(res, { user, otpRequired: true, verificationCode: otpCode }, 201, { message: 'Registration successful. Verification code generated!' });
+      ApiResponse.success(
+        res,
+        {
+          user,
+          otpRequired: true,
+          verificationToken,
+          verificationCode: otpCode,
+        },
+        201,
+        { message: 'Registration successful. A verification email has been sent.' }
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Confirm & verify user email using token or OTP code
+   */
+  public async verifyEmail(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { email, code, token } = { ...req.query, ...req.body };
+      const cleanEmail = email ? String(email).toLowerCase().trim() : undefined;
+      const otpCode = code || req.body?.otp || req.body?.verificationCode || req.query?.code;
+      const verifyToken = token || req.body?.verificationToken || req.query?.token;
+
+      if (!verifyToken && !otpCode) {
+        throw new ValidationError('Verification token or OTP code is required');
+      }
+
+      let dbUser: any = null;
+
+      if (cleanEmail) {
+        dbUser = await (User as any).findOne({
+          email: cleanEmail,
+          $or: [
+            ...(verifyToken ? [{ emailVerificationToken: verifyToken }] : []),
+            ...(otpCode ? [{ emailVerificationOtp: String(otpCode) }] : []),
+          ],
+        });
+      }
+
+      if (!dbUser && verifyToken) {
+        dbUser = await (User as any).findOne({ emailVerificationToken: verifyToken });
+      }
+
+      if (!dbUser && otpCode) {
+        dbUser = await (User as any).findOne({ emailVerificationOtp: String(otpCode) });
+      }
+
+      if (!dbUser) {
+        throw new ValidationError('Invalid verification token or code. Please check your email and try again.');
+      }
+
+      // Check expiration if set
+      if (dbUser.emailVerificationExpires && new Date(dbUser.emailVerificationExpires) < new Date()) {
+        throw new ValidationError('Verification link or code has expired. Please request a new one.');
+      }
+
+      dbUser.isEmailVerified = true;
+      dbUser.emailVerificationToken = undefined;
+      dbUser.emailVerificationOtp = undefined;
+      dbUser.emailVerificationExpires = undefined;
+      await dbUser.save();
+
+      ApiResponse.success(
+        res,
+        {
+          verified: true,
+          email: dbUser.email,
+        },
+        200,
+        { message: 'Email verified successfully. You may now log in.' }
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Resend verification email
+   */
+  public async resendVerification(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        throw new ValidationError('Email address is required');
+      }
+
+      const cleanEmail = String(email).toLowerCase().trim();
+      const activeTenant = req.tenantId || 'weventurehub';
+      const dbUser = await (User as any).findOne({ email: cleanEmail, tenantId: activeTenant });
+
+      if (!dbUser) {
+        throw new ValidationError('No account found with that email address.');
+      }
+
+      if (dbUser.isEmailVerified) {
+        ApiResponse.success(res, { verified: true }, 200, { message: 'Account is already verified. You can log in.' });
+        return;
+      }
+
+      const verificationToken = `vrf_${Math.random().toString(36).substring(2, 12)}${Date.now().toString(36)}`;
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+      dbUser.emailVerificationToken = verificationToken;
+      dbUser.emailVerificationOtp = otpCode;
+      dbUser.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      await dbUser.save();
+
+      const userObj = {
+        id: dbUser._id.toString(),
+        tenantId: activeTenant,
+        email: cleanEmail,
+        firstName: dbUser.firstName,
+        lastName: dbUser.lastName,
+        name: dbUser.name,
+      };
+
+      await emailNotificationManager.sendEmailVerification(userObj, verificationToken, otpCode, 60);
+
+      ApiResponse.success(
+        res,
+        { sent: true, verificationToken, otpCode },
+        200,
+        { message: 'Verification email resent successfully.' }
+      );
     } catch (error) {
       next(error);
     }

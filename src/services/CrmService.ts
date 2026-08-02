@@ -6,6 +6,7 @@ import { CrmActivity, ICrmActivityDocument } from '../models/CrmActivity';
 import { Registration } from '../models/Registration';
 import { Booking } from '../models/Booking';
 import { Order } from '../models/Order';
+import { Invoice } from '../models/Invoice';
 import { ValidationError, NotFoundError } from '../errors/AppError';
 
 function cleanReferenceFields(data: any): any {
@@ -119,8 +120,8 @@ export class CrmService {
 
     const email = contact.email;
 
-    // INTEGRATIONS: Dynamic lookups for registrations, workspace bookings, and tickets
-    const [registrations, bookings, orders] = await Promise.all([
+    // INTEGRATIONS: Dynamic lookups for registrations, workspace bookings, tickets, and invoices
+    const [registrations, bookings, orders, invoices] = await Promise.all([
       Registration.find({ tenantId, attendeeEmail: { $regex: new RegExp(`^${email}$`, 'i') } })
         .populate({ path: 'eventId', model: 'Event', select: 'title schedule status' })
         .exec(),
@@ -130,6 +131,15 @@ export class CrmService {
       Order.find({ tenantId, userEmail: { $regex: new RegExp(`^${email}$`, 'i') } })
         .populate({ path: 'eventId', model: 'Event', select: 'title' })
         .exec(),
+      Invoice.find({
+        tenantId,
+        $or: [
+          { userEmail: { $regex: new RegExp(`^${email}$`, 'i') } },
+          { 'billingDetails.email': { $regex: new RegExp(`^${email}$`, 'i') } },
+        ],
+      })
+        .sort({ createdAt: -1 })
+        .exec(),
     ]);
 
     return {
@@ -138,6 +148,7 @@ export class CrmService {
         registrations,
         bookings,
         orders,
+        invoices,
       },
     };
   }

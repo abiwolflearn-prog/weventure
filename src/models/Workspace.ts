@@ -37,6 +37,7 @@ export interface IWorkspaceDocument extends Document {
   dailyRate?: number;
   weeklyPrice?: number;
   monthlyPrice?: number;
+  yearlyPrice?: number;
   currency: string;
   coverImage?: string;
   imageUrl?: string;
@@ -103,6 +104,7 @@ const WorkspaceSchema = new Schema<IWorkspaceDocument>(
     dailyRate: { type: Number, min: 0, default: 0 },
     weeklyPrice: { type: Number, min: 0, default: 0 },
     monthlyPrice: { type: Number, min: 0, default: 0 },
+    yearlyPrice: { type: Number, min: 0, default: 0 },
     currency: { type: String, default: 'USD', required: true },
     coverImage: { type: String, default: '' },
     imageUrl: { type: String, default: '' },

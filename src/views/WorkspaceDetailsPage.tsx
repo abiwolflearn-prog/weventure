@@ -30,6 +30,7 @@ import { useAppSelector } from '../store';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { motion } from 'motion/react';
+import { formatBookingDuration, DurationType } from '../utils/duration';
 
 const AMENITY_ICONS: Record<string, any> = {
   wifi: Wifi,
@@ -67,6 +68,8 @@ export default function WorkspaceDetailsPage() {
   const [bookingDate, setBookingDate] = useState('2026-07-01');
   const [bookingStart, setBookingStart] = useState('09:00');
   const [bookingEnd, setBookingEnd] = useState('11:00');
+  const [durationType, setDurationType] = useState<DurationType>('Daily');
+  const [durationQuantity, setDurationQuantity] = useState<number>(1);
   const [bookingPurpose, setBookingPurpose] = useState('Workspace Booking');
   const [submitting, setSubmitting] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
@@ -205,7 +208,7 @@ export default function WorkspaceDetailsPage() {
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const targetBookingUrl = `/booking?type=workspace&id=${id}`;
+    const targetBookingUrl = `/booking?type=workspace&id=${id}&durationType=${durationType}&durationQuantity=${durationQuantity}`;
     if (!isAuthenticated) {
       navigate(`/login?redirect=${encodeURIComponent(targetBookingUrl)}`);
       return;
@@ -463,6 +466,62 @@ export default function WorkspaceDetailsPage() {
                       You must be signed in to submit this booking. Proceeding will prompt login.
                     </div>
                   )}
+
+                  {/* Booking Duration Section */}
+                  <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-[16px] space-y-3 text-xs">
+                    <div className="flex items-center justify-between border-b border-neutral-800 pb-2">
+                      <span className="font-bold text-white flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-brand-accent" />
+                        <span>Booking Duration</span>
+                      </span>
+                      {durationType && (
+                        <span className="text-brand-accent font-extrabold bg-brand-accent/10 px-2 py-0.5 rounded border border-brand-accent/30 text-[11px]">
+                          {formatBookingDuration(durationType, durationQuantity)}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-bold text-neutral-300 mb-1">Duration Type</label>
+                        <select
+                          value={durationType}
+                          onChange={(e) => setDurationType(e.target.value as DurationType)}
+                          className="w-full bg-neutral-950 border border-neutral-800 rounded-[8px] px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-accent"
+                        >
+                          <option value="Hourly">Hourly</option>
+                          <option value="Daily">Daily</option>
+                          <option value="Weekly">Weekly</option>
+                          <option value="Monthly">Monthly</option>
+                          <option value="Yearly">Yearly</option>
+                        </select>
+                      </div>
+
+                      {durationType && (
+                        <div>
+                          <label className="block text-[11px] font-bold text-neutral-300 mb-1">Quantity</label>
+                          <input
+                            type="number"
+                            min={1}
+                            step={1}
+                            required
+                            value={durationQuantity}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value, 10);
+                              setDurationQuantity(isNaN(val) || val < 1 ? 1 : val);
+                            }}
+                            className="w-full bg-neutral-950 border border-neutral-800 rounded-[8px] px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-accent"
+                            placeholder="e.g. 1, 2, 3"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex justify-between items-center text-[11px] font-semibold text-neutral-400 pt-1">
+                      <span>Selected:</span>
+                      <span className="text-white font-bold">{formatBookingDuration(durationType, durationQuantity)}</span>
+                    </div>
+                  </div>
 
                   <Input
                     label="Booking Date"

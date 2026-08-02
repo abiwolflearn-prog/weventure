@@ -68,6 +68,7 @@ export class WorkspaceService {
       dailyRate: data.dailyRate !== undefined ? Number(data.dailyRate) : (data.dailyPrice !== undefined ? Number(data.dailyPrice) : 0),
       weeklyPrice: data.weeklyPrice !== undefined ? Number(data.weeklyPrice) : 0,
       monthlyPrice: data.monthlyPrice !== undefined ? Number(data.monthlyPrice) : 0,
+      yearlyPrice: data.yearlyPrice !== undefined ? Number(data.yearlyPrice) : 0,
       currency: data.currency || 'USD',
       coverImage: data.coverImage || data.imageUrl || '',
       imageUrl: data.imageUrl || data.coverImage || '',
@@ -165,6 +166,7 @@ export class WorkspaceService {
 
     if (updateData.weeklyPrice !== undefined) payload.weeklyPrice = Number(updateData.weeklyPrice);
     if (updateData.monthlyPrice !== undefined) payload.monthlyPrice = Number(updateData.monthlyPrice);
+    if (updateData.yearlyPrice !== undefined) payload.yearlyPrice = Number(updateData.yearlyPrice);
     if (updateData.currency !== undefined) payload.currency = updateData.currency;
 
     if (updateData.coverImage !== undefined) {

@@ -21,6 +21,29 @@ authRouter.post('/register', (req, res, next) => {
 });
 
 /**
+ * @route   POST /api/v1/auth/verify-email
+ * @route   GET /api/v1/auth/verify-email
+ * @desc    Verify email address using token or OTP code
+ * @access  Public
+ */
+authRouter.post('/verify-email', (req, res, next) => {
+  authController.verifyEmail(req, res, next);
+});
+
+authRouter.get('/verify-email', (req, res, next) => {
+  authController.verifyEmail(req, res, next);
+});
+
+/**
+ * @route   POST /api/v1/auth/resend-verification
+ * @desc    Resend verification email to user
+ * @access  Public
+ */
+authRouter.post('/resend-verification', (req, res, next) => {
+  authController.resendVerification(req, res, next);
+});
+
+/**
  * @route   POST /api/v1/auth/forgot-password
  * @desc    Request password reset email
  * @access  Public

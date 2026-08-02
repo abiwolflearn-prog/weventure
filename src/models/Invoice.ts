@@ -1,10 +1,15 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export enum InvoiceStatus {
-  UNPAID = 'UNPAID',
-  PAID = 'PAID',
-  VOID = 'VOID',
-  REFUNDED = 'REFUNDED',
+  DRAFT = 'Draft',
+  PENDING = 'Pending Payment',
+  PARTIALLY_PAID = 'Partially Paid',
+  PAID = 'Paid',
+  OVERDUE = 'Overdue',
+  CANCELLED = 'Cancelled',
+  UNPAID = 'Pending Payment',
+  VOID = 'Cancelled',
+  REFUNDED = 'Cancelled',
 }
 
 export interface IInvoiceDocument extends Document {
@@ -18,7 +23,8 @@ export interface IInvoiceDocument extends Document {
   paymentId?: string;
   amount: number;
   currency: string;
-  status: InvoiceStatus;
+  status: string;
+  customerType?: 'Individual' | 'Company';
   billingDetails: {
     name: string;
     email: string;
@@ -33,6 +39,9 @@ export interface IInvoiceDocument extends Document {
     unitPrice: number;
     amount: number;
   }[];
+  durationType?: 'Hourly' | 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
+  durationQuantity?: number;
+  unitPrice?: number;
   dueDate?: Date;
   paidAt?: Date;
   agreementNumber?: string;
@@ -43,6 +52,7 @@ export interface IInvoiceDocument extends Document {
   vat?: number;
   discount?: number;
   deposit?: number;
+  grandTotal?: number;
   previousBalance?: number;
   currentBalance?: number;
   outstandingBalance?: number;
@@ -64,11 +74,11 @@ const InvoiceSchema = new Schema<IInvoiceDocument>(
     currency: { type: String, required: true, default: 'ETB' },
     status: {
       type: String,
-      enum: Object.values(InvoiceStatus),
-      default: InvoiceStatus.UNPAID,
+      default: InvoiceStatus.PENDING,
       required: true,
       index: true,
     },
+    customerType: { type: String, enum: ['Individual', 'Company'], default: 'Individual' },
     billingDetails: {
       name: { type: String, required: true },
       email: { type: String, required: true },
@@ -85,6 +95,9 @@ const InvoiceSchema = new Schema<IInvoiceDocument>(
         amount: { type: Number, required: true, min: 0 },
       },
     ],
+    durationType: { type: String },
+    durationQuantity: { type: Number, default: 1 },
+    unitPrice: { type: Number, default: 0 },
     dueDate: { type: Date },
     paidAt: { type: Date },
     agreementNumber: { type: String },
@@ -95,6 +108,7 @@ const InvoiceSchema = new Schema<IInvoiceDocument>(
     vat: { type: Number, default: 0 },
     discount: { type: Number, default: 0 },
     deposit: { type: Number, default: 0 },
+    grandTotal: { type: Number, default: 0 },
     previousBalance: { type: Number, default: 0 },
     currentBalance: { type: Number, default: 0 },
     outstandingBalance: { type: Number, default: 0 },

@@ -5,6 +5,10 @@ export interface IBookingPayload {
   startTime: string;
   endTime: string;
   purpose?: string;
+  durationType?: 'Hourly' | 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
+  durationQuantity?: number;
+  unitPrice?: number;
+  formattedDuration?: string;
 }
 
 export const bookingApi = {

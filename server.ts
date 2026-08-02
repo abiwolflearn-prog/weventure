@@ -162,7 +162,7 @@ async function startServer() {
   // Register Global Error Handling Middleware (MUST be registered last)
   app.use(errorHandler);
 
-  const PORT = env.PORT;
+  const PORT = 3000;
   server.listen(PORT, '0.0.0.0', () => {
     logger.info(`===================================================`);
     logger.info(`🚀 WeVentureHub Platform running at http://0.0.0.0:${PORT}`);

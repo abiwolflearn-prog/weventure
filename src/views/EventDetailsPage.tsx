@@ -55,7 +55,10 @@ export default function EventDetailsPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await axiosInstance.get(`/public/events/slug/${slug}`);
+      console.log('Fetching event with slug:', slug);
+      const url = `/public/events/slug/${slug}`;
+      console.log('API URL:', url);
+      const res = await axiosInstance.get(url);
       const data = res.data.data;
       setEvent(data);
 

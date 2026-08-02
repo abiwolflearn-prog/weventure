@@ -843,12 +843,40 @@ export class PublicMarketplaceController {
    */
   public async submitContact(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      const tenantHeader = req.headers['x-tenant-id'] || 'weventurehub';
+      const tenantId = Array.isArray(tenantHeader) ? tenantHeader[0] : tenantHeader;
       const { name, email, phone, subject, message } = req.body;
       if (!email || !message) {
         res.status(400).json({ success: false, message: 'Email and message are required fields.' });
         return;
       }
 
+      // Save to Database
+      const { Contact } = await import('../models/Contact');
+      const nameParts = name?.trim().split(/\s+/) || [];
+      const firstName = nameParts[0] || 'Inquirer';
+      const lastName = nameParts.slice(1).join(' ') || 'Contact';
+
+      const newContact = new Contact({
+        tenantId,
+        firstName,
+        lastName,
+        email,
+        phone,
+        status: 'LEAD',
+        leadSource: 'Landing Page Contact Form',
+        notes: [
+          {
+            author: 'System Auto-Log',
+            content: `Subject: ${subject || 'General Inquiry'}. Message: "${message}"`,
+            createdAt: new Date(),
+          }
+        ]
+      });
+
+      await newContact.save();
+
+      // Send Email Notification
       await emailNotificationManager.sendContactFormNotification({
         customerName: name || 'Valued Visitor',
         customerEmail: email.toLowerCase(),

@@ -59,6 +59,9 @@ interface BookingRecord {
   notes?: string;
   documentUrl?: string;
   agreementId?: string;
+  durationType?: 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
+  durationQuantity?: number;
+  formattedDuration?: string;
   
   // Attached Registration Details
   primaryName?: string;
@@ -245,7 +248,10 @@ export default function BookingList() {
     userType: item.userType,
     userTypeDetails: item.userTypeDetails,
     workspace: item.workspace,
-    workspaceBookingInfo: item.workspaceBookingInfo
+    workspaceBookingInfo: item.workspaceBookingInfo,
+    durationType: item.durationType || item.workspaceBookingInfo?.durationType,
+    durationQuantity: item.durationQuantity || item.workspaceBookingInfo?.durationQuantity,
+    formattedDuration: item.formattedDuration || item.workspaceBookingInfo?.formattedDuration,
   }));
 
   const combinedBookings: BookingRecord[] = [...formattedLocalWorkspaces];
@@ -664,6 +670,12 @@ export default function BookingList() {
                             {bkg.teamSize && (
                               <span className="text-[10px] bg-indigo-50 text-indigo-600 font-semibold px-2 py-0.5 rounded">
                                 Seats/Desks: {bkg.teamSize} pax
+                              </span>
+                            )}
+                            {(bkg.formattedDuration || bkg.workspaceBookingInfo?.formattedDuration || (bkg.durationType && bkg.durationQuantity ? `${bkg.durationQuantity} ${bkg.durationType}` : null)) && (
+                              <span className="text-[10px] bg-amber-50 text-amber-800 font-bold px-2 py-0.5 rounded border border-amber-200 flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-amber-600" />
+                                <span>Duration: {bkg.formattedDuration || bkg.workspaceBookingInfo?.formattedDuration || `${bkg.durationQuantity} ${bkg.durationType}`}</span>
                               </span>
                             )}
                           </div>

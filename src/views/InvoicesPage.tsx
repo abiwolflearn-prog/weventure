@@ -1,235 +1,1364 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useMemo, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { paymentApi } from '../lib/paymentApi';
-import { FileText, Download, Loader2, Calendar, Receipt, CreditCard } from 'lucide-react';
+import { workspaceApi } from '../lib/workspaceApi';
+import { useAppSelector } from '../store';
+import { UserRole } from '../types';
 import { Button } from '../components/Button';
+import { Input } from '../components/Input';
+import {
+ FileText,
+ Download,
+ Loader2,
+ Calendar,
+ Receipt,
+ CreditCard,
+ Search,
+ Filter,
+ Printer,
+ FileSpreadsheet,
+ Building2,
+ User,
+ CheckCircle2,
+ Clock,
+ AlertCircle,
+ XCircle,
+ ArrowUpDown,
+ ChevronDown,
+ RefreshCw,
+ Eye,
+ DollarSign,
+ TrendingUp,
+ PieChart as PieChartIcon,
+ X,
+ Check,
+ Building,
+ Tag,
+ Hash,
+ Mail,
+ Phone,
+ HelpCircle,
+} from 'lucide-react';
+import {
+ BarChart,
+ Bar,
+ XAxis,
+ YAxis,
+ CartesianGrid,
+ Tooltip,
+ ResponsiveContainer,
+ PieChart,
+ Pie,
+ Cell,
+} from 'recharts';
 
 export default function InvoicesPage() {
-  const navigate = useNavigate();
+ const navigate = useNavigate();
+ const queryClient = useQueryClient();
+ const { user } = useAppSelector((state) => state.auth);
 
-  const { data: invoices = [], isLoading, isError } = useQuery({
-    queryKey: ['invoices'],
-    queryFn: () => paymentApi.getInvoices(),
-  });
+ const isAdmin =
+ user?.role === UserRole.SUPER_ADMIN ||
+ user?.role === UserRole.TENANT_ADMIN ||
+ user?.role === UserRole.STAFF;
 
-  const handleDownload = (id: string, invoiceNumber: string) => {
-    const token = localStorage.getItem('weventure_jwt_token');
-    const url = `/api/v1/payments/invoices/${id}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`;
-    window.open(url, '_blank');
-  };
+ // View state: 'ledger' or 'analytics'
+ const [activeTab, setActiveTab] = useState<'ledger' | 'analytics'>('ledger');
 
-  const handlePayInvoice = (invoice: any) => {
-    navigate('/dashboard/checkout', {
-      state: {
-        targetType: 'INVOICE',
-        targetId: invoice.id,
-        amount: invoice.amount,
-        currency: invoice.currency || 'ETB',
-        title: invoice.workspaceName ? `Invoice for ${invoice.workspaceName}` : `Invoice ${invoice.invoiceNumber}`,
-        description: `WeVentureHub Approved Reservation Invoice (${invoice.invoiceNumber})`,
-        invoiceNumber: invoice.invoiceNumber,
-        billingDetails: invoice.billingDetails,
-      }
-    });
-  };
+ // Filter & Search states
+ const [searchQuery, setSearchQuery] = useState('');
+ const [statusFilter, setStatusFilter] = useState('All');
+ const [customerTypeFilter, setCustomerTypeFilter] = useState('All');
+ const [workspaceFilter, setWorkspaceFilter] = useState('All');
+ const [startDate, setStartDate] = useState('');
+ const [endDate, setEndDate] = useState('');
+ const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'due_date' | 'amount_desc' | 'amount_asc'>('newest');
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3">
-        <Loader2 className="w-10 h-10 text-[#84CC16] animate-spin" />
-        <span className="text-xs text-[#4B5563] font-mono">Synchronizing billing records...</span>
-      </div>
-    );
-  }
+ // Selected Invoice for detail modal / print modal
+ const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
+ const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+ const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-display font-extrabold text-2xl tracking-tight text-[#111827] dark:text-white">Billing & Invoices</h1>
-        <p className="text-xs text-[#4B5563] dark:text-neutral-slate-400 mt-1">Access historic invoices, tax descriptors, and transactional logs</p>
-      </div>
+ // Print ref
+ const printContainerRef = useRef<HTMLDivElement>(null);
 
-      {isError || invoices.length === 0 ? (
-        <div className="text-center py-20 bg-white dark:bg-neutral-slate-900 border border-[#E5E7EB] dark:border-neutral-slate-800 rounded-3xl space-y-4">
-          <Receipt className="w-12 h-12 text-[#9CA3AF] mx-auto" />
-          <h3 className="font-display font-bold text-base text-[#111827] dark:text-white">No invoices discovered</h3>
-          <p className="text-xs text-[#4B5563] dark:text-neutral-slate-400 max-w-sm mx-auto">
-            Your billing drawer is empty. Purchase ticket admissions or reserve executive workspaces to see invoice entries here.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {/* Mobile View: Cards (block md:hidden) */}
-          <div className="block md:hidden space-y-4">
-            {invoices.map((invoice: any) => {
-              const isPaid = invoice.status === 'PAID';
-              const statusColors = 
-                isPaid
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900'
-                  : invoice.status === 'REFUNDED'
-                  ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900'
-                  : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900';
+ // Fetch Workspaces list for dropdown filter
+ const { data: workspacesData } = useQuery({
+ queryKey: ['workspaces-list'],
+ queryFn: () => workspaceApi.getWorkspaces(),
+ enabled: isAdmin,
+ });
 
-              return (
-                <div 
-                  key={invoice.id} 
-                  className="bg-white dark:bg-neutral-slate-900 border border-[#E5E7EB] dark:border-neutral-slate-800 rounded-2xl p-5 space-y-4 shadow-xs"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2 font-mono font-bold text-sm text-[#111827] dark:text-white">
-                      <FileText className="w-4.5 h-4.5 text-[#65A30D]" />
-                      <span>{invoice.invoiceNumber}</span>
-                    </div>
-                    <span className={`px-2.5 py-1 text-[9px] font-black uppercase rounded-full border ${statusColors}`}>
-                      {invoice.status}
-                    </span>
-                  </div>
+ const workspaces: any[] = useMemo(() => {
+ if (Array.isArray(workspacesData)) return workspacesData;
+ if (Array.isArray((workspacesData as any)?.data)) return (workspacesData as any).data;
+ return [];
+ }, [workspacesData]);
 
-                  <div className="space-y-1.5 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-neutral-slate-400">Billing Contact:</span>
-                      <span className="font-semibold text-neutral-slate-800 dark:text-neutral-slate-200">{invoice.billingDetails?.name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-slate-400">Email:</span>
-                      <span className="font-mono text-[10px] text-neutral-slate-600 dark:text-neutral-slate-300">{invoice.billingDetails?.email}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-slate-400">Date:</span>
-                      <span className="font-medium text-neutral-slate-700 dark:text-neutral-slate-300 flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {new Date(invoice.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-slate-400">Reference:</span>
-                      <span className="font-mono text-[10px] text-neutral-slate-600 dark:text-neutral-slate-300 uppercase">
-                        {invoice.paymentId ? 'Verified Checkout' : 'N/A'}
-                      </span>
-                    </div>
-                  </div>
+ // Fetch Invoices with params
+ const {
+ data: invoicesData,
+ isLoading: isLoadingInvoices,
+ isError,
+ refetch: refetchInvoices,
+ } = useQuery({
+ queryKey: [
+ 'invoices',
+ searchQuery,
+ statusFilter,
+ customerTypeFilter,
+ workspaceFilter,
+ startDate,
+ endDate,
+ sortBy,
+    ],
+    queryFn: () =>
+ paymentApi.getInvoices({
+ search: searchQuery || undefined,
+ status: statusFilter !== 'All' ? statusFilter : undefined,
+ customerType: customerTypeFilter !== 'All' ? customerTypeFilter : undefined,
+ workspaceId: workspaceFilter !== 'All' ? workspaceFilter : undefined,
+ startDate: startDate || undefined,
+ endDate: endDate || undefined,
+ sort: sortBy,
+ }),
+ });
 
-                  <div className="border-t border-neutral-slate-100 dark:border-neutral-slate-850 pt-4 flex items-center justify-between gap-2">
-                    <div className="text-base font-black text-[#111827] dark:text-white">
-                      {invoice.amount.toFixed(2)} <span className="text-xs font-normal text-neutral-slate-400">{invoice.currency || 'ETB'}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {!isPaid && (
-                        <Button
-                          size="sm"
-                          variant="primary"
-                          onClick={() => handlePayInvoice(invoice)}
-                          className="rounded-xl bg-[#84CC16] hover:bg-[#73B612] text-[#111827] font-bold text-[11px] flex items-center gap-1"
-                        >
-                          <CreditCard className="w-3.5 h-3.5" />
-                          <span>Pay Invoice</span>
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleDownload(invoice.id, invoice.invoiceNumber)}
-                        className="rounded-xl flex items-center gap-1 text-[11px] font-bold"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Download</span>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+ const invoices: any[] = useMemo(() => {
+ if (Array.isArray(invoicesData)) return invoicesData;
+ if (Array.isArray((invoicesData as any)?.data)) return (invoicesData as any).data;
+ return [];
+ }, [invoicesData]);
 
-          {/* Desktop View: Traditional Table (hidden md:block) */}
-          <div className="hidden md:block bg-white dark:bg-neutral-slate-900 border border-[#E5E7EB] dark:border-neutral-slate-800 rounded-3xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-[#F9FAFB] dark:bg-neutral-slate-850 border-b border-[#E5E7EB] dark:border-neutral-slate-800 text-[#4B5563] dark:text-neutral-slate-300 font-extrabold uppercase tracking-wider text-[10px] select-none">
-                    <th className="py-4.5 px-6">Invoice Number</th>
-                    <th className="py-4.5 px-6">Billing Contact</th>
-                    <th className="py-4.5 px-6">Payment Reference</th>
-                    <th className="py-4.5 px-6">Date Generated</th>
-                    <th className="py-4.5 px-6">Amount</th>
-                    <th className="py-4.5 px-6">Status</th>
-                    <th className="py-4.5 px-6 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invoices.map((invoice: any) => {
-                    const isPaid = invoice.status === 'PAID';
-                    const statusColors = 
-                      isPaid
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900'
-                        : invoice.status === 'REFUNDED'
-                        ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900'
-                        : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900';
+ // Fetch Invoice Stats for Dashboard
+ const { data: stats, isLoading: isLoadingStats, refetch: refetchStats } = useQuery({
+ queryKey: ['invoice-stats'],
+ queryFn: () => paymentApi.getInvoiceStats(),
+ enabled: isAdmin,
+ });
 
-                    return (
-                      <tr 
-                        key={invoice.id}
-                        className="border-b border-[#E5E7EB] dark:border-neutral-slate-800 hover:bg-[#F9FAFB] dark:hover:bg-neutral-slate-850 transition-all animate-fade-in"
-                      >
-                        <td className="py-4 px-6 font-mono font-bold text-[#111827] dark:text-white flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-[#65A30D]" />
-                          <span>{invoice.invoiceNumber}</span>
-                        </td>
-                        <td className="py-4 px-6">
-                          <div className="font-semibold text-[#111827] dark:text-white">{invoice.billingDetails?.name}</div>
-                          <div className="text-[10px] text-[#4B5563] dark:text-neutral-slate-400 font-mono mt-0.5">{invoice.billingDetails?.email}</div>
-                        </td>
-                        <td className="py-4 px-6 font-mono text-[#4B5563] dark:text-neutral-slate-400 text-[11px] uppercase">
-                          {invoice.paymentId ? 'Verified Checkout' : 'N/A'}
-                        </td>
-                        <td className="py-4 px-6 text-[#4B5563] dark:text-neutral-slate-400 font-medium">
-                          <div className="flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5" />
-                            <span>{new Date(invoice.createdAt).toLocaleDateString()}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 font-bold text-sm text-[#111827] dark:text-white">
-                          {invoice.amount.toFixed(2)} {invoice.currency || 'ETB'}
-                        </td>
-                        <td className="py-4 px-6">
-                          <span className={`px-2.5 py-1 text-[10px] font-extrabold uppercase rounded-full border ${statusColors}`}>
-                            {invoice.status}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {!isPaid && (
-                              <Button
-                                size="sm"
-                                variant="primary"
-                                onClick={() => handlePayInvoice(invoice)}
-                                className="rounded-xl bg-[#84CC16] hover:bg-[#73B612] text-[#111827] font-bold text-[11px] flex items-center gap-1.5"
-                              >
-                                <CreditCard className="w-3.5 h-3.5" />
-                                <span>Pay Invoice</span>
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => handleDownload(invoice.id, invoice.invoiceNumber)}
-                              className="rounded-xl flex items-center gap-1.5 text-[11px] font-bold"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                              <span>Download TXT</span>
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+ // Status update mutation
+ const updateStatusMutation = useMutation({
+ mutationFn: ({ id, status }: { id: string; status: string }) =>
+ paymentApi.updateInvoiceStatus(id, status),
+ onSuccess: () => {
+ queryClient.invalidateQueries({ queryKey: ['invoices'] });
+ queryClient.invalidateQueries({ queryKey: ['invoice-stats'] });
+ if (selectedInvoice) {
+ // Update local modal data
+ paymentApi.getInvoiceById(selectedInvoice.id).then((updated) => {
+ if (updated) setSelectedInvoice(updated);
+ });
+ }
+ setIsUpdatingStatus(null);
+ },
+ onError: (err: any) => {
+ alert(`Failed to update status: ${err?.response?.data?.message || err.message}`);
+ setIsUpdatingStatus(null);
+ },
+ });
+
+ const handleStatusChange = (invoiceId: string, newStatus: string) => {
+ setIsUpdatingStatus(invoiceId);
+ updateStatusMutation.mutate({ id: invoiceId, status: newStatus });
+ };
+
+ const handlePayInvoice = (invoice: any) => {
+ navigate('/dashboard/checkout', {
+ state: {
+ targetType: 'INVOICE',
+ targetId: invoice.id,
+ amount: invoice.grandTotal || invoice.amount,
+ currency: invoice.currency || 'ETB',
+ title: invoice.workspaceName
+ ? `Invoice for ${invoice.workspaceName}`
+ : `Invoice ${invoice.invoiceNumber}`,
+ description: `WeVentureHub Reservation Invoice (${invoice.invoiceNumber})`,
+ invoiceNumber: invoice.invoiceNumber,
+ billingDetails: invoice.billingDetails,
+ },
+ });
+ };
+
+ const handleDownloadTxt = (id: string, invoiceNumber: string) => {
+ const token = localStorage.getItem('weventure_jwt_token');
+ const url = `/api/v1/payments/invoices/${id}/download${
+ token ? `?token=${encodeURIComponent(token)}` : ''
+ }`;
+ window.open(url, '_blank');
+ };
+
+ const handlePrint = (invoice: any) => {
+ setSelectedInvoice(invoice);
+ setIsDetailModalOpen(true);
+ setTimeout(() => {
+ window.print();
+ }, 400);
+ };
+
+ // Export invoice list to Excel/CSV
+ const handleExportCSV = () => {
+ if (!invoices || invoices.length === 0) {
+ alert('No invoice data available to export.');
+ return;
+ }
+
+ const headers = [
+ 'Invoice Number',
+ 'Booking ID',
+ 'Customer Type',
+ 'Customer Name',
+ 'Company Name',
+ 'Email',
+ 'Phone',
+ 'Workspace Name',
+ 'Duration Type',
+ 'Quantity',
+ 'Unit Price',
+ 'Subtotal',
+ 'Tax (VAT)',
+ 'Discount',
+ 'Grand Total',
+ 'Due Date',
+ 'Status',
+ 'Date Issued',
+ 'Paid At'
+  ];
+
+ const rows = invoices.map((inv: any) => [
+ `"${inv.invoiceNumber || ''}"`,
+ `"${inv.bookingId || ''}"`,
+ `"${inv.customerType || 'Individual'}"`,
+ `"${inv.billingDetails?.name || ''}"`,
+ `"${inv.billingDetails?.company || ''}"`,
+ `"${inv.billingDetails?.email || inv.userEmail || ''}"`,
+ `"${inv.billingDetails?.phone || ''}"`,
+ `"${inv.workspaceName || ''}"`,
+ `"${inv.durationType || 'Hourly'}"`,
+ inv.durationQuantity || 1,
+ inv.unitPrice || inv.amount || 0,
+ inv.amount || 0,
+ inv.vat || 0,
+ inv.discount || 0,
+ inv.grandTotal || inv.amount || 0,
+ inv.dueDate ? new Date(inv.dueDate).toISOString().split('T')[0] : '',
+ `"${inv.status || 'Pending Payment'}"`,
+ inv.createdAt ? new Date(inv.createdAt).toISOString().split('T')[0] : '',
+ inv.paidAt ? new Date(inv.paidAt).toISOString().split('T')[0] : '',
+    ]);
+
+ const csvContent =
+ 'data:text/csv;charset=utf-8,' +
+ [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+
+ const encodedUri = encodeURI(csvContent);
+ const link = document.createElement('a');
+ link.setAttribute('href', encodedUri);
+ link.setAttribute(
+ 'download',
+ `weventurehub_invoices_${new Date().toISOString().split('T')[0]}.csv`
+ );
+ document.body.appendChild(link);
+ link.click();
+ document.body.removeChild(link);
+ };
+
+ // Helper for Status Badge styling
+ const getStatusBadge = (status: string) => {
+ const s = String(status || '').toLowerCase();
+ if (s === 'paid') {
+ return (
+ <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-extrabold uppercase rounded-full bg-emerald-100 text-[#4D7C0F] border border-emerald-300 /40 ">
+ <CheckCircle2 className="w-3.5 h-3.5" />
+ <span>Paid</span>
+ </span>
+ );
+ }
+ if (s === 'partially paid') {
+ return (
+ <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-extrabold uppercase rounded-full bg-blue-100 text-blue-800 border border-blue-300 /40 ">
+ <Clock className="w-3.5 h-3.5" />
+ <span>Partially Paid</span>
+ </span>
+ );
+ }
+ if (s === 'overdue') {
+ return (
+ <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-extrabold uppercase rounded-full bg-rose-100 text-rose-800 border border-rose-300 /40 animate-pulse">
+ <AlertCircle className="w-3.5 h-3.5" />
+ <span>Overdue</span>
+ </span>
+ );
+ }
+ if (s === 'cancelled' || s === 'void' || s === 'refunded') {
+ return (
+ <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-extrabold uppercase rounded-full bg-neutral-200 text-neutral-700 border border-neutral-300 ">
+ <XCircle className="w-3.5 h-3.5" />
+ <span>Cancelled</span>
+ </span>
+ );
+ }
+ if (s === 'draft') {
+ return (
+ <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-extrabold uppercase rounded-full bg-amber-100 text-amber-800 border border-amber-300 /40 ">
+ <Receipt className="w-3.5 h-3.5" />
+ <span>Draft</span>
+ </span>
+ );
+ }
+ // Default Pending Payment / Unpaid
+ return (
+ <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-extrabold uppercase rounded-full bg-amber-50 text-amber-800 border border-amber-200 /30 ">
+ <Clock className="w-3.5 h-3.5" />
+ <span>Pending Payment</span>
+ </span>
+ );
+ };
+
+ const COLORS = ['#84CC16', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
+
+ return (
+ <div className="space-y-6 pb-12">
+ {/* Printable Invoice Container (visible during window.print()) */}
+ <style>{`
+ @media print {
+ body * {
+ visibility: hidden;
+ }
+ #printable-invoice, #printable-invoice * {
+ visibility: visible;
+ }
+ #printable-invoice {
+ position: absolute;
+ left: 0;
+ top: 0;
+ width: 100%;
+ background: white !important;
+ color: black !important;
+ padding: 20px;
+ }
+ .no-print {
+ display: none !important;
+ }
+ }
+ `}</style>
+
+ {/* Main Page Title Header */}
+ <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E5E7EB] pb-5">
+ <div>
+ <div className="flex items-center gap-2">
+ <Receipt className="w-7 h-7 text-[#65A30D]" />
+ <h1 className="font-display font-extrabold text-2xl tracking-tight text-[#111827]">
+ Workspace Invoice Management
+ </h1>
+ </div>
+ <p className="text-xs text-[#4B5563] mt-1">
+ {isAdmin
+ ? 'Complete tenancy billing ledger, customer invoicing, automated status tracking, and revenue diagnostics'
+ : 'View your workspace booking invoices, payment statuses, and downloadable receipts'}
+ </p>
+ </div>
+
+ <div className="flex items-center gap-2">
+ {isAdmin && (
+ <>
+ <div className="bg-[#F3F4F6] p-1 rounded-2xl flex items-center border border-[#E5E7EB] ">
+ <button
+ onClick={() => setActiveTab('ledger')}
+ className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${
+ activeTab === 'ledger'
+ ? 'bg-white text-[#111827] shadow-xs'
+ : 'text-[#4B5563] hover:text-[#111827]'
+ }`}
+ >
+ <FileText className="w-3.5 h-3.5 text-[#65A30D]" />
+ <span>Invoice Ledger</span>
+ </button>
+ <button
+ onClick={() => setActiveTab('analytics')}
+ className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${
+ activeTab === 'analytics'
+ ? 'bg-white text-[#111827] shadow-xs'
+ : 'text-[#4B5563] hover:text-[#111827]'
+ }`}
+ >
+ <TrendingUp className="w-3.5 h-3.5 text-[#65A30D]" />
+ <span>Revenue Analytics</span>
+ </button>
+ </div>
+
+ <Button
+ size="sm"
+ variant="secondary"
+ onClick={handleExportCSV}
+ className="rounded-xl font-bold text-xs flex items-center gap-1.5"
+ >
+ <FileSpreadsheet className="w-4 h-4 text-[#65A30D]" />
+ <span>Export CSV/Excel</span>
+ </Button>
+ </>
+ )}
+
+ <Button
+ size="sm"
+ variant="secondary"
+ onClick={() => {
+ refetchInvoices();
+ if (isAdmin) refetchStats();
+ }}
+ className="rounded-xl font-bold text-xs flex items-center gap-1.5"
+ >
+ <RefreshCw className="w-3.5 h-3.5" />
+ <span>Refresh</span>
+ </Button>
+ </div>
+ </div>
+
+ {/* Admin Dashboard Summary Statistics Cards */}
+ {isAdmin && stats && (
+ <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
+ {/* Total Invoices */}
+ <div className="bg-white border border-[#E5E7EB] rounded-2xl p-4 space-y-2 shadow-xs">
+ <div className="flex items-center justify-between text-neutral-400">
+ <span className="text-[11px] font-bold uppercase tracking-wider text-[#4B5563] ">
+ Total Invoices
+ </span>
+ <FileText className="w-4 h-4 text-[#65A30D]" />
+ </div>
+ <div className="font-display font-extrabold text-2xl text-[#111827]">
+ {stats.totalInvoices || 0}
+ </div>
+ <div className="text-[10px] text-[#65A30D] font-bold">Workspace Ledger</div>
+ </div>
+
+ {/* Total Revenue */}
+ <div className="bg-white border border-[#E5E7EB] rounded-2xl p-4 space-y-2 shadow-xs">
+ <div className="flex items-center justify-between text-neutral-400">
+ <span className="text-[11px] font-bold uppercase tracking-wider text-[#4B5563] ">
+ Total Revenue
+ </span>
+ <DollarSign className="w-4 h-4 text-[#84CC16]" />
+ </div>
+ <div className="font-display font-extrabold text-xl text-[#111827] truncate">
+ {(stats.totalRevenue || 0).toLocaleString()} <span className="text-xs font-normal">ETB</span>
+ </div>
+ <div className="text-[10px] text-[#65A30D] font-bold">Paid Settlements</div>
+ </div>
+
+ {/* Paid Invoices */}
+ <div className="bg-white border border-[#E5E7EB] rounded-2xl p-4 space-y-2 shadow-xs">
+ <div className="flex items-center justify-between text-neutral-400">
+ <span className="text-[11px] font-bold uppercase tracking-wider text-[#4B5563] ">
+ Paid Invoices
+ </span>
+ <CheckCircle2 className="w-4 h-4 text-[#65A30D]" />
+ </div>
+ <div className="font-display font-extrabold text-2xl text-[#65A30D] ">
+ {stats.paidInvoices || 0}
+ </div>
+ <div className="text-[10px] text-neutral-500 font-medium">
+ {stats.totalInvoices
+ ? `${Math.round(((stats.paidInvoices || 0) / stats.totalInvoices) * 100)}% Settled`
+ : '0% Settled'}
+ </div>
+ </div>
+
+ {/* Pending Invoices */}
+ <div className="bg-white border border-[#E5E7EB] rounded-2xl p-4 space-y-2 shadow-xs">
+ <div className="flex items-center justify-between text-neutral-400">
+ <span className="text-[11px] font-bold uppercase tracking-wider text-[#4B5563] ">
+ Pending Invoices
+ </span>
+ <Clock className="w-4 h-4 text-amber-500" />
+ </div>
+ <div className="font-display font-extrabold text-2xl text-amber-600 ">
+ {stats.pendingInvoices || 0}
+ </div>
+ <div className="text-[10px] text-amber-700 font-medium">
+ Awaiting Checkout
+ </div>
+ </div>
+
+ {/* Unpaid Invoices */}
+ <div className="bg-white border border-[#E5E7EB] rounded-2xl p-4 space-y-2 shadow-xs">
+ <div className="flex items-center justify-between text-neutral-400">
+ <span className="text-[11px] font-bold uppercase tracking-wider text-[#4B5563] ">
+ Unpaid Total
+ </span>
+ <Receipt className="w-4 h-4 text-blue-500" />
+ </div>
+ <div className="font-display font-extrabold text-2xl text-blue-600 ">
+ {stats.unpaidInvoices || 0}
+ </div>
+ <div className="text-[10px] text-blue-600 font-medium">Open Balance</div>
+ </div>
+
+ {/* Overdue Invoices */}
+ <div className="bg-white border border-[#E5E7EB] rounded-2xl p-4 space-y-2 shadow-xs">
+ <div className="flex items-center justify-between text-neutral-400">
+ <span className="text-[11px] font-bold uppercase tracking-wider text-[#4B5563] ">
+ Overdue
+ </span>
+ <AlertCircle className="w-4 h-4 text-rose-500" />
+ </div>
+ <div className="font-display font-extrabold text-2xl text-rose-600 ">
+ {stats.overdueInvoices || 0}
+ </div>
+ <div className="text-[10px] text-rose-600 font-bold">Past Due Grace</div>
+ </div>
+ </div>
+ )}
+
+ {/* Analytics Tab View */}
+ {isAdmin && activeTab === 'analytics' && stats && (
+ <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in">
+ {/* Monthly Revenue Chart */}
+ <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 space-y-4 shadow-xs">
+ <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
+ <div className="flex items-center gap-2">
+ <TrendingUp className="w-5 h-5 text-[#65A30D]" />
+ <h3 className="font-display font-bold text-base text-[#111827]">
+ Monthly Revenue Trend
+ </h3>
+ </div>
+ <span className="text-xs text-[#4B5563] font-mono">
+ Historical Income
+ </span>
+ </div>
+
+ {stats.monthlyRevenue && stats.monthlyRevenue.length > 0 ? (
+ <div className="h-64 w-full">
+ <ResponsiveContainer width="100%" height="100%">
+ <BarChart data={stats.monthlyRevenue}>
+ <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
+ <XAxis dataKey="month" stroke="#9CA3AF" fontSize={11} />
+ <YAxis stroke="#9CA3AF" fontSize={11} />
+ <Tooltip
+ formatter={(val: any) => [`${Number(val).toLocaleString()} ETB`, 'Revenue']}
+ contentStyle={{
+ backgroundColor: '#111827',
+ borderColor: '#374151',
+ borderRadius: '12px',
+ color: '#FFF',
+ fontSize: '12px',
+ }}
+ />
+ <Bar dataKey="revenue" fill="#84CC16" radius={[6, 6, 0, 0]} />
+ </BarChart>
+ </ResponsiveContainer>
+ </div>
+ ) : (
+ <div className="h-48 flex items-center justify-center text-xs text-neutral-400">
+ No monthly revenue trend recorded yet.
+ </div>
+ )}
+ </div>
+
+ {/* Revenue by Workspace Breakdown */}
+ <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 space-y-4 shadow-xs">
+ <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
+ <div className="flex items-center gap-2">
+ <PieChartIcon className="w-5 h-5 text-[#65A30D]" />
+ <h3 className="font-display font-bold text-base text-[#111827]">
+ Revenue by Workspace
+ </h3>
+ </div>
+ <span className="text-xs text-[#4B5563] font-mono">
+ Space Performance
+ </span>
+ </div>
+
+ {stats.revenueByWorkspace && stats.revenueByWorkspace.length > 0 ? (
+ <div className="space-y-3">
+ {stats.revenueByWorkspace.map((ws: any, idx: number) => {
+ const percent = stats.totalRevenue
+ ? Math.round((ws.revenue / stats.totalRevenue) * 100)
+ : 0;
+ return (
+ <div
+ key={idx}
+ className="flex items-center justify-between p-3 rounded-2xl bg-[#F9FAFB] border border-[#E5E7EB] text-xs"
+ >
+ <div className="flex items-center gap-2.5">
+ <div
+ className="w-3 h-3 rounded-full"
+ style={{ backgroundColor: COLORS[idx % COLORS.length] }}
+ />
+ <div>
+ <div className="font-bold text-[#111827]">{ws.name}</div>
+ <div className="text-[10px] text-[#4B5563] ">
+ {ws.count} paid invoice(s)
+ </div>
+ </div>
+ </div>
+ <div className="text-right">
+ <div className="font-black text-sm text-[#111827]">
+ {ws.revenue.toLocaleString()} ETB
+ </div>
+ <div className="text-[10px] font-bold text-[#65A30D]">{percent}% of Total</div>
+ </div>
+ </div>
+ );
+ })}
+ </div>
+ ) : (
+ <div className="h-48 flex items-center justify-center text-xs text-neutral-400">
+ No workspace revenue breakdown available yet.
+ </div>
+ )}
+ </div>
+ </div>
+ )}
+
+ {/* Ledger & Search Filters Section */}
+ <div className="bg-white border border-[#E5E7EB] rounded-3xl p-5 space-y-4 shadow-xs">
+ {/* Search Input Bar */}
+ <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+ <div className="relative flex-1">
+ <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-3.5" />
+ <Input
+ type="text"
+ placeholder="Search by invoice #, customer, company, email, workspace, or booking ID..."
+ value={searchQuery}
+ onChange={(e) => setSearchQuery(e.target.value)}
+ className="pl-10 text-xs rounded-2xl border-[#E5E7EB] "
+ />
+ {searchQuery && (
+ <button
+ onClick={() => setSearchQuery('')}
+ className="absolute right-3 top-3 text-neutral-400 hover:text-neutral-600"
+ >
+ <X className="w-4 h-4" />
+ </button>
+ )}
+ </div>
+
+ <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+ {/* Sort Control */}
+ <select
+ value={sortBy}
+ onChange={(e: any) => setSortBy(e.target.value)}
+ className="bg-[#F9FAFB] border border-[#E5E7EB] text-xs font-semibold rounded-2xl px-3 py-2 text-[#111827]"
+ >
+ <option value="newest">Sort: Newest First</option>
+ <option value="oldest">Sort: Oldest First</option>
+ <option value="due_date">Sort: Due Date</option>
+ <option value="amount_desc">Sort: Amount (High to Low)</option>
+ <option value="amount_asc">Sort: Amount (Low to High)</option>
+ </select>
+ </div>
+ </div>
+
+ {/* Filters Grid */}
+ <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-2 border-t border-[#E5E7EB] ">
+ {/* Status Filter */}
+ <div>
+ <label className="block text-[10px] font-extrabold uppercase text-[#4B5563] mb-1">
+ Invoice Status
+ </label>
+ <select
+ value={statusFilter}
+ onChange={(e) => setStatusFilter(e.target.value)}
+ className="w-full bg-[#F9FAFB] border border-[#E5E7EB] text-xs font-medium rounded-xl px-2.5 py-1.5 text-[#111827]"
+ >
+ <option value="All">All Statuses</option>
+ <option value="Paid">Paid</option>
+ <option value="Pending Payment">Pending Payment</option>
+ <option value="Partially Paid">Partially Paid</option>
+ <option value="Overdue">Overdue</option>
+ <option value="Cancelled">Cancelled</option>
+ <option value="Draft">Draft</option>
+ </select>
+ </div>
+
+ {/* Customer Type Filter */}
+ <div>
+ <label className="block text-[10px] font-extrabold uppercase text-[#4B5563] mb-1">
+ Customer Type
+ </label>
+ <select
+ value={customerTypeFilter}
+ onChange={(e) => setCustomerTypeFilter(e.target.value)}
+ className="w-full bg-[#F9FAFB] border border-[#E5E7EB] text-xs font-medium rounded-xl px-2.5 py-1.5 text-[#111827]"
+ >
+ <option value="All">All Types</option>
+ <option value="Individual">Individual Customer</option>
+ <option value="Company">Company / Org</option>
+ </select>
+ </div>
+
+ {/* Workspace Filter */}
+ {isAdmin && (
+ <div>
+ <label className="block text-[10px] font-extrabold uppercase text-[#4B5563] mb-1">
+ Workspace
+ </label>
+ <select
+ value={workspaceFilter}
+ onChange={(e) => setWorkspaceFilter(e.target.value)}
+ className="w-full bg-[#F9FAFB] border border-[#E5E7EB] text-xs font-medium rounded-xl px-2.5 py-1.5 text-[#111827] truncate"
+ >
+ <option value="All">All Workspaces</option>
+ {workspaces.map((ws: any) => (
+ <option key={ws.id} value={ws.id}>
+ {ws.name}
+ </option>
+ ))}
+ </select>
+ </div>
+ )}
+
+ {/* Date Range Start */}
+ <div>
+ <label className="block text-[10px] font-extrabold uppercase text-[#4B5563] mb-1">
+ Start Date
+ </label>
+ <input
+ type="date"
+ value={startDate}
+ onChange={(e) => setStartDate(e.target.value)}
+ className="w-full bg-[#F9FAFB] border border-[#E5E7EB] text-xs font-medium rounded-xl px-2 py-1 text-[#111827]"
+ />
+ </div>
+
+ {/* Date Range End */}
+ <div>
+ <label className="block text-[10px] font-extrabold uppercase text-[#4B5563] mb-1">
+ End Date
+ </label>
+ <input
+ type="date"
+ value={endDate}
+ onChange={(e) => setEndDate(e.target.value)}
+ className="w-full bg-[#F9FAFB] border border-[#E5E7EB] text-xs font-medium rounded-xl px-2 py-1 text-[#111827]"
+ />
+ </div>
+ </div>
+
+ {/* Filter Clear Trigger */}
+ {(statusFilter !== 'All' ||
+ customerTypeFilter !== 'All' ||
+ workspaceFilter !== 'All' ||
+ startDate ||
+ endDate ||
+ searchQuery) && (
+ <div className="flex justify-end pt-1">
+ <button
+ onClick={() => {
+ setStatusFilter('All');
+ setCustomerTypeFilter('All');
+ setWorkspaceFilter('All');
+ setStartDate('');
+ setEndDate('');
+ setSearchQuery('');
+ }}
+ className="text-[11px] font-bold text-rose-600 hover:text-rose-700 flex items-center gap-1"
+ >
+ <X className="w-3.5 h-3.5" />
+ <span>Reset Filters</span>
+ </button>
+ </div>
+ )}
+ </div>
+
+ {/* Invoices List Display */}
+ {isLoadingInvoices ? (
+ <div className="flex flex-col items-center justify-center py-20 gap-3">
+ <Loader2 className="w-10 h-10 text-[#84CC16] animate-spin" />
+ <span className="text-xs text-[#4B5563] font-mono">
+ Loading Workspace Invoice Management ledger...
+ </span>
+ </div>
+ ) : isError || invoices.length === 0 ? (
+ <div className="text-center py-20 bg-white border border-[#E5E7EB] rounded-3xl space-y-4">
+ <Receipt className="w-12 h-12 text-[#9CA3AF] mx-auto" />
+ <h3 className="font-display font-bold text-base text-[#111827]">
+ No invoices match your filter
+ </h3>
+ <p className="text-xs text-[#4B5563] max-w-sm mx-auto">
+ Try resetting your search query or status filter to see other workspace invoices.
+ </p>
+ </div>
+ ) : (
+ <div className="space-y-4">
+ {/* Mobile View: Cards */}
+ <div className="block md:hidden space-y-4">
+ {invoices.map((invoice: any) => {
+ const isPaid = String(invoice.status || '').toLowerCase() === 'paid';
+ const isCompany = invoice.customerType === 'Company' || invoice.billingDetails?.company;
+
+ return (
+ <div
+ key={invoice.id}
+ className="bg-white border border-[#E5E7EB] rounded-2xl p-5 space-y-4 shadow-xs"
+ >
+ <div className="flex items-start justify-between">
+ <div>
+ <div className="flex items-center gap-2 font-mono font-extrabold text-sm text-[#111827]">
+ <FileText className="w-4 h-4 text-[#65A30D]" />
+ <span>{invoice.invoiceNumber}</span>
+ </div>
+ <div className="text-[10px] text-neutral-400 font-mono mt-0.5">
+ Booking: {invoice.bookingId || 'N/A'}
+ </div>
+ </div>
+ <div>{getStatusBadge(invoice.status)}</div>
+ </div>
+
+ <div className="space-y-2 text-xs border-y border-[#E5E7EB] py-3">
+ <div className="flex justify-between items-center">
+ <span className="text-neutral-400">Customer Type:</span>
+ <span className="inline-flex items-center gap-1 font-bold text-[11px] text-[#111827]">
+ {isCompany ? (
+ <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 /40 font-extrabold text-[10px] flex items-center gap-1">
+ <Building2 className="w-3 h-3" />
+ <span>Company ({invoice.billingDetails?.company || 'Corporate'})</span>
+ </span>
+ ) : (
+ <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-semibold text-[10px] flex items-center gap-1">
+ <User className="w-3 h-3" />
+ <span>Individual</span>
+ </span>
+ )}
+ </span>
+ </div>
+
+ <div className="flex justify-between">
+ <span className="text-neutral-400">Customer:</span>
+ <span className="font-semibold text-[#111827]">
+ {invoice.billingDetails?.name}
+ </span>
+ </div>
+
+ <div className="flex justify-between">
+ <span className="text-neutral-400">Workspace:</span>
+ <span className="font-bold text-[#65A30D]">
+ {invoice.workspaceName || 'Executive Suite'}
+ </span>
+ </div>
+
+ <div className="flex justify-between">
+ <span className="text-neutral-400">Duration:</span>
+ <span className="font-medium text-neutral-700 ">
+ {invoice.durationQuantity || 1} {invoice.durationType || 'Hourly'}
+ </span>
+ </div>
+
+ <div className="flex justify-between">
+ <span className="text-neutral-400">Due Date:</span>
+ <span className="font-mono text-neutral-600 ">
+ {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'Immediate'}
+ </span>
+ </div>
+ </div>
+
+ {/* Actions & Amount */}
+ <div className="flex items-center justify-between gap-2">
+ <div>
+ <div className="text-[10px] uppercase text-neutral-400 font-extrabold">Grand Total</div>
+ <div className="text-lg font-extrabold text-[#111827]">
+ {(invoice.grandTotal || invoice.amount || 0).toLocaleString()} <span className="text-xs font-normal text-neutral-400">{invoice.currency || 'ETB'}</span>
+ </div>
+ </div>
+
+ <div className="flex items-center gap-1.5">
+ {!isPaid && (
+ <Button
+ size="sm"
+ variant="primary"
+ onClick={() => handlePayInvoice(invoice)}
+ className="rounded-xl bg-[#84CC16] hover:bg-[#73B612] text-[#111827] font-bold text-[11px] flex items-center gap-1"
+ >
+ <CreditCard className="w-3.5 h-3.5" />
+ <span>Pay</span>
+ </Button>
+ )}
+
+ <Button
+ size="sm"
+ variant="secondary"
+ onClick={() => {
+ setSelectedInvoice(invoice);
+ setIsDetailModalOpen(true);
+ }}
+ className="rounded-xl flex items-center gap-1 text-[11px] font-bold"
+ >
+ <Eye className="w-3.5 h-3.5" />
+ <span>View</span>
+ </Button>
+ </div>
+ </div>
+ </div>
+ );
+ })}
+ </div>
+
+ {/* Desktop View: Full Workspace Invoice Management Table */}
+ <div className="hidden md:block bg-white border border-[#E5E7EB] rounded-3xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+ <div className="overflow-x-auto">
+ <table className="w-full text-left text-xs border-collapse">
+ <thead>
+ <tr className="bg-[#F9FAFB] border-b border-[#E5E7EB] text-[#4B5563] font-extrabold uppercase tracking-wider text-[10px] select-none">
+ <th className="py-4 px-5">Invoice & Booking Ref</th>
+ <th className="py-4 px-5">Customer Type & Details</th>
+ <th className="py-4 px-5">Workspace & Duration</th>
+ <th className="py-4 px-5">Financial Breakdown</th>
+ <th className="py-4 px-5">Due Date</th>
+ <th className="py-4 px-5">Status</th>
+ <th className="py-4 px-5 text-right">Actions</th>
+ </tr>
+ </thead>
+ <tbody>
+ {invoices.map((invoice: any) => {
+ const isPaid = String(invoice.status || '').toLowerCase() === 'paid';
+ const isCompany =
+ invoice.customerType === 'Company' || Boolean(invoice.billingDetails?.company);
+ const isUpdating = isUpdatingStatus === invoice.id;
+
+ return (
+ <tr
+ key={invoice.id}
+ className="border-b border-[#E5E7EB] hover:bg-[#F9FAFB]/50 transition-all animate-fade-in"
+ >
+ {/* Invoice & Booking Ref */}
+ <td className="py-4 px-5">
+ <div className="font-mono font-extrabold text-sm text-[#111827] flex items-center gap-2">
+ <FileText className="w-4 h-4 text-[#65A30D]" />
+ <span>{invoice.invoiceNumber}</span>
+ </div>
+ <div className="text-[10px] font-mono text-neutral-400 mt-0.5 flex items-center gap-1">
+ <Hash className="w-3 h-3 text-neutral-400" />
+ <span>Booking ID: {invoice.bookingId || 'N/A'}</span>
+ </div>
+ </td>
+
+ {/* Customer Type & Details */}
+ <td className="py-4 px-5">
+ <div className="flex items-center gap-1.5 mb-1">
+ {isCompany ? (
+ <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 /40 font-black text-[10px] uppercase border border-indigo-200 flex items-center gap-1">
+ <Building2 className="w-3 h-3" />
+ <span>{invoice.billingDetails?.company || 'Company'}</span>
+ </span>
+ ) : (
+ <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-bold text-[10px] uppercase border border-gray-200 flex items-center gap-1">
+ <User className="w-3 h-3" />
+ <span>Individual</span>
+ </span>
+ )}
+ </div>
+ <div className="font-semibold text-[#111827]">
+ {invoice.billingDetails?.name}
+ </div>
+ <div className="text-[10px] text-neutral-500 font-mono">
+ {invoice.billingDetails?.email || invoice.userEmail}
+ </div>
+ </td>
+
+ {/* Workspace & Duration */}
+ <td className="py-4 px-5">
+ <div className="font-bold text-[#111827]">
+ {invoice.workspaceName || 'Executive Workspace'}
+ </div>
+ <div className="text-[11px] text-neutral-500 font-medium mt-0.5">
+ {invoice.durationQuantity || 1} x {invoice.durationType || 'Hourly'} @{' '}
+ {(invoice.unitPrice || invoice.amount || 0).toLocaleString()}{' '}
+ {invoice.currency || 'ETB'}
+ </div>
+ </td>
+
+ {/* Financial Breakdown */}
+ <td className="py-4 px-5">
+ <div className="font-black text-sm text-[#111827]">
+ {(invoice.grandTotal || invoice.amount || 0).toLocaleString()}{' '}
+ <span className="text-[10px] font-normal text-neutral-400">
+ {invoice.currency || 'ETB'}
+ </span>
+ </div>
+ <div className="text-[10px] text-neutral-500 font-mono">
+ Subtotal: {(invoice.amount || 0).toLocaleString()} | Tax:{' '}
+ {(invoice.vat || 0).toLocaleString()}
+ </div>
+ </td>
+
+ {/* Due Date */}
+ <td className="py-4 px-5">
+ <div className="flex items-center gap-1.5 font-medium text-neutral-700 ">
+ <Calendar className="w-3.5 h-3.5 text-neutral-400" />
+ <span>
+ {invoice.dueDate
+ ? new Date(invoice.dueDate).toLocaleDateString()
+ : 'Immediate'}
+ </span>
+ </div>
+ </td>
+
+ {/* Status */}
+ <td className="py-4 px-5">
+ {isAdmin ? (
+ <div className="relative inline-block">
+ <select
+ value={invoice.status}
+ disabled={isUpdating}
+ onChange={(e) => handleStatusChange(invoice.id, e.target.value)}
+ className="bg-[#F9FAFB] border border-[#E5E7EB] text-[11px] font-extrabold rounded-xl px-2.5 py-1 text-[#111827] cursor-pointer hover:border-[#84CC16] transition-all"
+ >
+ <option value="Pending Payment">Pending Payment</option>
+ <option value="Paid">Paid</option>
+ <option value="Partially Paid">Partially Paid</option>
+ <option value="Overdue">Overdue</option>
+ <option value="Cancelled">Cancelled</option>
+ <option value="Draft">Draft</option>
+ </select>
+ {isUpdating && (
+ <Loader2 className="w-3.5 h-3.5 text-[#84CC16] animate-spin inline-block ml-1" />
+ )}
+ </div>
+ ) : (
+ getStatusBadge(invoice.status)
+ )}
+ </td>
+
+ {/* Actions */}
+ <td className="py-4 px-5 text-right">
+ <div className="flex items-center justify-end gap-1.5">
+ {!isPaid && (
+ <Button
+ size="sm"
+ variant="primary"
+ onClick={() => handlePayInvoice(invoice)}
+ className="rounded-xl bg-[#84CC16] hover:bg-[#73B612] text-[#111827] font-bold text-[11px] flex items-center gap-1 py-1"
+ >
+ <CreditCard className="w-3.5 h-3.5" />
+ <span>Pay</span>
+ </Button>
+ )}
+
+ <Button
+ size="sm"
+ variant="secondary"
+ onClick={() => {
+ setSelectedInvoice(invoice);
+ setIsDetailModalOpen(true);
+ }}
+ className="rounded-xl flex items-center gap-1 text-[11px] font-bold py-1"
+ >
+ <Eye className="w-3.5 h-3.5" />
+ <span>Details</span>
+ </Button>
+
+ <button
+ onClick={() => handlePrint(invoice)}
+ title="Print Invoice"
+ className="p-1.5 rounded-xl border border-[#E5E7EB] text-neutral-600 hover:bg-[#F3F4F6] transition-all"
+ >
+ <Printer className="w-4 h-4" />
+ </button>
+
+ <button
+ onClick={() => handleDownloadTxt(invoice.id, invoice.invoiceNumber)}
+ title="Download Text Invoice"
+ className="p-1.5 rounded-xl border border-[#E5E7EB] text-neutral-600 hover:bg-[#F3F4F6] transition-all"
+ >
+ <Download className="w-4 h-4" />
+ </button>
+ </div>
+ </td>
+ </tr>
+ );
+ })}
+ </tbody>
+ </table>
+ </div>
+ </div>
+ </div>
+ )}
+
+ {/* Invoice Details & Official Printable Modal */}
+ {isDetailModalOpen && selectedInvoice && (
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in no-print">
+ <div className="bg-white border border-[#E5E7EB] rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-6 p-6 md:p-8">
+ {/* Modal Header Controls */}
+ <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-4 no-print">
+ <div className="flex items-center gap-2">
+ <Receipt className="w-6 h-6 text-[#65A30D]" />
+ <h2 className="font-display font-bold text-lg text-[#111827]">
+ Invoice Details & Printable Document
+ </h2>
+ </div>
+ <div className="flex items-center gap-2">
+ <Button
+ size="sm"
+ variant="secondary"
+ onClick={() => window.print()}
+ className="rounded-xl flex items-center gap-1.5 font-bold text-xs"
+ >
+ <Printer className="w-4 h-4 text-[#65A30D]" />
+ <span>Print Document</span>
+ </Button>
+ <button
+ onClick={() => setIsDetailModalOpen(false)}
+ className="p-2 text-neutral-400 hover:text-neutral-600 :text-[#111827] rounded-full"
+ >
+ <X className="w-5 h-5" />
+ </button>
+ </div>
+ </div>
+
+ {/* Printable Document Box */}
+ <div
+ id="printable-invoice"
+ ref={printContainerRef}
+ className="bg-white text-neutral-900 rounded-2xl p-6 md:p-8 border border-neutral-200 space-y-6 shadow-xs font-sans"
+ >
+ {/* Official Header & Branding */}
+ <div className="flex flex-col md:flex-row justify-between items-start border-b border-neutral-200 pb-6 gap-4">
+ <div>
+ <div className="flex items-center gap-2">
+ <div className="w-8 h-8 rounded-lg bg-[#84CC16] flex items-center justify-center font-black text-black">
+ WV
+ </div>
+ <span className="font-display font-black text-xl text-neutral-900 tracking-tight">
+ WEVENTUREHUB
+ </span>
+ </div>
+ <p className="text-xs text-neutral-500 mt-1">
+ Event & Workspace Management Platform
+ </p>
+ <p className="text-[11px] text-neutral-400 mt-0.5">
+ Bole Road, Mega Building 4th Floor, Addis Ababa, Ethiopia
+ </p>
+ <p className="text-[11px] text-neutral-400">
+ Email: billing@weventurehub.com | Tel: +251 11 600 8899
+ </p>
+ </div>
+
+ <div className="text-left md:text-right">
+ <div className="inline-block px-3 py-1 bg-neutral-900 text-[#111827] font-mono font-bold text-xs rounded-lg mb-2">
+ OFFICIAL INVOICE
+ </div>
+ <div className="font-mono font-black text-lg text-neutral-900">
+ {selectedInvoice.invoiceNumber}
+ </div>
+ <div className="text-xs text-neutral-500 font-mono mt-0.5">
+ Booking ID: {selectedInvoice.bookingId || 'N/A'}
+ </div>
+ <div className="mt-2">{getStatusBadge(selectedInvoice.status)}</div>
+ </div>
+ </div>
+
+ {/* Bill To & Invoice Meta Information */}
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-neutral-50 rounded-2xl p-4 border border-neutral-200 text-xs">
+ <div>
+ <h4 className="font-extrabold uppercase text-[10px] text-neutral-400 tracking-wider mb-2">
+ Billed To:
+ </h4>
+ <div className="font-bold text-sm text-neutral-900">
+ {selectedInvoice.billingDetails?.name}
+ </div>
+ {selectedInvoice.billingDetails?.company && (
+ <div className="font-semibold text-indigo-700 mt-0.5 flex items-center gap-1">
+ <Building2 className="w-3.5 h-3.5" />
+ <span>{selectedInvoice.billingDetails.company}</span>
+ </div>
+ )}
+ <div className="text-neutral-600 mt-1">{selectedInvoice.billingDetails?.email || selectedInvoice.userEmail}</div>
+ {selectedInvoice.billingDetails?.phone && (
+ <div className="text-neutral-600">{selectedInvoice.billingDetails.phone}</div>
+ )}
+ <div className="mt-2 inline-block px-2 py-0.5 bg-neutral-200 text-neutral-700 text-[10px] font-bold rounded-md uppercase">
+ Customer Type: {selectedInvoice.customerType || 'Individual'}
+ </div>
+ </div>
+
+ <div className="space-y-1.5 border-t md:border-t-0 md:border-l border-neutral-200 pt-3 md:pt-0 md:pl-6">
+ <h4 className="font-extrabold uppercase text-[10px] text-neutral-400 tracking-wider mb-2">
+ Invoice Dates & Space Info:
+ </h4>
+ <div className="flex justify-between">
+ <span className="text-neutral-500">Date Issued:</span>
+ <span className="font-medium">
+ {selectedInvoice.createdAt
+ ? new Date(selectedInvoice.createdAt).toLocaleDateString()
+ : 'Today'}
+ </span>
+ </div>
+ <div className="flex justify-between">
+ <span className="text-neutral-500">Due Date:</span>
+ <span className="font-bold text-rose-700">
+ {selectedInvoice.dueDate
+ ? new Date(selectedInvoice.dueDate).toLocaleDateString()
+ : 'Immediate'}
+ </span>
+ </div>
+ <div className="flex justify-between">
+ <span className="text-neutral-500">Workspace Name:</span>
+ <span className="font-bold text-neutral-900">
+ {selectedInvoice.workspaceName || 'Executive Workspace'}
+ </span>
+ </div>
+ <div className="flex justify-between">
+ <span className="text-neutral-500">Billing Period:</span>
+ <span className="font-medium text-neutral-700">
+ {selectedInvoice.billingPeriod || 'Current Reservation Cycle'}
+ </span>
+ </div>
+ </div>
+ </div>
+
+ {/* Line Items Table */}
+ <div>
+ <table className="w-full text-left text-xs border-collapse">
+ <thead>
+ <tr className="bg-neutral-900 text-[#111827] font-extrabold uppercase text-[10px]">
+ <th className="py-3 px-4 rounded-l-xl">Description</th>
+ <th className="py-3 px-4 text-center">Duration / Plan</th>
+ <th className="py-3 px-4 text-center">Qty</th>
+ <th className="py-3 px-4 text-right">Unit Price</th>
+ <th className="py-3 px-4 text-right rounded-r-xl">Total Amount</th>
+ </tr>
+ </thead>
+ <tbody>
+ {selectedInvoice.lineItems && selectedInvoice.lineItems.length > 0 ? (
+ selectedInvoice.lineItems.map((item: any, i: number) => (
+ <tr key={i} className="border-b border-neutral-200 text-neutral-800">
+ <td className="py-3 px-4 font-semibold">{item.description}</td>
+ <td className="py-3 px-4 text-center">{selectedInvoice.durationType || 'Hourly'}</td>
+ <td className="py-3 px-4 text-center font-bold">{item.quantity}</td>
+ <td className="py-3 px-4 text-right font-mono">
+ {item.unitPrice.toLocaleString()} {selectedInvoice.currency || 'ETB'}
+ </td>
+ <td className="py-3 px-4 text-right font-mono font-bold">
+ {item.amount.toLocaleString()} {selectedInvoice.currency || 'ETB'}
+ </td>
+ </tr>
+ ))
+ ) : (
+ <tr className="border-b border-neutral-200 text-neutral-800">
+ <td className="py-3 px-4 font-semibold">
+ Tenancy Workspace Rental Charge - {selectedInvoice.workspaceName || 'Executive Suite'}
+ </td>
+ <td className="py-3 px-4 text-center">{selectedInvoice.durationType || 'Hourly'}</td>
+ <td className="py-3 px-4 text-center font-bold">
+ {selectedInvoice.durationQuantity || 1}
+ </td>
+ <td className="py-3 px-4 text-right font-mono">
+ {(selectedInvoice.unitPrice || selectedInvoice.amount || 0).toLocaleString()}{' '}
+ {selectedInvoice.currency || 'ETB'}
+ </td>
+ <td className="py-3 px-4 text-right font-mono font-bold">
+ {(selectedInvoice.amount || 0).toLocaleString()}{' '}
+ {selectedInvoice.currency || 'ETB'}
+ </td>
+ </tr>
+ )}
+ </tbody>
+ </table>
+ </div>
+
+ {/* Totals & Grand Total Summary */}
+ <div className="flex flex-col md:flex-row justify-between items-start gap-6 border-t border-neutral-200 pt-4">
+ <div className="text-xs text-neutral-500 space-y-1 max-w-sm">
+ <div className="font-bold text-neutral-800">Payment Terms & Instructions:</div>
+ <p>
+ Please make payments via our integrated payment portal (ArifPay, Telebirr, CBE, or Chapa).
+ All workspace tenancy invoices include applicable 15% VAT compliance tax.
+ </p>
+ </div>
+
+ <div className="w-full md:w-64 space-y-2 text-xs">
+ <div className="flex justify-between text-neutral-600">
+ <span>Subtotal Amount:</span>
+ <span className="font-mono font-semibold">
+ {(selectedInvoice.amount || 0).toLocaleString()} {selectedInvoice.currency || 'ETB'}
+ </span>
+ </div>
+ <div className="flex justify-between text-neutral-600">
+ <span>VAT (15% Tax):</span>
+ <span className="font-mono font-semibold">
+ {(selectedInvoice.vat || 0).toLocaleString()} {selectedInvoice.currency || 'ETB'}
+ </span>
+ </div>
+ {selectedInvoice.discount > 0 && (
+ <div className="flex justify-between text-[#65A30D] font-medium">
+ <span>Discount Applied:</span>
+ <span className="font-mono">
+ -{(selectedInvoice.discount || 0).toLocaleString()} {selectedInvoice.currency || 'ETB'}
+ </span>
+ </div>
+ )}
+ <div className="border-t border-neutral-300 pt-2 flex justify-between font-black text-base text-neutral-900">
+ <span>Grand Total:</span>
+ <span className="font-mono text-[#65A30D]">
+ {(selectedInvoice.grandTotal || selectedInvoice.amount || 0).toLocaleString()}{' '}
+ {selectedInvoice.currency || 'ETB'}
+ </span>
+ </div>
+ </div>
+ </div>
+
+ {/* Signature Footer */}
+ <div className="border-t border-neutral-200 pt-6 flex justify-between items-end text-[11px] text-neutral-400">
+ <div>
+ <div>WeVentureHub Finance Department</div>
+ <div>Thank you for choosing WeVentureHub Workspaces</div>
+ </div>
+ <div className="text-right font-mono font-bold text-neutral-800 border-t border-neutral-400 pt-1 w-48 text-center">
+ Authorized Stamp & Signature
+ </div>
+ </div>
+ </div>
+
+ {/* Modal Bottom Actions */}
+ <div className="flex items-center justify-between pt-4 border-t border-[#E5E7EB] no-print">
+ {isAdmin && (
+ <div className="flex items-center gap-2 text-xs">
+ <span className="font-bold text-[#111827]">Change Status:</span>
+ <select
+ value={selectedInvoice.status}
+ onChange={(e) => handleStatusChange(selectedInvoice.id, e.target.value)}
+ className="bg-[#F9FAFB] border border-[#E5E7EB] text-xs font-bold rounded-xl px-3 py-1.5 text-[#111827]"
+ >
+ <option value="Pending Payment">Pending Payment</option>
+ <option value="Paid">Paid</option>
+ <option value="Partially Paid">Partially Paid</option>
+ <option value="Overdue">Overdue</option>
+ <option value="Cancelled">Cancelled</option>
+ <option value="Draft">Draft</option>
+ </select>
+ </div>
+ )}
+
+ <div className="flex items-center gap-2 ml-auto">
+ {String(selectedInvoice.status || '').toLowerCase() !== 'paid' && (
+ <Button
+ size="sm"
+ variant="primary"
+ onClick={() => {
+ setIsDetailModalOpen(false);
+ handlePayInvoice(selectedInvoice);
+ }}
+ className="rounded-xl bg-[#84CC16] hover:bg-[#73B612] text-[#111827] font-bold text-xs flex items-center gap-1.5"
+ >
+ <CreditCard className="w-4 h-4" />
+ <span>Proceed to Payment</span>
+ </Button>
+ )}
+
+ <Button
+ size="sm"
+ variant="secondary"
+ onClick={() => setIsDetailModalOpen(false)}
+ className="rounded-xl font-bold text-xs"
+ >
+ Close
+ </Button>
+ </div>
+ </div>
+ </div>
+ </div>
+ )}
+ </div>
+ );
 }
