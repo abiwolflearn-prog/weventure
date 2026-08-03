@@ -22,7 +22,9 @@ import {
   FileSpreadsheet,
   Users,
   Mail,
-  Rocket
+  Rocket,
+  PlusCircle,
+  CalendarPlus
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store';
 import { logout } from '../store/authSlice';
@@ -45,34 +47,44 @@ interface SidebarItem {
 }
 
 // Derive permissions based on role if they aren't explicitly assigned
-const getPermissionsForRole = (role?: UserRole): Permission[] => {
+const getPermissionsForRole = (role?: UserRole | string): Permission[] => {
   if (!role) return [];
-  switch (role) {
-    case UserRole.SUPER_ADMIN:
-      return Object.values(Permission);
-    case UserRole.TENANT_ADMIN:
-      return [
-        Permission.WORKSPACES_CREATE, Permission.WORKSPACES_READ, Permission.WORKSPACES_UPDATE, Permission.WORKSPACES_DELETE,
-        Permission.BOOKINGS_CREATE, Permission.BOOKINGS_READ, Permission.BOOKINGS_UPDATE, Permission.BOOKINGS_DELETE,
-        Permission.EVENTS_CREATE, Permission.EVENTS_READ, Permission.EVENTS_UPDATE, Permission.EVENTS_DELETE,
-        Permission.ANALYTICS_READ, Permission.SETTINGS_UPDATE
-      ];
-    case UserRole.STAFF:
-      return [
-        Permission.WORKSPACES_READ, Permission.WORKSPACES_UPDATE,
-        Permission.BOOKINGS_READ, Permission.BOOKINGS_UPDATE,
-        Permission.EVENTS_READ, Permission.EVENTS_UPDATE,
-        Permission.ANALYTICS_READ
-      ];
-    case UserRole.HUB_MEMBER:
-    default:
-      return [
-        Permission.WORKSPACES_READ,
-        Permission.BOOKINGS_CREATE, Permission.BOOKINGS_READ,
-        Permission.EVENTS_READ,
-        Permission.SETTINGS_UPDATE
-      ];
+  const normalized = String(role).toUpperCase();
+  if (normalized === 'SUPER_ADMIN' || normalized === UserRole.SUPER_ADMIN) {
+    return Object.values(Permission);
   }
+  if (
+    normalized === 'TENANT_ADMIN' || 
+    normalized === 'ADMIN' || 
+    normalized === UserRole.TENANT_ADMIN
+  ) {
+    return [
+      Permission.WORKSPACES_CREATE, Permission.WORKSPACES_READ, Permission.WORKSPACES_UPDATE, Permission.WORKSPACES_DELETE,
+      Permission.BOOKINGS_CREATE, Permission.BOOKINGS_READ, Permission.BOOKINGS_UPDATE, Permission.BOOKINGS_DELETE,
+      Permission.EVENTS_CREATE, Permission.EVENTS_READ, Permission.EVENTS_UPDATE, Permission.EVENTS_DELETE,
+      Permission.ANALYTICS_READ, Permission.SETTINGS_UPDATE
+    ];
+  }
+  if (
+    normalized === 'STAFF' || 
+    normalized === 'MANAGER' || 
+    normalized === 'EVENT_MANAGER' || 
+    normalized === 'WORKSPACE_MANAGER' || 
+    normalized === UserRole.STAFF
+  ) {
+    return [
+      Permission.WORKSPACES_CREATE, Permission.WORKSPACES_READ, Permission.WORKSPACES_UPDATE,
+      Permission.BOOKINGS_CREATE, Permission.BOOKINGS_READ, Permission.BOOKINGS_UPDATE,
+      Permission.EVENTS_CREATE, Permission.EVENTS_READ, Permission.EVENTS_UPDATE,
+      Permission.ANALYTICS_READ
+    ];
+  }
+  return [
+    Permission.WORKSPACES_READ,
+    Permission.BOOKINGS_CREATE, Permission.BOOKINGS_READ,
+    Permission.EVENTS_READ,
+    Permission.SETTINGS_UPDATE
+  ];
 };
 
 export default function DashboardLayout() {
@@ -90,9 +102,11 @@ export default function DashboardLayout() {
     { name: 'CRM & Contacts', path: '/dashboard/crm', icon: Users, requiredPermission: Permission.ANALYTICS_READ },
     { name: 'Analytics', path: '/dashboard/analytics', icon: BarChart3, requiredPermission: Permission.ANALYTICS_READ },
     { name: 'Reports & Exports', path: '/dashboard/reports', icon: FileSpreadsheet, requiredPermission: Permission.ANALYTICS_READ },
-    { name: 'Workspaces', path: '/dashboard/workspaces', icon: Building, requiredPermission: Permission.WORKSPACES_READ },
+    { name: 'Create Workspace', path: '/dashboard/workspaces/create', icon: PlusCircle, requiredPermission: Permission.WORKSPACES_CREATE },
+    { name: 'All Workspaces', path: '/dashboard/workspaces', icon: Building, requiredPermission: Permission.WORKSPACES_READ },
+    { name: 'Create Event', path: '/dashboard/events/create', icon: CalendarPlus, requiredPermission: Permission.EVENTS_CREATE },
+    { name: 'All Events', path: '/dashboard/events', icon: Ticket, requiredPermission: Permission.EVENTS_READ },
     { name: 'My Bookings', path: '/dashboard/bookings', icon: CalendarRange, requiredPermission: Permission.BOOKINGS_READ },
-    { name: 'Events Catalog', path: '/dashboard/events', icon: Ticket, requiredPermission: Permission.EVENTS_READ },
     { name: 'Invoices', path: '/dashboard/invoices', icon: Receipt },
     { name: 'Payment Gateway', path: '/dashboard/checkout', icon: CreditCard },
     { name: 'System Settings', path: '/dashboard/settings', icon: Settings, requiredPermission: Permission.SETTINGS_UPDATE },
@@ -278,11 +292,12 @@ export default function DashboardLayout() {
               <nav className="flex-grow py-6 px-4 space-y-1.5 overflow-y-auto">
                 {filteredSidebarItems.map((item) => {
                   const Icon = item.icon;
-                  const isActive = location.pathname === item.path;
+                  const targetPath = getItemPath(item.path);
+                  const isActive = location.pathname === targetPath || (item.path === '/dashboard' && location.pathname === currentPrefix);
                   return (
                     <Link
                       key={item.name}
-                      to={item.path}
+                      to={targetPath}
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={`flex items-center space-x-3.5 px-4 py-3 rounded-xl transition-all ${
                         isActive ? navItemActive : navItemHover

@@ -47,6 +47,8 @@ import EmailCenterPage from './views/EmailCenterPage';
 import StartupManagementPage from './views/StartupManagementPage';
 import AssistantAdminDashboard from './components/assistant/AssistantAdminDashboard';
 import BookingRegistrationPage from './views/BookingRegistrationPage';
+import CreateWorkspacePage from './views/CreateWorkspacePage';
+import CreateEventPage from './views/CreateEventPage';
 
 /**
  * Access Guard to restrict access to authenticated members/admins
@@ -72,8 +74,12 @@ export default function App() {
       <Route path="analytics" element={<AnalyticsDashboard />} />
       <Route path="reports" element={<ReportsPage />} />
       <Route path="workspaces" element={<WorkspaceList />} />
+      <Route path="workspaces/create" element={<CreateWorkspacePage />} />
+      <Route path="workspaces/new" element={<CreateWorkspacePage />} />
       <Route path="bookings" element={<BookingList />} />
       <Route path="events" element={<EventsCatalog />} />
+      <Route path="events/create" element={<CreateEventPage />} />
+      <Route path="events/new" element={<CreateEventPage />} />
       <Route path="settings" element={<SettingsPage />} />
       <Route path="organizations" element={<OrganizationsPage />} />
       <Route path="checkout" element={<CheckoutPage />} />

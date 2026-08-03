@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Ticket, 
   Calendar, 
@@ -40,7 +40,7 @@ import {
   setActiveEvent 
 } from '../store/eventSlice';
 import { eventApi } from '../lib/eventApi';
-import { IEvent, EventStatus, EventVisibility, UserRole, IEventSession } from '../types';
+import { IEvent, EventStatus, EventVisibility, UserRole, IEventSession, Permission } from '../types';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { EventCard } from '../components/events/EventCard';
@@ -54,6 +54,7 @@ import { motion, AnimatePresence } from 'motion/react';
 
 export default function EventsCatalog() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
@@ -71,7 +72,19 @@ export default function EventsCatalog() {
   const isAdminOrStaff = 
     user?.role === UserRole.SUPER_ADMIN || 
     user?.role === UserRole.TENANT_ADMIN || 
-    user?.role === UserRole.STAFF;
+    user?.role === UserRole.STAFF ||
+    (user?.role as string) === 'ADMIN' ||
+    (user?.role as string) === 'SUPER_ADMIN' ||
+    (user?.role as string) === 'MANAGER' ||
+    (user?.role as string) === 'EVENT_MANAGER' ||
+    (user?.permissions && user.permissions.includes(Permission.EVENTS_CREATE));
+
+  useEffect(() => {
+    if (location.pathname.endsWith('/create') || location.pathname.endsWith('/new')) {
+      setSelectedEvent(null);
+      setViewMode('CREATE');
+    }
+  }, [location.pathname]);
 
   const triggerToast = (msg: string) => {
     setSuccessToast(msg);

@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { useAppSelector } from '../store';
 import { Button } from '../components/Button';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { UserRole } from '../types';
 
 // Subcomponents imports
@@ -41,8 +41,15 @@ import {
 } from '../components/dashboard/DashboardStateFeedbacks';
 
 export default function DashboardSummary() {
+  const location = useLocation();
   const { user } = useAppSelector((state) => state.auth);
-  const isAdmin = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.TENANT_ADMIN || user?.role === UserRole.STAFF;
+  const isAdmin = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.TENANT_ADMIN || user?.role === UserRole.STAFF || (user?.role as string) === 'ADMIN' || (user?.role as string) === 'MANAGER';
+  
+  const currentPrefix = location.pathname.startsWith('/superadmin/dashboard')
+    ? '/superadmin/dashboard'
+    : location.pathname.startsWith('/admin/dashboard')
+    ? '/admin/dashboard'
+    : '/dashboard';
   
   // Interactive simulator states to allow audit of UI states
   const [simulationState, setSimulationState] = useState<'normal' | 'loading' | 'error' | 'empty'>('normal');
@@ -292,14 +299,14 @@ export default function DashboardSummary() {
           </div>
           
           <div className="flex flex-wrap gap-3 shrink-0">
-            <Link to="/dashboard/events">
+            <Link to={`${currentPrefix}/events/create`}>
               <button className="h-[44px] px-5 rounded-[12px] text-[14px] font-black bg-[#A3E635] hover:bg-[#84CC16] text-[#111111] shadow-[0_2px_10px_rgba(163,230,53,0.15)] hover:scale-[1.01] transition-all">
                 Publish Event
               </button>
             </Link>
-            <Link to="/dashboard/workspaces">
+            <Link to={`${currentPrefix}/workspaces/create`}>
               <button className="h-[44px] px-5 rounded-[12px] text-[14px] font-semibold bg-[#FFFFFF] border border-[#E5E7EB] hover:bg-[#F8FAFC] text-[#111827] transition-all">
-                Book Workspace
+                Create Workspace
               </button>
             </Link>
           </div>

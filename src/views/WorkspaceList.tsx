@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Building, 
   Search, 
@@ -30,7 +30,7 @@ import {
 import { useAppSelector } from '../store';
 import { workspaceApi, IWorkspacePayload, IWorkspace } from '../lib/workspaceApi';
 import { bookingApi } from '../lib/bookingApi';
-import { UserRole } from '../types';
+import { UserRole, Permission } from '../types';
 import { Table, IColumn } from '../components/Table';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
@@ -39,8 +39,16 @@ import { BookingCalendar } from '../components/workspaces/BookingCalendar';
 
 export default function WorkspaceList() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const { user } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (location.pathname.endsWith('/create') || location.pathname.endsWith('/new')) {
+      resetWorkspaceForm();
+      setWorkspaceFormOpen(true);
+    }
+  }, [location.pathname]);
 
   // Layout screen tabs
   const [activeTab, setActiveTab] = useState<'CATALOG' | 'PLANNER'>('CATALOG');
@@ -162,7 +170,12 @@ export default function WorkspaceList() {
   const isAdminOrStaff = 
     user?.role === UserRole.SUPER_ADMIN || 
     user?.role === UserRole.TENANT_ADMIN || 
-    user?.role === UserRole.STAFF;
+    user?.role === UserRole.STAFF ||
+    (user?.role as string) === 'ADMIN' ||
+    (user?.role as string) === 'SUPER_ADMIN' ||
+    (user?.role as string) === 'MANAGER' ||
+    (user?.role as string) === 'WORKSPACE_MANAGER' ||
+    (user?.permissions && user.permissions.includes(Permission.WORKSPACES_CREATE));
 
   // ----------------------------------------------------
   // 1. Live Data Queries (TanStack Query)

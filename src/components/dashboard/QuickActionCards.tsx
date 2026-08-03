@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Building, 
   CalendarPlus, 
@@ -6,7 +7,8 @@ import {
   FileDown, 
   Sparkles,
   ArrowRight,
-  Tv
+  Tv,
+  PlusCircle
 } from 'lucide-react';
 
 export interface IQuickAction {
@@ -20,42 +22,51 @@ export interface IQuickAction {
 }
 
 export default function QuickActionCards() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const currentPrefix = location.pathname.startsWith('/superadmin/dashboard')
+    ? '/superadmin/dashboard'
+    : location.pathname.startsWith('/admin/dashboard')
+    ? '/admin/dashboard'
+    : '/dashboard';
+
   const actions: IQuickAction[] = [
     {
       id: '1',
-      title: 'Reserve Hot Desk',
-      description: 'Book immediate workspace space in Sectors A-D with high load density.',
-      icon: Building,
+      title: 'Create Workspace',
+      description: 'Add and configure new hot desks, boardrooms, or event halls.',
+      icon: PlusCircle,
       color: 'bg-[#A3E635]/15 text-[#84CC16] group-hover:bg-[#A3E635] group-hover:text-[#111111]',
-      actionText: 'Book Desk',
-      onClick: () => alert('Launching desk reservation matrix flow...'),
+      actionText: 'Create Workspace',
+      onClick: () => navigate(`${currentPrefix}/workspaces/create`),
     },
     {
       id: '2',
-      title: 'Book Boardroom',
-      description: 'Reserve state-of-the-art corporate boardrooms with full AV telemetry.',
+      title: 'Create Event',
+      description: 'Publish conferences, workshops, masterclasses, or hackathons.',
       icon: CalendarPlus,
       color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white',
-      actionText: 'Book Room',
-      onClick: () => alert('Launching conference room schedule planner...'),
+      actionText: 'Create Event',
+      onClick: () => navigate(`${currentPrefix}/events/create`),
     },
     {
       id: '3',
-      title: 'Host Public Event',
-      description: 'Publish and promote ticketed conferences, webinars, or social networking.',
-      icon: Tv,
+      title: 'All Workspaces',
+      description: 'View and manage active coworking spaces and boardrooms catalog.',
+      icon: Building,
       color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white',
-      actionText: 'Publish Event',
-      onClick: () => alert('Opening community events builder...'),
+      actionText: 'View Workspaces',
+      onClick: () => navigate(`${currentPrefix}/workspaces`),
     },
     {
       id: '4',
-      title: 'Invite Teammate',
-      description: 'Grant role-based member credentials to external employees or staff.',
-      icon: Users2,
+      title: 'All Events',
+      description: 'Browse, manage, and audit all community events and registrations.',
+      icon: Tv,
       color: 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 group-hover:bg-amber-500 group-hover:text-white',
-      actionText: 'Invite Cohort',
-      onClick: () => alert('Opening guest role invite console...'),
+      actionText: 'View Events',
+      onClick: () => navigate(`${currentPrefix}/events`),
     },
   ];
 
