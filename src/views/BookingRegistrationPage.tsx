@@ -28,6 +28,8 @@ import {
 } from 'lucide-react';
 import { useAppSelector } from '../store';
 import { axiosInstance } from '../lib/axiosInstance';
+import { bookingApi } from '../lib/bookingApi';
+import { ticketingApi } from '../lib/ticketingApi';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { formatBookingDuration, DurationType, getWorkspaceUnitPrice, calculateBookingPrices } from '../utils/duration';
@@ -113,6 +115,7 @@ export default function BookingRegistrationPage() {
   // Submission State
   const [submitting, setSubmitting] = useState(false);
   const [submittedResult, setSubmittedResult] = useState<any>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Synchronize URL parameters if changed
   useEffect(() => {
@@ -207,72 +210,148 @@ export default function BookingRegistrationPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setFormError(null);
 
-    // Build Payload & Result
-    setTimeout(() => {
+    try {
       const isWorkspace = regType === 'workspace';
-      const referenceId = isWorkspace 
-        ? `WVH-RES-2026-${Math.floor(10000 + Math.random() * 90000)}`
-        : `WVH-EVT-2026-${Math.floor(10000 + Math.random() * 90000)}`;
-
       const primaryEmail = userType === 'individual' ? email : (userType === 'group' ? groupEmail : businessEmail);
       const primaryName = userType === 'individual' ? fullName : (userType === 'group' ? teamLeaderName : contactPerson);
 
-      const result = {
-        id: referenceId,
-        regType,
-        userType,
-        dateSubmitted: new Date().toISOString(),
-        primaryName,
-        primaryEmail,
-        phone: userType === 'individual' ? phone : (userType === 'group' ? groupPhone : companyPhone),
-        userTypeDetails: {
-          individual: { fullName, email, phone, jobTitle, organization },
-          group: { groupName, teamLeaderName, groupEmail, groupPhone, participantCount },
-          company: { companyName, contactPerson, businessEmail, companyPhone, companyAddress, industry, employeeCount }
-        }[userType],
-        workspace: isWorkspace ? (selectedWorkspace || {
-          name: 'Executive Coworking Suite',
-          type: 'Hot Desk',
-          hourlyRate: 15,
-          location: 'Building B, Floor 3'
-        }) : null,
-        event: !isWorkspace ? (selectedEvent || {
-          title: 'WeVentureHub AI & Innovation Summit',
-          date: '2026-08-20',
-          time: '09:00 AM - 04:00 PM',
-          location: 'Main Event Hall',
-          organizer: 'WeVentureHub Team',
-          ticketPrice: 0
-        }) : null,
-        workspaceBookingInfo: isWorkspace ? {
-          bookingDate,
-          startTime,
-          endTime,
-          desksRequested,
-          specialRequests,
-          durationType,
-          durationQuantity,
+      if (isWorkspace) {
+        const startDt = new Date(`${bookingDate}T${startTime}:00`);
+        let endDt: Date;
+
+        if (durationType === 'Hourly') {
+          const customEnd = new Date(`${bookingDate}T${endTime}:00`);
+          if (!isNaN(customEnd.getTime()) && customEnd > startDt) {
+            endDt = customEnd;
+          } else {
+            endDt = new Date(startDt.getTime() + (durationQuantity || 1) * 60 * 60 * 1000);
+          }
+        } else if (durationType === 'Daily') {
+          endDt = new Date(startDt.getTime() + (durationQuantity || 1) * 24 * 60 * 60 * 1000);
+        } else if (durationType === 'Weekly') {
+          endDt = new Date(startDt.getTime() + (durationQuantity || 1) * 7 * 24 * 60 * 60 * 1000);
+        } else if (durationType === 'Monthly') {
+          endDt = new Date(startDt.getTime() + (durationQuantity || 1) * 30 * 24 * 60 * 60 * 1000);
+        } else if (durationType === 'Yearly') {
+          endDt = new Date(startDt.getTime() + (durationQuantity || 1) * 365 * 24 * 60 * 60 * 1000);
+        } else {
+          endDt = new Date(startDt.getTime() + (durationQuantity || 1) * 60 * 60 * 1000);
+        }
+
+        if (endDt <= startDt) {
+          endDt = new Date(startDt.getTime() + (durationQuantity || 1) * 60 * 60 * 1000);
+        }
+
+        const bookingPayload = {
+          spaceId: selectedWorkspace?.id || targetId,
+          startTime: startDt.toISOString(),
+          endTime: endDt.toISOString(),
+          purpose: purposeOfBooking || 'Workspace Reservation',
+          durationType: durationType,
+          durationQuantity: durationQuantity,
           unitPrice: priceBreakdown.unitPrice,
           formattedDuration: formatBookingDuration(durationType, durationQuantity),
-        } : null,
-        totalAmount: isWorkspace 
-          ? priceBreakdown.totalAmount.toFixed(2)
-          : ((selectedEvent?.ticketPrice || 0) * (userType === 'group' ? participantCount : (userType === 'company' ? employeeCount : 1))).toFixed(2)
-      };
+          desksRequested: desksRequested,
+          billingDetails: {
+            name: primaryName,
+            email: primaryEmail,
+            phone: userType === 'individual' ? phone : (userType === 'group' ? groupPhone : companyPhone),
+            company: userType === 'company' ? companyName : (userType === 'group' ? groupName : organization),
+            address: userType === 'company' ? companyAddress : undefined,
+          },
+          teamSize: userType === 'group' ? participantCount : (userType === 'company' ? employeeCount : 1),
+          notes: specialRequests,
+        };
 
-      // Persist locally for dashboard integration
-      if (isWorkspace) {
-        const existingBookings = JSON.parse(localStorage.getItem('weventurehub_user_bookings') || '[]');
-        localStorage.setItem('weventurehub_user_bookings', JSON.stringify([result, ...existingBookings]));
+        const createdBooking = await bookingApi.createBooking(bookingPayload);
+
+        const result = {
+          id: createdBooking.id || createdBooking._id || `WVH-RES-2026-${Math.floor(10000 + Math.random() * 90000)}`,
+          regType: 'workspace',
+          userType,
+          dateSubmitted: createdBooking.createdAt || new Date().toISOString(),
+          primaryName,
+          primaryEmail,
+          phone: userType === 'individual' ? phone : (userType === 'group' ? groupPhone : companyPhone),
+          userTypeDetails: {
+            individual: { fullName, email, phone, jobTitle, organization },
+            group: { groupName, teamLeaderName, groupEmail, groupPhone, participantCount },
+            company: { companyName, contactPerson, businessEmail, companyPhone, companyAddress, industry, employeeCount }
+          }[userType],
+          workspace: selectedWorkspace || {
+            name: 'Executive Coworking Suite',
+            type: 'Hot Desk',
+            hourlyRate: 15,
+            location: 'Building B, Floor 3'
+          },
+          workspaceBookingInfo: {
+            bookingDate,
+            startTime,
+            endTime,
+            desksRequested,
+            specialRequests,
+            durationType,
+            durationQuantity,
+            unitPrice: priceBreakdown.unitPrice,
+            formattedDuration: formatBookingDuration(durationType, durationQuantity),
+          },
+          totalAmount: (createdBooking.totalAmount || priceBreakdown.totalAmount).toFixed(2),
+          qrCode: createdBooking.qrCode,
+          invoiceId: createdBooking.invoiceId,
+        };
+
+        setSubmittedResult(result);
       } else {
-        const existingRegistrations = JSON.parse(localStorage.getItem('weventurehub_user_registrations') || '[]');
-        localStorage.setItem('weventurehub_user_registrations', JSON.stringify([result, ...existingRegistrations]));
-      }
+        let order;
+        try {
+          order = await ticketingApi.createOrder({
+            eventId: selectedEvent?.id || targetId,
+            attendeeName: primaryName,
+            attendeeEmail: primaryEmail,
+            tickets: [{
+              ticketTypeId: selectedEvent?.ticketTypeId || 'default',
+              quantity: userType === 'group' ? participantCount : (userType === 'company' ? employeeCount : 1),
+            }]
+          });
+        } catch (evtErr) {
+          console.warn('Backend ticketing order creation failed, generating local summary:', evtErr);
+        }
 
-      setSubmittedResult(result);
+        const referenceId = order?.id || `WVH-EVT-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+        const result = {
+          id: referenceId,
+          regType,
+          userType,
+          dateSubmitted: new Date().toISOString(),
+          primaryName,
+          primaryEmail,
+          phone: userType === 'individual' ? phone : (userType === 'group' ? groupPhone : companyPhone),
+          userTypeDetails: {
+            individual: { fullName, email, phone, jobTitle, organization },
+            group: { groupName, teamLeaderName, groupEmail, groupPhone, participantCount },
+            company: { companyName, contactPerson, businessEmail, companyPhone, companyAddress, industry, employeeCount }
+          }[userType],
+          event: selectedEvent || {
+            title: 'WeVentureHub AI & Innovation Summit',
+            date: '2026-08-20',
+            time: '09:00 AM - 04:00 PM',
+            location: 'Main Event Hall',
+            organizer: 'WeVentureHub Team',
+            ticketPrice: 0
+          },
+          totalAmount: ((selectedEvent?.ticketPrice || 0) * (userType === 'group' ? participantCount : (userType === 'company' ? employeeCount : 1))).toFixed(2)
+        };
+
+        setSubmittedResult(result);
+      }
+    } catch (err: any) {
+      console.error('Failed to submit booking:', err);
+      setFormError(err.response?.data?.message || err.message || 'Failed to submit reservation.');
+    } finally {
       setSubmitting(false);
-    }, 800);
+    }
   };
 
   // Render Confirmation Screen upon success
@@ -1310,6 +1389,13 @@ export default function BookingRegistrationPage() {
                   </select>
                 </div>
               )}
+            </div>
+          )}
+
+          {formError && (
+            <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-400 text-sm font-semibold flex items-center space-x-2">
+              <span className="shrink-0 font-bold">Error:</span>
+              <span>{formError}</span>
             </div>
           )}
 

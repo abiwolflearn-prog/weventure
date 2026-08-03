@@ -26,6 +26,7 @@ export interface IInvoiceDocument extends Document {
   amount: number;
   currency: string;
   status: string;
+  paymentStatus?: string;
   customerType?: 'Individual' | 'Company';
   billingDetails: {
     name: string;
@@ -83,6 +84,7 @@ const InvoiceSchema = new Schema<IInvoiceDocument>(
       required: true,
       index: true,
     },
+    paymentStatus: { type: String, default: InvoiceStatus.PENDING, index: true },
     customerType: { type: String, enum: ['Individual', 'Company'], default: 'Individual' },
     billingDetails: {
       name: { type: String, required: true },

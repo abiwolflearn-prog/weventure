@@ -19,6 +19,7 @@ export function isValidEmail(email: string): boolean {
 
 export interface EmailPayload {
   to: string;
+  from?: string;
   recipientName?: string;
   subject: string;
   html: string;

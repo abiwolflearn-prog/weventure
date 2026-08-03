@@ -28,6 +28,9 @@ export interface IPaymentDocument extends Document {
   userEmail: string;
   orderId?: string;
   bookingId?: string;
+  reservationId?: string;
+  invoiceId?: string;
+  workspaceId?: string;
   amount: number;
   currency: string;
   status: PaymentStatus;
@@ -46,6 +49,9 @@ const PaymentSchema = new Schema<IPaymentDocument>(
     userEmail: { type: String, required: true, index: true },
     orderId: { type: String, index: true },
     bookingId: { type: String, index: true },
+    reservationId: { type: String, index: true },
+    invoiceId: { type: String, index: true },
+    workspaceId: { type: String, index: true },
     amount: { type: Number, required: true, min: 0 },
     currency: { type: String, required: true, default: 'ETB' },
     status: {

@@ -43,6 +43,9 @@ export interface IBookingDocument extends Document {
   notes?: string;
   documentUrl?: string;
   agreementId?: string;
+  workspaceId?: string;
+  invoiceId?: string;
+  paymentId?: string;
   renewalHistory?: IRenewalHistoryItem[];
   createdAt: Date;
   updatedAt: Date;
@@ -54,6 +57,9 @@ const BookingSchema = new Schema<IBookingDocument>(
     userId: { type: String, required: true, index: true },
     userEmail: { type: String, required: true, index: true },
     spaceId: { type: String, required: true, index: true },
+    workspaceId: { type: String, index: true },
+    invoiceId: { type: String, index: true },
+    paymentId: { type: String, index: true },
     startTime: { type: Date, required: true, index: true },
     endTime: { type: Date, required: true, index: true },
     totalAmount: { type: Number, required: true, min: 0 },

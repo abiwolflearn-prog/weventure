@@ -4,6 +4,7 @@ import { AuditLog } from '../models/AuditLog';
 import { IBookingDocument } from '../models/Booking';
 import { Agreement } from '../models/Agreement';
 import { Invoice, InvoiceStatus } from '../models/Invoice';
+import { Payment, PaymentStatus, PaymentProvider } from '../models/Payment';
 import { Contact } from '../models/Contact';
 import { Lead } from '../models/Lead';
 import { CrmActivity } from '../models/CrmActivity';
@@ -94,14 +95,26 @@ export class BookingService {
     // 1. Availability Rules Validation
     const startDay = start.getDay(); // 0 (Sun) to 6 (Sat)
     const rules = workspace.availabilityRules;
-    if (rules && rules.allowedDays && !rules.allowedDays.includes(startDay)) {
+    if (rules && rules.allowedDays && rules.allowedDays.length > 0 && !rules.allowedDays.includes(startDay)) {
       throw new ValidationError('Workspace is closed or not reservable on this day of the week');
     }
 
-    const startHour = start.getHours() + start.getMinutes() / 60;
-    const endHour = end.getHours() + end.getMinutes() / 60;
-    if (rules && (startHour < rules.startHour || endHour > rules.endHour)) {
-      throw new ValidationError(`Workspace is only reservable between ${rules.startHour}:00 and ${rules.endHour}:00`);
+    const isFullDayOrMultiDay = data.durationType && data.durationType !== 'Hourly';
+    const totalDurationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+
+    if (rules && rules.startHour !== undefined && rules.endHour !== undefined && !isFullDayOrMultiDay && totalDurationHours < 16) {
+      const localStartHour = start.getHours() + start.getMinutes() / 60;
+      const localEndHour = end.getHours() + end.getMinutes() / 60;
+      const utcStartHour = start.getUTCHours() + start.getUTCMinutes() / 60;
+      const utcEndHour = end.getUTCHours() + end.getUTCMinutes() / 60;
+
+      const is24Hours = rules.startHour === 0 && rules.endHour >= 24;
+      const matchesLocal = localStartHour >= rules.startHour && localEndHour <= rules.endHour;
+      const matchesUTC = utcStartHour >= rules.startHour && utcEndHour <= rules.endHour;
+
+      if (!is24Hours && !matchesLocal && !matchesUTC) {
+        throw new ValidationError(`Workspace is only reservable between ${rules.startHour}:00 and ${rules.endHour}:00`);
+      }
     }
 
     // 2. Conflict & Overlap Check (with Buffer Time)
@@ -747,6 +760,52 @@ export class BookingService {
           amount: calc.totalAmount,
         }
       ],
+    });
+
+    // Ensure corresponding Payment record is created and linked
+    let payment = await Payment.findOne({
+      $or: [{ invoiceId: invoice.id }, { bookingId: booking.id }, { reservationId: booking.id }],
+      tenantId,
+    }).exec();
+
+    if (!payment) {
+      const txRef = `TX-ARIFPAY-${booking.id.substring(0, 8)}-${Date.now()}`;
+      const isPaidStatus = invoice.status === InvoiceStatus.PAID || invoice.status === 'Paid';
+      payment = await Payment.create({
+        tenantId,
+        userId: booking.userId,
+        userEmail: booking.userEmail,
+        orderId: booking.id,
+        bookingId: booking.id,
+        reservationId: booking.id,
+        invoiceId: invoice.id,
+        workspaceId: workspace.id,
+        amount: grandTotal,
+        currency: workspace.currency || 'ETB',
+        status: isPaidStatus ? PaymentStatus.SUCCESSFUL : PaymentStatus.PENDING,
+        provider: PaymentProvider.ARIFPAY,
+        txRef,
+        metadata: {
+          bookingId: booking.id,
+          reservationId: booking.id,
+          invoiceId: invoice.id,
+          workspaceId: workspace.id,
+          invoiceNumber: invoice.invoiceNumber,
+          customerName: booking.billingDetails?.name || booking.userEmail,
+        },
+      });
+    }
+
+    // Link paymentId & paymentStatus to Invoice
+    invoice.paymentId = payment.id;
+    invoice.paymentStatus = invoice.status;
+    await invoice.save();
+
+    // Link invoiceId, workspaceId, paymentId to Booking
+    await bookingRepository.update(booking.id, tenantId, {
+      invoiceId: invoice.id,
+      workspaceId: workspace.id,
+      paymentId: payment.id,
     });
 
     // Dispatch real-time Socket.IO event

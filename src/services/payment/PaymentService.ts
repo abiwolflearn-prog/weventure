@@ -631,7 +631,7 @@ export class PaymentService {
 
             const status = booking.status === 'CONFIRMED' || booking.status === 'COMPLETED' ? InvoiceStatus.PAID : (booking.status === 'CANCELLED' ? InvoiceStatus.CANCELLED : InvoiceStatus.PENDING);
 
-            await Invoice.create({
+            const invoice = await Invoice.create({
               tenantId,
               userId: booking.userId,
               customerId: booking.userId,
@@ -643,6 +643,7 @@ export class PaymentService {
               grandTotal,
               currency: workspace.currency || 'ETB',
               status,
+              paymentStatus: status,
               customerType,
               durationType,
               durationQuantity,
@@ -670,6 +671,40 @@ export class PaymentService {
                 },
               ],
             });
+
+            // Create matching Payment record
+            const txRef = `TX-ARIFPAY-${booking.id.substring(0, 8)}-${Date.now()}`;
+            const isPaidStatus = status === InvoiceStatus.PAID;
+            const payment = await Payment.create({
+              tenantId,
+              userId: booking.userId,
+              userEmail: booking.userEmail,
+              orderId: booking.id,
+              bookingId: booking.id,
+              reservationId: booking.id,
+              invoiceId: invoice.id,
+              workspaceId: workspace.id,
+              amount: grandTotal,
+              currency: workspace.currency || 'ETB',
+              status: isPaidStatus ? PaymentStatus.SUCCESSFUL : PaymentStatus.PENDING,
+              provider: PaymentProvider.ARIFPAY,
+              txRef,
+              metadata: {
+                bookingId: booking.id,
+                reservationId: booking.id,
+                invoiceId: invoice.id,
+                workspaceId: workspace.id,
+                invoiceNumber: invoice.invoiceNumber,
+              },
+            });
+
+            invoice.paymentId = payment.id;
+            await invoice.save();
+
+            booking.invoiceId = invoice.id;
+            booking.workspaceId = workspace.id;
+            booking.paymentId = payment.id;
+            await booking.save();
           }
         }
       }
@@ -778,6 +813,7 @@ export class PaymentService {
     }
 
     invoice.status = newStatus;
+    invoice.paymentStatus = newStatus;
     const isPaid = newStatus === 'Paid' || newStatus === 'PAID';
     if (isPaid) {
       invoice.paidAt = invoice.paidAt || new Date();
@@ -789,6 +825,23 @@ export class PaymentService {
       invoice.outstandingBalance = invoice.grandTotal || invoice.amount || 0;
     }
     await invoice.save();
+
+    // Sync corresponding Payment record status
+    const paymentStatusVal = isPaid ? PaymentStatus.SUCCESSFUL : (newStatus === 'Cancelled' ? PaymentStatus.FAILED : PaymentStatus.PENDING);
+    await Payment.findOneAndUpdate(
+      { $or: [{ invoiceId: invoice.id }, { bookingId: invoice.bookingId }, { reservationId: invoice.reservationId }], tenantId },
+      { status: paymentStatusVal }
+    ).exec();
+
+    // Sync corresponding Booking reservation status
+    const targetBookingId = invoice.bookingId || invoice.reservationId;
+    if (targetBookingId) {
+      if (isPaid) {
+        await Booking.findByIdAndUpdate(targetBookingId, { status: 'CONFIRMED' }).exec();
+      } else if (newStatus === 'Cancelled') {
+        await Booking.findByIdAndUpdate(targetBookingId, { status: 'CANCELLED' }).exec();
+      }
+    }
 
     await this.logActivity(tenantId, user, 'UPDATE_INVOICE_STATUS', 'INVOICE', invoice.id, {
       newStatus,
