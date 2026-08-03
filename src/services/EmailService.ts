@@ -6,6 +6,8 @@ import { EmailQueue, QueuePriority } from '../models/EmailQueue';
 import { EmailPreference } from '../models/EmailPreference';
 import { SystemEmailSettings, ISystemEmailSettings } from '../models/SystemEmailSettings';
 import { emailTemplateService } from './EmailTemplateService';
+import { resendEmailService } from './email/email.service';
+import { isResendEnabled } from './email/resend.client';
 
 export function isValidEmail(email: string): boolean {
   if (!email || typeof email !== 'string') return false;
@@ -174,6 +176,37 @@ class EmailService {
     if (!allowed) {
       logger.info(`🚫 [EMAIL SUPPRESSED] Recipient ${payload.to} opted out of ${category} notifications.`);
       return false;
+    }
+
+    // Prefer Resend Service if configured
+    if (isResendEnabled()) {
+      try {
+        const resendRes = await resendEmailService.sendEmail({
+          to: payload.to,
+          subject: payload.subject,
+          html: payload.html,
+          text: payload.text,
+          from: fromAddress,
+          attachments: payload.attachments,
+        });
+
+        if (resendRes.success) {
+          await (EmailLog as any).create({
+            tenantId,
+            recipientEmail: payload.to.toLowerCase(),
+            recipientName: payload.recipientName,
+            subject: payload.subject,
+            category,
+            templateKey,
+            status: 'delivered',
+            sentAt: new Date(),
+            messageId: resendRes.messageId || 'resend_ok',
+          });
+          return true;
+        }
+      } catch (resendErr: any) {
+        logger.error(`❌ Resend delivery attempt failed, falling back to SMTP: ${resendErr.message}`);
+      }
     }
 
     let lastErrorMessage = '';

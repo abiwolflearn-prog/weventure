@@ -95,8 +95,10 @@ export class PaymentController {
       const user = req.user as IUserIdentity;
 
       const filter: any = { ...req.query };
-      if (user.role === UserRole.EXTERNAL_USER) {
+      const isAdminOrStaff = [UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF].includes(user.role as any);
+      if (!isAdminOrStaff) {
         filter.userId = user.id;
+        filter.userEmail = user.email;
       }
 
       const invoices = await paymentService.getInvoices(tenantId, filter);
@@ -115,8 +117,10 @@ export class PaymentController {
       const user = req.user as IUserIdentity;
 
       const filter: any = {};
-      if (user.role === UserRole.EXTERNAL_USER) {
+      const isAdminOrStaff = [UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF].includes(user.role as any);
+      if (!isAdminOrStaff) {
         filter.userId = user.id;
+        filter.userEmail = user.email;
       }
 
       const stats = await paymentService.getInvoiceStats(tenantId, filter);
@@ -221,8 +225,15 @@ export class PaymentController {
       }
 
       // Safeguard: verify owner or higher privilege
-      if (invoice.userId !== user.id && user.role === UserRole.EXTERNAL_USER) {
-        throw new ForbiddenError('You are not authorized to view this invoice');
+      const isAdminOrStaff = [UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF].includes(user.role as any);
+      if (!isAdminOrStaff) {
+        const isOwner = invoice.userId === user.id ||
+                        invoice.customerId === user.id ||
+                        (invoice.userEmail && invoice.userEmail.toLowerCase() === user.email.toLowerCase()) ||
+                        (invoice.billingDetails?.email && invoice.billingDetails.email.toLowerCase() === user.email.toLowerCase());
+        if (!isOwner) {
+          throw new ForbiddenError('You are not authorized to view this invoice');
+        }
       }
 
       ApiResponse.success(res, invoice, 200);
@@ -245,8 +256,15 @@ export class PaymentController {
         throw new NotFoundError('Invoice not found');
       }
 
-      if (invoice.userId !== user.id && user.role === UserRole.EXTERNAL_USER) {
-        throw new ForbiddenError('You are not authorized to access this invoice file');
+      const isAdminOrStaff = [UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF].includes(user.role as any);
+      if (!isAdminOrStaff) {
+        const isOwner = invoice.userId === user.id ||
+                        invoice.customerId === user.id ||
+                        (invoice.userEmail && invoice.userEmail.toLowerCase() === user.email.toLowerCase()) ||
+                        (invoice.billingDetails?.email && invoice.billingDetails.email.toLowerCase() === user.email.toLowerCase());
+        if (!isOwner) {
+          throw new ForbiddenError('You are not authorized to access this invoice file');
+        }
       }
 
       // Generate a structured printable text format representing an invoice PDF

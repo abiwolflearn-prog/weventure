@@ -326,7 +326,7 @@ export default function BookingList() {
 
   // Helper to find invoices for a specific booking
   const findInvoicesForBooking = (bookingId: string) => {
-    return invoices.filter((inv) => inv.bookingId === bookingId);
+    return invoices.filter((inv) => inv.bookingId === bookingId || inv.reservationId === bookingId);
   };
 
   // Helper: format ISO dates into human readable times

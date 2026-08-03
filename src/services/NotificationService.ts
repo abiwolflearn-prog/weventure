@@ -116,6 +116,25 @@ class NotificationService {
   }
 
   /**
+   * Real-time Socket.IO dispatch for Invoice lifecycle events
+   */
+  public emitInvoiceCreated(tenantId: string, userId: string, invoice: any) {
+    const userRoom = `user:${userId.toLowerCase()}`;
+    const tenantRoom = `tenant:${tenantId.toLowerCase()}`;
+    this.emitEvent(userRoom, 'invoice:created', invoice);
+    this.emitEvent(tenantRoom, 'invoice:created', invoice);
+    this.emitEvent(tenantRoom, 'dashboard:update', { type: 'INVOICE_CREATED', invoice });
+  }
+
+  public emitInvoiceUpdated(tenantId: string, userId: string, invoice: any) {
+    const userRoom = `user:${userId.toLowerCase()}`;
+    const tenantRoom = `tenant:${tenantId.toLowerCase()}`;
+    this.emitEvent(userRoom, 'invoice:updated', invoice);
+    this.emitEvent(tenantRoom, 'invoice:updated', invoice);
+    this.emitEvent(tenantRoom, 'dashboard:update', { type: 'INVOICE_UPDATED', invoice });
+  }
+
+  /**
    * Create a global or targeted tenant-wide Announcement
    */
   public async createAnnouncement(params: {

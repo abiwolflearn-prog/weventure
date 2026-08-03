@@ -597,8 +597,17 @@ export class PaymentService {
     try {
       const bookings = await Booking.find({ tenantId }).exec();
       for (const booking of bookings) {
-        const existing = await Invoice.findOne({ bookingId: booking.id, tenantId }).exec();
-        if (!existing) {
+        const existing = await Invoice.findOne({
+          $or: [{ bookingId: booking.id }, { reservationId: booking.id }],
+          tenantId
+        }).exec();
+
+        if (existing) {
+          let updated = false;
+          if (!existing.reservationId) { existing.reservationId = booking.id; updated = true; }
+          if (!existing.customerId) { existing.customerId = booking.userId; updated = true; }
+          if (updated) await existing.save();
+        } else {
           const workspace = await workspaceRepository.findById(booking.spaceId, tenantId);
           if (workspace) {
             const calc = pricingService.calculatePlanUnitsAndPrice(
@@ -625,9 +634,11 @@ export class PaymentService {
             await Invoice.create({
               tenantId,
               userId: booking.userId,
+              customerId: booking.userId,
               userEmail: booking.userEmail,
               invoiceNumber,
               bookingId: booking.id,
+              reservationId: booking.id,
               amount: calc.totalAmount,
               grandTotal,
               currency: workspace.currency || 'ETB',
@@ -675,8 +686,18 @@ export class PaymentService {
 
     const query: Record<string, any> = { tenantId };
 
-    if (filter.userId) {
-      query.userId = filter.userId;
+    if (filter.userId || filter.userEmail) {
+      const userConditions: any[] = [];
+      if (filter.userId) {
+        userConditions.push({ userId: filter.userId }, { customerId: filter.userId });
+      }
+      if (filter.userEmail) {
+        const emailRegex = new RegExp(`^${filter.userEmail.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i');
+        userConditions.push({ userEmail: emailRegex }, { 'billingDetails.email': emailRegex });
+      }
+      if (userConditions.length > 0) {
+        query.$or = userConditions;
+      }
     }
 
     if (filter.status && filter.status !== 'All') {
@@ -783,7 +804,19 @@ export class PaymentService {
     await this.syncWorkspaceInvoices(tenantId);
 
     const query: Record<string, any> = { tenantId };
-    if (filter.userId) query.userId = filter.userId;
+    if (filter.userId || filter.userEmail) {
+      const userConditions: any[] = [];
+      if (filter.userId) {
+        userConditions.push({ userId: filter.userId }, { customerId: filter.userId });
+      }
+      if (filter.userEmail) {
+        const emailRegex = new RegExp(`^${filter.userEmail.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i');
+        userConditions.push({ userEmail: emailRegex }, { 'billingDetails.email': emailRegex });
+      }
+      if (userConditions.length > 0) {
+        query.$or = userConditions;
+      }
+    }
 
     const invoices = await Invoice.find(query).exec();
 

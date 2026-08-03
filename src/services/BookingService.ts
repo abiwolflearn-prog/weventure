@@ -291,6 +291,13 @@ export class BookingService {
       emailNotificationManager.sendBookingReceived(booking, { email: user.email, name: `${user.firstName} ${user.lastName}` }, workspace.name).catch(console.error);
     }
 
+    // Auto-generate invoice instantly upon reservation creation
+    try {
+      await this.generateBookingInvoice(booking.id, tenantId, user);
+    } catch (invErr) {
+      console.error('Auto invoice creation on reservation create:', invErr);
+    }
+
     return booking;
   }
 
@@ -658,6 +665,44 @@ export class BookingService {
     const discountAmount = 0;
     const grandTotal = Math.round((calc.totalAmount + vatAmount) * 100) / 100;
 
+    // Check if an invoice already exists for this reservation to avoid duplicates
+    let existing = await Invoice.findOne({
+      $or: [{ bookingId: booking.id }, { reservationId: booking.id }],
+      tenantId,
+    }).exec();
+
+    if (existing) {
+      existing.bookingId = booking.id;
+      existing.reservationId = booking.id;
+      existing.userId = booking.userId;
+      existing.customerId = booking.userId;
+      existing.userEmail = booking.userEmail;
+      existing.workspaceId = workspace.id;
+      existing.workspaceName = workspace.name;
+      existing.amount = calc.totalAmount;
+      existing.grandTotal = grandTotal;
+      existing.vat = vatAmount;
+      if (agreement) {
+        existing.agreementId = agreement.id;
+        existing.agreementNumber = agreement.agreementNumber;
+      } else if (booking.agreementId) {
+        existing.agreementId = booking.agreementId;
+      }
+      if (booking.billingDetails) {
+        existing.billingDetails = {
+          name: booking.billingDetails.name || booking.userEmail.split('@')[0],
+          email: booking.billingDetails.email || booking.userEmail,
+          phone: booking.billingDetails.phone,
+          company: booking.billingDetails.company,
+          address: booking.billingDetails.address,
+        };
+      }
+      await existing.save();
+
+      notificationService.emitInvoiceUpdated(tenantId, booking.userId, existing.toJSON ? existing.toJSON() : existing);
+      return existing;
+    }
+
     const invoiceNumber = `INV-${new Date().toISOString().substring(0, 10).replace(/-/g, '')}-${Math.floor(Math.random() * 9000 + 1000)}`;
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 5); // 5 days grace period
@@ -665,9 +710,11 @@ export class BookingService {
     const invoice = await Invoice.create({
       tenantId,
       userId: booking.userId,
+      customerId: booking.userId,
       userEmail: booking.userEmail,
       invoiceNumber,
       bookingId: booking.id,
+      reservationId: booking.id,
       amount: calc.totalAmount,
       grandTotal: grandTotal,
       currency: workspace.currency || 'ETB',
@@ -677,6 +724,7 @@ export class BookingService {
       durationQuantity,
       unitPrice,
       dueDate,
+      agreementId: agreement?.id || booking.agreementId,
       agreementNumber: agreement?.agreementNumber,
       workspaceId: workspace.id,
       workspaceName: workspace.name,
@@ -700,6 +748,9 @@ export class BookingService {
         }
       ],
     });
+
+    // Dispatch real-time Socket.IO event
+    notificationService.emitInvoiceCreated(tenantId, booking.userId, invoice.toJSON ? invoice.toJSON() : invoice);
 
     // Notify Customer
     const emailHtml = `

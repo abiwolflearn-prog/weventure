@@ -8,6 +8,8 @@ import { Sponsor } from '../models/Sponsor';
 import { Partner } from '../models/Partner';
 import { Testimonial } from '../models/Testimonial';
 import { Payment, PaymentStatus } from '../models/Payment';
+import { Invoice, InvoiceStatus } from '../models/Invoice';
+import { notificationService } from '../services/NotificationService';
 import { Tenant } from '../models/Tenant';
 import { ApiResponse } from '../utils/response';
 import { EventStatus, EventVisibility } from '../types';
@@ -291,6 +293,56 @@ export class PublicApiController {
         qrCode,
       });
 
+      const bookingIdStr = booking._id.toString();
+
+      // Generate invoice immediately for this reservation
+      try {
+        const vatAmount = Math.round(totalAmount * 0.15 * 100) / 100;
+        const grandTotal = Math.round((totalAmount + vatAmount) * 100) / 100;
+        const invoiceNumber = `INV-${new Date().toISOString().substring(0, 10).replace(/-/g, '')}-${Math.floor(Math.random() * 9000 + 1000)}`;
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 5);
+
+        const invStatus = paymentProvider ? InvoiceStatus.PAID : InvoiceStatus.PENDING;
+
+        const invoice = await Invoice.create({
+          tenantId: workspace.tenantId || 'weventurehub',
+          userId,
+          customerId: userId,
+          userEmail,
+          invoiceNumber,
+          bookingId: bookingIdStr,
+          reservationId: bookingIdStr,
+          workspaceId: workspace._id ? workspace._id.toString() : spaceId,
+          workspaceName: workspace.name,
+          amount: totalAmount,
+          grandTotal,
+          vat: vatAmount,
+          currency: workspace.currency || 'ETB',
+          status: invStatus,
+          customerType: 'Individual',
+          dueDate,
+          paidAt: paymentProvider ? new Date() : undefined,
+          invoiceDate: new Date(),
+          billingDetails: {
+            name: userName || userEmail.split('@')[0],
+            email: userEmail,
+          },
+          lineItems: [
+            {
+              description: `Workspace Rental: ${workspace.name} (Hourly Plan)\nPeriod: ${start.toLocaleString()} to ${end.toLocaleString()}\nPurpose: ${purpose || 'Workspace Utilization'}`,
+              quantity: diffHours || 1,
+              unitPrice: workspace.hourlyRate || (totalAmount / (diffHours || 1)),
+              amount: totalAmount,
+            }
+          ],
+        });
+
+        notificationService.emitInvoiceCreated(workspace.tenantId || 'weventurehub', userId, invoice.toJSON ? invoice.toJSON() : invoice);
+      } catch (invErr) {
+        console.error('Error generating invoice for public booking:', invErr);
+      }
+
       // Also seed a successful Payment record if payment provider is selected
       if (paymentProvider) {
         const txRef = `TX-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
@@ -298,7 +350,7 @@ export class PublicApiController {
           tenantId: workspace.tenantId || 'weventurehub',
           userId,
           userEmail,
-          bookingId: booking._id.toString(),
+          bookingId: bookingIdStr,
           amount: totalAmount,
           currency: 'ETB',
           status: PaymentStatus.SUCCESSFUL,
@@ -313,7 +365,10 @@ export class PublicApiController {
         });
       }
 
-      ApiResponse.success(res, booking, 201, {
+      const responseBooking = booking.toJSON ? booking.toJSON() : booking;
+      responseBooking.id = bookingIdStr;
+
+      ApiResponse.success(res, responseBooking, 201, {
         message: 'Booking created successfully'
       });
     } catch (error) {

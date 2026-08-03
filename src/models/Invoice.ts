@@ -16,10 +16,12 @@ export interface IInvoiceDocument extends Document {
   id: string;
   tenantId: string;
   userId: string;
+  customerId?: string;
   userEmail: string;
   invoiceNumber: string; // INV-YYYYMMDD-XXXX
   orderId?: string;
   bookingId?: string;
+  reservationId?: string;
   paymentId?: string;
   amount: number;
   currency: string;
@@ -44,6 +46,7 @@ export interface IInvoiceDocument extends Document {
   unitPrice?: number;
   dueDate?: Date;
   paidAt?: Date;
+  agreementId?: string;
   agreementNumber?: string;
   workspaceId?: string;
   workspaceName?: string;
@@ -65,10 +68,12 @@ const InvoiceSchema = new Schema<IInvoiceDocument>(
   {
     tenantId: { type: String, required: true, index: true },
     userId: { type: String, required: true, index: true },
+    customerId: { type: String, index: true },
     userEmail: { type: String, required: true, index: true },
     invoiceNumber: { type: String, required: true, unique: true, index: true },
     orderId: { type: String, index: true },
     bookingId: { type: String, index: true },
+    reservationId: { type: String, index: true },
     paymentId: { type: String, index: true },
     amount: { type: Number, required: true, min: 0 },
     currency: { type: String, required: true, default: 'ETB' },
@@ -100,6 +105,7 @@ const InvoiceSchema = new Schema<IInvoiceDocument>(
     unitPrice: { type: Number, default: 0 },
     dueDate: { type: Date },
     paidAt: { type: Date },
+    agreementId: { type: String, index: true },
     agreementNumber: { type: String },
     workspaceId: { type: String },
     workspaceName: { type: String },

@@ -23,6 +23,10 @@ const envSchema = z.object({
   SMTP_PASS: z.string().default(''),
   SMTP_FROM: z.string().default('WeVentureHub <noreply@weventurehub.com>'),
   ADMIN_EMAIL: z.string().default('admin@weventurehub.com'),
+  RESEND_API_KEY: z.string().optional(),
+  COMPANY_EMAIL: z.string().default('support@weventurehub.com'),
+  FRONTEND_URL: z.string().default('http://localhost:3000'),
+  APP_NAME: z.string().default('WeVentureHub'),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

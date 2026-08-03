@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { paymentApi } from '../lib/paymentApi';
 import { workspaceApi } from '../lib/workspaceApi';
+import { getSocket } from '../lib/socket';
 import { useAppSelector } from '../store';
 import { UserRole } from '../types';
 import { Button } from '../components/Button';
@@ -137,6 +138,27 @@ export default function InvoicesPage() {
  queryFn: () => paymentApi.getInvoiceStats(),
  enabled: isAdmin,
  });
+
+ // Real-time synchronization via Socket.IO
+ useEffect(() => {
+   const socket = getSocket();
+   if (socket) {
+     const handleSocketUpdate = () => {
+       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+       queryClient.invalidateQueries({ queryKey: ['invoice-stats'] });
+     };
+
+     socket.on('invoice:created', handleSocketUpdate);
+     socket.on('invoice:updated', handleSocketUpdate);
+     socket.on('dashboard:update', handleSocketUpdate);
+
+     return () => {
+       socket.off('invoice:created', handleSocketUpdate);
+       socket.off('invoice:updated', handleSocketUpdate);
+       socket.off('dashboard:update', handleSocketUpdate);
+     };
+   }
+ }, [queryClient]);
 
  // Status update mutation
  const updateStatusMutation = useMutation({
