@@ -29,17 +29,17 @@ const SystemEmailSettingsSchema = new Schema<ISystemEmailSettingsDocument>(
   {
     tenantId: { type: String, required: true, default: 'weventurehub', unique: true },
     adminEmails: {
-      primaryAdminEmail: { type: String, default: 'admin@weventurehub.com' },
-      secondaryAdminEmail: { type: String, default: 'operations@weventurehub.com' },
-      billingEmail: { type: String, default: 'billing@weventurehub.com' },
-      supportEmail: { type: String, default: 'support@weventurehub.com' },
-      contactEmail: { type: String, default: 'contact@weventurehub.com' },
+      primaryAdminEmail: { type: String, default: 'abiwolflearn@gmail.com' },
+      secondaryAdminEmail: { type: String, default: 'abiwolflearn@gmail.com' },
+      billingEmail: { type: String, default: 'abiwolflearn@gmail.com' },
+      supportEmail: { type: String, default: 'abiwolflearn@gmail.com' },
+      contactEmail: { type: String, default: 'abiwolflearn@gmail.com' },
     },
     senders: {
-      defaultSender: { type: String, default: 'WeVentureHub <noreply@weventurehub.com>' },
-      supportSender: { type: String, default: 'WeVentureHub Support <support@weventurehub.com>' },
-      billingSender: { type: String, default: 'WeVentureHub Billing <billing@weventurehub.com>' },
-      notificationsSender: { type: String, default: 'WeVentureHub Notifications <notifications@weventurehub.com>' },
+      defaultSender: { type: String, default: 'WeVentureHub <onboarding@resend.dev>' },
+      supportSender: { type: String, default: 'WeVentureHub <onboarding@resend.dev>' },
+      billingSender: { type: String, default: 'WeVentureHub <onboarding@resend.dev>' },
+      notificationsSender: { type: String, default: 'WeVentureHub <onboarding@resend.dev>' },
     },
   },
   { timestamps: true }

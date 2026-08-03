@@ -358,10 +358,10 @@ export class EmailController {
       const config = {
         host: env.SMTP_HOST || 'smtp.gmail.com',
         port: env.SMTP_PORT || 587,
-        from: env.SMTP_FROM || 'WeVentureHub <noreply@weventurehub.com>',
+        from: env.EMAIL_FROM || env.SMTP_FROM || 'WeVentureHub <onboarding@resend.dev>',
         hasUser: Boolean(env.SMTP_USER),
         hasPass: Boolean(env.SMTP_PASS),
-        adminEmail: env.ADMIN_EMAIL || 'admin@weventurehub.com',
+        adminEmail: env.ADMIN_EMAIL || 'abiwolflearn@gmail.com',
         status: 'ONLINE',
       };
 
@@ -378,7 +378,7 @@ export class EmailController {
   public async testSmtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { testEmail, host, port, user, pass, from } = req.body;
-      const target = testEmail || env.ADMIN_EMAIL || 'admin@weventurehub.com';
+      const target = testEmail || env.ADMIN_EMAIL || 'abiwolflearn@gmail.com';
 
       if (host) {
         emailService.initTransporter({ host, port: Number(port), user, pass, from });

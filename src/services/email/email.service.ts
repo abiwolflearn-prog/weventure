@@ -71,7 +71,7 @@ export class ResendEmailService {
 
     const frontendUrl = env.FRONTEND_URL || env.APP_URL || 'http://localhost:3000';
     const appName = env.APP_NAME || 'WeVentureHub';
-    const companyEmail = env.COMPANY_EMAIL || 'support@weventurehub.com';
+    const companyEmail = env.COMPANY_EMAIL || env.ADMIN_EMAIL || 'abiwolflearn@gmail.com';
 
     const mergedData: Record<string, any> = {
       frontendUrl,
@@ -144,16 +144,13 @@ export class ResendEmailService {
       return { success: true, messageId: 'dedup-skipped', provider: 'resend' };
     }
 
-    const defaultFrom = env.COMPANY_EMAIL 
-      ? `WeVentureHub <${env.COMPANY_EMAIL}>` 
-      : 'WeVentureHub <onboarding@resend.dev>';
-
+    const defaultFrom = env.EMAIL_FROM || 'WeVentureHub <onboarding@resend.dev>';
     const senderEmail = from || defaultFrom;
     const resend = getResendClient();
 
     if (resend) {
       try {
-        logger.info(`📧 Sending email via Resend to ${cleanRecipients.join(', ')} | Subject: "${subject}"`);
+        logger.info(`📧 Sending email via Resend to ${cleanRecipients.join(', ')} | Subject: "${subject}" | From: ${senderEmail}`);
 
         const data = await resend.emails.send({
           from: senderEmail,
@@ -161,7 +158,7 @@ export class ResendEmailService {
           subject,
           html,
           text: text || html.replace(/<[^>]*>?/gm, ''),
-          replyTo: replyTo || env.COMPANY_EMAIL || 'support@weventurehub.com',
+          replyTo: replyTo || env.ADMIN_EMAIL || 'abiwolflearn@gmail.com',
         });
 
         if (data.error) {
@@ -306,10 +303,10 @@ export class ResendEmailService {
       submittedTime,
     });
 
-    const companyEmail = env.COMPANY_EMAIL || env.ADMIN_EMAIL || 'support@weventurehub.com';
+    const adminEmail = env.ADMIN_EMAIL || 'abiwolflearn@gmail.com';
 
     return this.sendEmail({
-      to: companyEmail,
+      to: adminEmail,
       subject: `⚡ [ADMIN ALERT] New Workspace Reservation #${reservationId} - ${customerName}`,
       html,
     });

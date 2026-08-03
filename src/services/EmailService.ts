@@ -42,6 +42,9 @@ class EmailService {
   }
 
   public async getSystemEmailSettings(tenantId = 'weventurehub'): Promise<ISystemEmailSettings> {
+    const defaultFrom = env.EMAIL_FROM || 'WeVentureHub <onboarding@resend.dev>';
+    const adminEmail = env.ADMIN_EMAIL || 'abiwolflearn@gmail.com';
+
     try {
       const settings = await (SystemEmailSettings as any).findOne({ tenantId }).lean();
       if (settings && settings.adminEmails && settings.senders) {
@@ -50,34 +53,34 @@ class EmailService {
       return {
         tenantId,
         adminEmails: {
-          primaryAdminEmail: env.ADMIN_EMAIL || 'admin@weventurehub.com',
-          secondaryAdminEmail: 'operations@weventurehub.com',
-          billingEmail: 'billing@weventurehub.com',
-          supportEmail: 'support@weventurehub.com',
-          contactEmail: 'contact@weventurehub.com',
+          primaryAdminEmail: adminEmail,
+          secondaryAdminEmail: adminEmail,
+          billingEmail: adminEmail,
+          supportEmail: adminEmail,
+          contactEmail: adminEmail,
         },
         senders: {
-          defaultSender: env.SMTP_FROM || 'WeVentureHub <noreply@weventurehub.com>',
-          supportSender: 'WeVentureHub Support <support@weventurehub.com>',
-          billingSender: 'WeVentureHub Billing <billing@weventurehub.com>',
-          notificationsSender: 'WeVentureHub Notifications <notifications@weventurehub.com>',
+          defaultSender: defaultFrom,
+          supportSender: defaultFrom,
+          billingSender: defaultFrom,
+          notificationsSender: defaultFrom,
         },
       };
     } catch (err) {
       return {
         tenantId,
         adminEmails: {
-          primaryAdminEmail: env.ADMIN_EMAIL || 'admin@weventurehub.com',
-          secondaryAdminEmail: 'operations@weventurehub.com',
-          billingEmail: 'billing@weventurehub.com',
-          supportEmail: 'support@weventurehub.com',
-          contactEmail: 'contact@weventurehub.com',
+          primaryAdminEmail: adminEmail,
+          secondaryAdminEmail: adminEmail,
+          billingEmail: adminEmail,
+          supportEmail: adminEmail,
+          contactEmail: adminEmail,
         },
         senders: {
-          defaultSender: env.SMTP_FROM || 'WeVentureHub <noreply@weventurehub.com>',
-          supportSender: 'WeVentureHub Support <support@weventurehub.com>',
-          billingSender: 'WeVentureHub Billing <billing@weventurehub.com>',
-          notificationsSender: 'WeVentureHub Notifications <notifications@weventurehub.com>',
+          defaultSender: defaultFrom,
+          supportSender: defaultFrom,
+          billingSender: defaultFrom,
+          notificationsSender: defaultFrom,
         },
       };
     }
@@ -160,16 +163,9 @@ class EmailService {
       return false;
     }
 
-    // Determine configurable sender address based on category
-    const systemSettings = await this.getSystemEmailSettings(tenantId);
-    let fromAddress = systemSettings.senders.defaultSender;
-    if (category === 'billing' || category === 'invoice' || templateKey.includes('payment') || templateKey.includes('invoice')) {
-      fromAddress = systemSettings.senders.billingSender;
-    } else if (category === 'support' || templateKey.includes('support') || templateKey.includes('contact')) {
-      fromAddress = systemSettings.senders.supportSender;
-    } else if (category === 'notification' || category === 'auth' || templateKey.includes('welcome') || templateKey.includes('verification') || templateKey.includes('reset')) {
-      fromAddress = systemSettings.senders.notificationsSender;
-    }
+    // Determine sender address
+    const defaultFrom = env.EMAIL_FROM || 'WeVentureHub <onboarding@resend.dev>';
+    let fromAddress = payload.from || defaultFrom;
 
     // Check user preferences
     const allowed = await this.isEmailAllowed(payload.to, category);

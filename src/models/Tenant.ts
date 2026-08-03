@@ -227,7 +227,7 @@ const TenantSchema = new Schema<ITenantDocument>(
         headerLogoUrl: { type: String },
         headerAlignment: { type: String, enum: ['left', 'center', 'right'], default: 'center' },
         footerText: { type: String, default: '© WeVentureHub. All rights reserved.', required: true },
-        supportEmail: { type: String, default: 'support@weventurehub.com', required: true },
+        supportEmail: { type: String, default: 'abiwolflearn@gmail.com', required: true },
         socialFacebook: { type: String },
         socialTwitter: { type: String },
         socialLinkedIn: { type: String },

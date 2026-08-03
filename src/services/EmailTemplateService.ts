@@ -16,7 +16,7 @@ export const DEFAULT_BRANDING: IEmailBranding = {
   fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   companyName: 'WeVentureHub',
   companyAddress: 'Airport Road, Sur Construction second floor, Addis Ababa',
-  supportEmail: 'info@weventurehub.com',
+  supportEmail: 'abiwolflearn@gmail.com',
   supportPhone: '091 124 3503',
   footerText: 'You are receiving this automated email as a valued member, workspace client, or community partner of WeVentureHub.',
   signatureText: 'Warm regards,\nThe WeVentureHub Operations Team',
@@ -375,7 +375,7 @@ export const BUILT_IN_TEMPLATES: Record<string, { name: string; category: any; s
         <a href="{{resetUrl}}" class="btn">Reset My Password</a>
       </div>
       <div class="highlight-card" style="border-left-color: #ef4444; background-color: #fef2f2;">
-        <strong style="color: #991b1b;">Security Alert:</strong> If you did not request a password reset, your credentials remain safe. Do not click the button and notify security at support@weventurehub.com immediately.
+        <strong style="color: #991b1b;">Security Alert:</strong> If you did not request a password reset, your credentials remain safe. Do not click the button and notify security at ${DEFAULT_BRANDING.supportEmail} immediately.
       </div>
     `,
   },

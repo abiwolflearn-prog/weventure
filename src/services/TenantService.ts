@@ -70,7 +70,7 @@ export class TenantService {
         emailBranding: {
           headerColor: data.branding?.emailBranding?.headerColor || '#0284c7',
           footerText: data.branding?.emailBranding?.footerText || '© WeVentureHub. All rights reserved.',
-          supportEmail: data.branding?.emailBranding?.supportEmail || 'support@weventurehub.com',
+          supportEmail: data.branding?.emailBranding?.supportEmail || 'abiwolflearn@gmail.com',
         },
         loginBranding: {
           title: data.branding?.loginBranding?.title || data.name,
@@ -408,7 +408,7 @@ export class TenantService {
             emailBranding: {
               headerColor: '#0284c7',
               footerText: '© WeVentureHub Enterprise. All rights reserved.',
-              supportEmail: 'support@weventurehub.com',
+              supportEmail: 'abiwolflearn@gmail.com',
             },
             loginBranding: {
               title: 'WeVentureHub',
