@@ -112,6 +112,83 @@ export default function BookingRegistrationPage() {
   const [additionalServices, setAdditionalServices] = useState<string[]>(['Projector & AV Setup', 'Catering & Coffee Service']);
   const [specialRequests, setSpecialRequests] = useState('');
 
+  // Dynamic Pricing Rules Persistence State
+  const [dynamicPrice, setDynamicPrice] = useState<{
+    basePrice: number;
+    vat: number;
+    totalAmount: number;
+    currency: string;
+    durationInHours?: number;
+    billingTierUsed?: string;
+  } | null>(null);
+  const [calculatingPrice, setCalculatingPrice] = useState<boolean>(false);
+
+  const getStartAndEndDates = () => {
+    if (!bookingDate) return null;
+    const startDt = new Date(`${bookingDate}T${startTime}:00`);
+    if (isNaN(startDt.getTime())) return null;
+
+    let endDt: Date;
+    if (durationType === 'Hourly') {
+      const customEnd = new Date(`${bookingDate}T${endTime}:00`);
+      if (!isNaN(customEnd.getTime()) && customEnd > startDt) {
+        endDt = customEnd;
+      } else {
+        endDt = new Date(startDt.getTime() + (durationQuantity || 1) * 60 * 60 * 1000);
+      }
+    } else if (durationType === 'Daily') {
+      endDt = new Date(startDt.getTime() + (durationQuantity || 1) * 24 * 60 * 60 * 1000);
+    } else if (durationType === 'Weekly') {
+      endDt = new Date(startDt.getTime() + (durationQuantity || 1) * 7 * 24 * 60 * 60 * 1000);
+    } else if (durationType === 'Monthly') {
+      endDt = new Date(startDt.getTime() + (durationQuantity || 1) * 30 * 24 * 60 * 60 * 1000);
+    } else if (durationType === 'Yearly') {
+      endDt = new Date(startDt.getTime() + (durationQuantity || 1) * 365 * 24 * 60 * 60 * 1000);
+    } else {
+      endDt = new Date(startDt.getTime() + (durationQuantity || 1) * 60 * 60 * 1000);
+    }
+
+    if (endDt <= startDt) {
+      endDt = new Date(startDt.getTime() + (durationQuantity || 1) * 60 * 60 * 1000);
+    }
+    return { startDt, endDt };
+  };
+
+  useEffect(() => {
+    const fetchDynamicPrice = async () => {
+      if (!selectedWorkspace?.id) return;
+      const dates = getStartAndEndDates();
+      if (!dates) return;
+
+      setCalculatingPrice(true);
+      try {
+        const res = await bookingApi.calculatePrice({
+          spaceId: selectedWorkspace.id,
+          startTime: dates.startDt.toISOString(),
+          endTime: dates.endDt.toISOString(),
+          durationType,
+          durationQuantity,
+        });
+        if (res) {
+          setDynamicPrice({
+            basePrice: res.basePrice,
+            vat: res.vat,
+            totalAmount: res.totalAmount,
+            currency: res.currency || 'USD',
+            durationInHours: res.durationInHours,
+            billingTierUsed: res.billingTierUsed,
+          });
+        }
+      } catch (err) {
+        console.error('Error recalculating dynamic price:', err);
+      } finally {
+        setCalculatingPrice(false);
+      }
+    };
+
+    fetchDynamicPrice();
+  }, [selectedWorkspace?.id, bookingDate, startTime, endTime, durationType, durationQuantity]);
+
   // Submission State
   const [submitting, setSubmitting] = useState(false);
   const [submittedResult, setSubmittedResult] = useState<any>(null);
@@ -133,6 +210,22 @@ export default function BookingRegistrationPage() {
       setDurationQuantity(parseInt(paramQty, 10));
     }
   }, [searchParams]);
+
+  // Synchronize default durationType based on the workspace's billing plans
+  useEffect(() => {
+    if (selectedWorkspace?.billingPlans && Array.isArray(selectedWorkspace.billingPlans)) {
+      const activePlans = selectedWorkspace.billingPlans.filter((p: any) => p.isActive !== false);
+      if (activePlans.length > 0) {
+        const urlType = searchParams.get('durationType');
+        const hasUrlMatch = activePlans.some((p: any) => p.name === urlType);
+        if (urlType && hasUrlMatch) {
+          setDurationType(urlType);
+        } else {
+          setDurationType(activePlans[0].name);
+        }
+      }
+    }
+  }, [selectedWorkspace, searchParams]);
 
   // Fetch workspaces & events listing or specific target
   useEffect(() => {
@@ -251,7 +344,7 @@ export default function BookingRegistrationPage() {
           purpose: purposeOfBooking || 'Workspace Reservation',
           durationType: durationType,
           durationQuantity: durationQuantity,
-          unitPrice: priceBreakdown.unitPrice,
+          unitPrice: dynamicPrice ? (dynamicPrice.basePrice / (durationQuantity || 1)) : priceBreakdown.unitPrice,
           formattedDuration: formatBookingDuration(durationType, durationQuantity),
           desksRequested: desksRequested,
           billingDetails: {
@@ -294,10 +387,10 @@ export default function BookingRegistrationPage() {
             specialRequests,
             durationType,
             durationQuantity,
-            unitPrice: priceBreakdown.unitPrice,
+            unitPrice: dynamicPrice ? (dynamicPrice.basePrice / (durationQuantity || 1)) : priceBreakdown.unitPrice,
             formattedDuration: formatBookingDuration(durationType, durationQuantity),
           },
-          totalAmount: (createdBooking.totalAmount || priceBreakdown.totalAmount).toFixed(2),
+          totalAmount: (createdBooking.totalAmount || (dynamicPrice?.totalAmount ?? priceBreakdown.totalAmount)).toFixed(2),
           qrCode: createdBooking.qrCode,
           invoiceId: createdBooking.invoiceId,
         };
@@ -1154,14 +1247,24 @@ export default function BookingRegistrationPage() {
                       <label className="block text-xs font-bold text-neutral-300 mb-1">Duration Type *</label>
                       <select
                         value={durationType}
-                        onChange={(e) => setDurationType(e.target.value as DurationType)}
+                        onChange={(e) => setDurationType(e.target.value)}
                         className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-primary"
                       >
-                        <option value="Hourly">Hourly</option>
-                        <option value="Daily">Daily</option>
-                        <option value="Weekly">Weekly</option>
-                        <option value="Monthly">Monthly</option>
-                        <option value="Yearly">Yearly</option>
+                        {selectedWorkspace?.billingPlans && selectedWorkspace.billingPlans.filter((p: any) => p.isActive !== false).length > 0 ? (
+                          selectedWorkspace.billingPlans.filter((p: any) => p.isActive !== false).map((plan: any) => (
+                            <option key={plan.id || plan._id || plan.name} value={plan.name}>
+                              {plan.name}
+                            </option>
+                          ))
+                        ) : (
+                          <>
+                            <option value="Hourly">Hourly</option>
+                            <option value="Daily">Daily</option>
+                            <option value="Weekly">Weekly</option>
+                            <option value="Monthly">Monthly</option>
+                            <option value="Yearly">Yearly</option>
+                          </>
+                        )}
                       </select>
                     </div>
 
@@ -1186,36 +1289,61 @@ export default function BookingRegistrationPage() {
                   </div>
 
                   {/* Live Price Preview Box */}
-                  <div className="bg-neutral-900 p-4 rounded-xl border border-neutral-800 space-y-2.5">
+                  <div className="bg-neutral-900 p-5 rounded-2xl border border-neutral-800 space-y-3.5 relative overflow-hidden">
+                    {calculatingPrice && (
+                      <div className="absolute inset-0 bg-neutral-950/80 backdrop-blur-xs flex items-center justify-center z-10">
+                        <div className="flex items-center gap-2 text-brand-accent text-xs font-bold">
+                          <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          Recalculating with active rules...
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between text-xs text-neutral-400">
-                      <span>Unit Price ({durationType}):</span>
-                      <span className="font-bold text-white font-mono">
-                        ${priceBreakdown.unitPrice.toFixed(2)} / {durationType.toLowerCase().replace('ly', '').replace('i', 'y')}
+                      <span>Resource / Workspace:</span>
+                      <span className="font-extrabold text-white text-right">
+                        {selectedWorkspace?.name} ({selectedWorkspace?.type})
                       </span>
                     </div>
+
                     <div className="flex items-center justify-between text-xs text-neutral-400">
-                      <span>Selected Duration & Desks:</span>
+                      <span>Selected Duration:</span>
                       <span className="font-extrabold text-brand-accent">
-                        {formatBookingDuration(durationType, durationQuantity)} ({desksRequested} Desk{desksRequested > 1 ? 's' : ''})
+                        {formatBookingDuration(durationType, durationQuantity)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-neutral-400">
-                      <span>Subtotal:</span>
-                      <span className="font-bold text-neutral-200 font-mono">
-                        ${priceBreakdown.subtotal.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-neutral-400">
-                      <span>VAT / Taxes (15%):</span>
-                      <span className="font-semibold text-neutral-400 font-mono">
-                        ${priceBreakdown.serviceFee.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="pt-2 border-t border-neutral-800 flex items-center justify-between">
-                      <span className="text-xs font-bold text-white uppercase tracking-wider">Total Calculated Price:</span>
-                      <span className="text-lg font-extrabold text-brand-accent font-mono">
-                        ${priceBreakdown.totalAmount.toFixed(2)}
-                      </span>
+
+                    <div className="border-t border-dashed border-neutral-800 my-2 pt-2 space-y-2.5">
+                      <div className="flex items-center justify-between text-xs text-neutral-400">
+                        <span>Base Price:</span>
+                        <span className="font-bold text-neutral-200 font-mono">
+                          USD {(dynamicPrice?.basePrice ?? priceBreakdown.subtotal).toFixed(2)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs text-neutral-400">
+                        <span>VAT (15%):</span>
+                        <span className="font-semibold text-neutral-300 font-mono">
+                          USD {(dynamicPrice?.vat ?? priceBreakdown.serviceFee).toFixed(2)}
+                        </span>
+                      </div>
+
+                      {dynamicPrice?.billingTierUsed && (
+                        <div className="flex items-center justify-between text-[10px] text-emerald-400 font-semibold bg-emerald-950/30 px-2.5 py-1 rounded-md border border-emerald-900/40">
+                          <span>Applied Rule Match:</span>
+                          <span className="uppercase">{dynamicPrice.billingTierUsed}</span>
+                        </div>
+                      )}
+
+                      <div className="pt-3 border-t border-neutral-800 flex items-center justify-between">
+                        <span className="text-xs font-extrabold text-white uppercase tracking-wider">Total Calculated Price:</span>
+                        <span className="text-lg font-extrabold text-brand-accent font-mono">
+                          USD {(dynamicPrice?.totalAmount ?? priceBreakdown.totalAmount).toFixed(2)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>

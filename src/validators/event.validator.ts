@@ -4,14 +4,14 @@ import { EventStatus, EventVisibility } from '../types';
 const SessionValidator = z.object({
   title: z.string().min(1, 'Session title is required'),
   description: z.string().optional(),
-  startTime: z.string().datetime({ message: 'Session start time must be a valid ISO datetime' }),
-  endTime: z.string().datetime({ message: 'Session end time must be a valid ISO datetime' }),
+  startTime: z.string().min(1, 'Session start time is required'),
+  endTime: z.string().min(1, 'Session end time is required'),
   location: z.string().optional(),
 });
 
 export const createEventSchema = z.object({
-  title: z.string().min(3, 'Event title must be at least 3 characters long'),
-  description: z.string().min(10, 'Event description must be at least 10 characters long'),
+  title: z.string().min(1, 'Event title is required'),
+  description: z.string().min(1, 'Event description is required'),
   category: z.string().min(1, 'Event category is required'),
   tags: z.array(z.string()).default([]),
   status: z.nativeEnum(EventStatus).default(EventStatus.DRAFT),
@@ -26,15 +26,17 @@ export const createEventSchema = z.object({
     isUnlimited: z.boolean().default(false),
   }).default({ maxCapacity: 0, isUnlimited: true }),
   registrationSettings: z.object({
-    registrationOpenDate: z.string().datetime().optional(),
-    registrationCloseDate: z.string().datetime().optional(),
+    registrationOpenDate: z.string().datetime().optional().nullable(),
+    registrationCloseDate: z.string().datetime().optional().nullable(),
     requiresApproval: z.boolean().default(false),
-  }).default({ requiresApproval: false }),
+    isInviteOnly: z.boolean().default(false),
+    customFormFields: z.array(z.any()).optional().default([]),
+  }).default({ requiresApproval: false, isInviteOnly: false, customFormFields: [] }),
   sessions: z.array(SessionValidator).default([]),
   media: z.object({
-    bannerUrl: z.string().url('Banner must be a valid URL').optional().or(z.literal('')),
-    imageUrls: z.array(z.string().url('Image must be a valid URL')).default([]),
-    videoUrl: z.string().url('Video must be a valid URL').optional().or(z.literal('')),
+    bannerUrl: z.string().optional().or(z.literal('')),
+    imageUrls: z.array(z.string()).default([]),
+    videoUrl: z.string().optional().or(z.literal('')),
   }).default({ imageUrls: [] }),
   seo: z.object({
     metaTitle: z.string().optional(),
@@ -42,6 +44,9 @@ export const createEventSchema = z.object({
     metaKeywords: z.array(z.string()).default([]),
   }).default({ metaKeywords: [] }),
   template: z.string().optional().default('default'),
+  isFreeRsvp: z.boolean().optional().default(false),
+  rsvpFormFields: z.array(z.any()).optional().default([]),
+  rsvpFormAppearance: z.any().optional().default({}),
   modules: z.array(z.object({
     id: z.string(),
     enabled: z.boolean().default(false),

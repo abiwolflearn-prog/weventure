@@ -503,6 +503,18 @@ class EmailNotificationManager {
       priority: 'normal',
     });
   }
+
+  public async sendCustomRsvpEmail(params: { to: string; recipientName: string; subject: string; html: string }): Promise<boolean> {
+    return emailService.sendEmail({
+      tenantId: 'weventurehub',
+      to: params.to,
+      recipientName: params.recipientName,
+      subject: params.subject,
+      html: params.html,
+      category: 'event',
+      templateKey: 'custom_rsvp_confirmation'
+    });
+  }
 }
 
 export const emailNotificationManager = new EmailNotificationManager();

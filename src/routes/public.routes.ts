@@ -76,6 +76,13 @@ publicRouter.get('/events/:eventId/reviews', publicMarketplaceController.getRevi
 publicRouter.post('/events/:eventId/reviews', publicMarketplaceController.addReview);
 
 /**
+ * @route   POST /api/v1/public/events/:eventId/rsvp
+ * @desc    Submit RSVP for a Free RSVP Event
+ * @access  Public
+ */
+publicRouter.post('/events/:eventId/rsvp', publicMarketplaceController.submitRsvp);
+
+/**
  * @route   GET /api/v1/public/workspaces
  * @desc    Fetch lists of active, public workspaces
  * @access  Public

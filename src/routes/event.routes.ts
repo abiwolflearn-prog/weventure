@@ -118,3 +118,45 @@ eventRouter.patch(
 );
 
 export default eventRouter;
+
+import { rsvpConfigurationController } from '../controllers/RsvpConfigurationController';
+
+/**
+ * @route   GET /api/v1/events/:eventId/rsvp-configuration
+ */
+eventRouter.get(
+  '/:eventId/rsvp-configuration',
+  authGuard,
+  hasPermission(Permission.EVENTS_READ),
+  rsvpConfigurationController.get
+);
+
+/**
+ * @route   PUT /api/v1/events/:eventId/rsvp-configuration/draft
+ */
+eventRouter.put(
+  '/:eventId/rsvp-configuration/draft',
+  authGuard,
+  hasPermission(Permission.EVENTS_UPDATE),
+  rsvpConfigurationController.saveDraft
+);
+
+/**
+ * @route   POST /api/v1/events/:eventId/rsvp-configuration/publish
+ */
+eventRouter.post(
+  '/:eventId/rsvp-configuration/publish',
+  authGuard,
+  hasPermission(Permission.EVENTS_UPDATE),
+  rsvpConfigurationController.publish
+);
+
+/**
+ * @route   POST /api/v1/events/:eventId/rsvp-configuration/restore/:version
+ */
+eventRouter.post(
+  '/:eventId/rsvp-configuration/restore/:version',
+  authGuard,
+  hasPermission(Permission.EVENTS_UPDATE),
+  rsvpConfigurationController.restore
+);

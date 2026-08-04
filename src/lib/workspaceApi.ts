@@ -3,13 +3,23 @@ import { axiosInstance } from './axiosInstance';
 export interface IBillingPlan {
   id?: string;
   _id?: string;
-  name: 'Hourly' | 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly';
+  name: string;
   price: number;
   currency: string;
   deposit?: number;
   paymentDueDay?: number;
   agreementTemplate?: string;
+  minimumDuration?: number;
+  maximumDuration?: number;
+  vat?: number;
+  discount?: number;
+  gracePeriod?: number;
+  lateFee?: number;
   isActive: boolean;
+  validityThreshold?: string;
+  totalPrice?: number;
+  availableSeats?: number;
+  bookingCapacity?: number;
 }
 
 export interface IWorkspace {

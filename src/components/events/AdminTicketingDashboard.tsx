@@ -78,6 +78,20 @@ export function AdminTicketingDashboard() {
   });
   const events = eventsResponse?.data || [];
 
+  const { selectedEvent, isFreeRsvpEvent } = React.useMemo(() => {
+    const sel = events.find((e: any) => e.id === selectedEventId);
+    return {
+      selectedEvent: sel,
+      isFreeRsvpEvent: !!sel?.isFreeRsvp,
+    };
+  }, [events, selectedEventId]);
+
+  React.useEffect(() => {
+    if (isFreeRsvpEvent && activeTab !== 'REGISTRATIONS') {
+      setActiveTab('REGISTRATIONS');
+    }
+  }, [isFreeRsvpEvent, activeTab]);
+
   // Default to first event if not selected
   React.useEffect(() => {
     if (events.length > 0 && !selectedEventId) {
@@ -390,7 +404,7 @@ export function AdminTicketingDashboard() {
       (checkedInFilter === 'PENDING_GATE' && !reg.checkedIn);
 
     // 4. Ticket Type Filter
-    const matchesTicketType = ticketTypeFilter === 'ALL' || reg.ticketTypeId === ticketTypeFilter;
+    const matchesTicketType = isFreeRsvpEvent || ticketTypeFilter === 'ALL' || reg.ticketTypeId === ticketTypeFilter;
 
     return matchesSearch && matchesStatus && matchesCheckedIn && matchesTicketType;
   });
@@ -423,19 +437,38 @@ export function AdminTicketingDashboard() {
       {/* Analytics Bento Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white border border-gray-200 shadow-sm rounded-2xl p-4.5 shadow-sm space-y-1.5">
-          <span className="text-[10px] font-mono font-extrabold text-neutral-slate-400 uppercase block tracking-wider">Tickets Sold</span>
+          <span className="text-[10px] font-mono font-extrabold text-neutral-slate-400 uppercase block tracking-wider">
+            {isFreeRsvpEvent ? 'Total RSVPs' : 'Tickets Sold'}
+          </span>
           <div className="flex items-baseline gap-1">
-            <span className="font-display font-extrabold text-xl md:text-2xl">{calculatedStats.totalSold}</span>
-            <span className="text-xs text-neutral-slate-400">/ {calculatedStats.totalMax || '∞'}</span>
+            <span className="font-display font-extrabold text-xl md:text-2xl">
+              {isFreeRsvpEvent ? registrations.length : calculatedStats.totalSold}
+            </span>
+            {!isFreeRsvpEvent && (
+              <span className="text-xs text-neutral-slate-400">/ {calculatedStats.totalMax || '∞'}</span>
+            )}
+            {isFreeRsvpEvent && selectedEvent?.capacity?.maxCapacity > 0 && (
+              <span className="text-xs text-neutral-slate-400">/ {selectedEvent.capacity.maxCapacity}</span>
+            )}
           </div>
         </div>
 
         <div className="bg-white border border-gray-200 shadow-sm rounded-2xl p-4.5 shadow-sm space-y-1.5">
-          <span className="text-[10px] font-mono font-extrabold text-neutral-slate-400 uppercase block tracking-wider">Estimated Revenue</span>
-          <div className="flex items-baseline gap-0.5 text-brand-primary">
-            <DollarSign className="w-4 h-4 shrink-0" />
-            <span className="font-display font-extrabold text-xl md:text-2xl">{calculatedStats.revenue.toFixed(2)}</span>
-          </div>
+          <span className="text-[10px] font-mono font-extrabold text-neutral-slate-400 uppercase block tracking-wider">
+            {isFreeRsvpEvent ? 'Capacity Status' : 'Estimated Revenue'}
+          </span>
+          {isFreeRsvpEvent ? (
+            <div className="flex items-baseline gap-1 text-emerald-600 font-bold">
+              <span className="font-display font-extrabold text-base md:text-lg">
+                {selectedEvent?.capacity?.isUnlimited ? 'Unlimited Capacity' : `${selectedEvent?.capacity?.maxCapacity || '∞'} seats limit`}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-baseline gap-0.5 text-brand-primary">
+              <DollarSign className="w-4 h-4 shrink-0" />
+              <span className="font-display font-extrabold text-xl md:text-2xl">{calculatedStats.revenue.toFixed(2)}</span>
+            </div>
+          )}
         </div>
 
         <div className="bg-white border border-gray-200 shadow-sm rounded-2xl p-4.5 shadow-sm space-y-1.5">
@@ -461,17 +494,19 @@ export function AdminTicketingDashboard() {
 
       {/* Tabs navigation */}
       <div className="flex border-b border-gray-200 gap-6 select-none overflow-x-auto">
-        <button
-          onClick={() => setActiveTab('TICKETS')}
-          className={`pb-3.5 text-xs font-extrabold uppercase tracking-wider relative transition-colors whitespace-nowrap ${
-            activeTab === 'TICKETS' ? 'text-brand-primary font-bold' : 'text-neutral-slate-400 hover:text-neutral-slate-600'
-          }`}
-        >
-          <span>Ticket Dashboard</span>
-          {activeTab === 'TICKETS' && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />
-          )}
-        </button>
+        {!isFreeRsvpEvent && (
+          <button
+            onClick={() => setActiveTab('TICKETS')}
+            className={`pb-3.5 text-xs font-extrabold uppercase tracking-wider relative transition-colors whitespace-nowrap ${
+              activeTab === 'TICKETS' ? 'text-brand-primary font-bold' : 'text-neutral-slate-400 hover:text-neutral-slate-600'
+            }`}
+          >
+            <span>Ticket Dashboard</span>
+            {activeTab === 'TICKETS' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />
+            )}
+          </button>
+        )}
 
         <button
           onClick={() => setActiveTab('REGISTRATIONS')}
@@ -479,53 +514,57 @@ export function AdminTicketingDashboard() {
             activeTab === 'REGISTRATIONS' ? 'text-brand-primary font-bold' : 'text-neutral-slate-400 hover:text-neutral-slate-600'
           }`}
         >
-          <span>Registrations Dashboard</span>
+          <span>{isFreeRsvpEvent ? 'RSVP Responses & Guest Data' : 'Registrations Dashboard'}</span>
           {activeTab === 'REGISTRATIONS' && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />
           )}
         </button>
 
-        <button
-          onClick={() => setActiveTab('ORDERS')}
-          className={`pb-3.5 text-xs font-extrabold uppercase tracking-wider relative transition-colors whitespace-nowrap ${
-            activeTab === 'ORDERS' ? 'text-brand-primary font-bold' : 'text-neutral-slate-400 hover:text-neutral-slate-600'
-          }`}
-        >
-          <span>Orders Dashboard</span>
-          {activeTab === 'ORDERS' && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />
-          )}
-        </button>
+        {!isFreeRsvpEvent && (
+          <>
+            <button
+              onClick={() => setActiveTab('ORDERS')}
+              className={`pb-3.5 text-xs font-extrabold uppercase tracking-wider relative transition-colors whitespace-nowrap ${
+                activeTab === 'ORDERS' ? 'text-brand-primary font-bold' : 'text-neutral-slate-400 hover:text-neutral-slate-600'
+              }`}
+            >
+              <span>Orders Dashboard</span>
+              {activeTab === 'ORDERS' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />
+              )}
+            </button>
 
-        <button
-          onClick={() => {
-            setActiveTab('INVITATIONS');
-            refetchInvitations();
-          }}
-          className={`pb-3.5 text-xs font-extrabold uppercase tracking-wider relative transition-colors whitespace-nowrap ${
-            activeTab === 'INVITATIONS' ? 'text-brand-primary font-bold' : 'text-neutral-slate-400 hover:text-neutral-slate-600'
-          }`}
-        >
-          <span>Invitations Manager</span>
-          {activeTab === 'INVITATIONS' && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />
-          )}
-        </button>
+            <button
+              onClick={() => {
+                setActiveTab('INVITATIONS');
+                refetchInvitations();
+              }}
+              className={`pb-3.5 text-xs font-extrabold uppercase tracking-wider relative transition-colors whitespace-nowrap ${
+                activeTab === 'INVITATIONS' ? 'text-brand-primary font-bold' : 'text-neutral-slate-400 hover:text-neutral-slate-600'
+              }`}
+            >
+              <span>Invitations Manager</span>
+              {activeTab === 'INVITATIONS' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />
+              )}
+            </button>
 
-        <button
-          onClick={() => {
-            setActiveTab('PROMOS');
-            refetchPromos();
-          }}
-          className={`pb-3.5 text-xs font-extrabold uppercase tracking-wider relative transition-colors whitespace-nowrap ${
-            activeTab === 'PROMOS' ? 'text-brand-primary font-bold' : 'text-neutral-slate-400 hover:text-neutral-slate-600'
-          }`}
-        >
-          <span>Promotions & Coupons</span>
-          {activeTab === 'PROMOS' && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />
-          )}
-        </button>
+            <button
+              onClick={() => {
+                setActiveTab('PROMOS');
+                refetchPromos();
+              }}
+              className={`pb-3.5 text-xs font-extrabold uppercase tracking-wider relative transition-colors whitespace-nowrap ${
+                activeTab === 'PROMOS' ? 'text-brand-primary font-bold' : 'text-neutral-slate-400 hover:text-neutral-slate-600'
+              }`}
+            >
+              <span>Promotions & Coupons</span>
+              {activeTab === 'PROMOS' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />
+              )}
+            </button>
+          </>
+        )}
       </div>
 
       {/* ========================================================
@@ -758,19 +797,21 @@ export function AdminTicketingDashboard() {
                   </div>
 
                   {/* Ticket Type */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-extrabold uppercase text-neutral-slate-400">Admission Ticket</label>
-                    <select
-                      value={ticketTypeFilter}
-                      onChange={(e) => setTicketTypeFilter(e.target.value)}
-                      className="w-full text-xs p-2 bg-white border border-gray-200 rounded-lg font-semibold"
-                    >
-                      <option value="ALL">All Tiers</option>
-                      {ticketTypes.map(t => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                  {!isFreeRsvpEvent && (
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold uppercase text-neutral-slate-400">Admission Ticket</label>
+                      <select
+                        value={ticketTypeFilter}
+                        onChange={(e) => setTicketTypeFilter(e.target.value)}
+                        className="w-full text-xs p-2 bg-white border border-gray-200 rounded-lg font-semibold"
+                      >
+                        <option value="ALL">All Tiers</option>
+                        {ticketTypes.map(t => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -811,6 +852,27 @@ export function AdminTicketingDashboard() {
                               <span className="inline-block mt-1 text-[9px] uppercase font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-extrabold border border-blue-200">
                                 {(reg as any).userType} Pass
                               </span>
+                            )}
+                            {isFreeRsvpEvent && (reg as any).customAnswers && (
+                              <div className="mt-2.5 bg-neutral-50 dark:bg-neutral-900/40 p-2.5 rounded-xl border border-gray-100 dark:border-neutral-800 text-[11px] space-y-1 max-w-md">
+                                <span className="font-bold text-neutral-slate-500 block uppercase text-[9px] tracking-wider mb-1">RSVP Survey Answers</span>
+                                {Object.entries(
+                                  (reg as any).customAnswers instanceof Map 
+                                    ? Object.fromEntries((reg as any).customAnswers) 
+                                    : (reg as any).customAnswers
+                                ).map(([key, val]: [string, any]) => {
+                                  const matchingField = selectedEvent?.rsvpFormFields?.find((f: any) => f.id === key);
+                                  const fieldLabel = matchingField ? matchingField.label : key;
+                                  return (
+                                    <div key={key} className="grid grid-cols-3 gap-2 border-b border-neutral-100 last:border-0 pb-1 last:pb-0">
+                                      <span className="text-neutral-500 font-bold text-right capitalize">{fieldLabel}:</span>
+                                      <span className="text-gray-800 dark:text-neutral-200 col-span-2 font-medium">
+                                        {typeof val === 'boolean' ? (val ? 'Yes' : 'No') : Array.isArray(val) ? val.join(', ') : String(val)}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             )}
                           </td>
                           <td className="p-4 font-mono font-semibold text-left">{reg.ticketNumber}</td>

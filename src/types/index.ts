@@ -180,6 +180,115 @@ export interface IEventModule {
   config: Record<string, any>;
 }
 
+export interface IRsvpFormField {
+  id: string;
+  type: 'text' | 'textarea' | 'email' | 'phone' | 'number' | 'dropdown' | 'radio' | 'checkbox' | 'multiselect' | 'date' | 'time' | 'file' | 'image' | 'company' | 'job_title' | 'address' | 'url' | 'section_title' | 'divider' | 'paragraph' | 'yes_no' | 'rating' | 'signature' | 'consent' | 'terms' | 'hidden' | 'html' | 'qr_reference' | 'custom';
+  label: string;
+  required: boolean;
+  readOnly?: boolean;
+  hidden?: boolean;
+  placeholder?: string;
+  description?: string;
+  helpText?: string;
+  defaultValue?: any;
+  validationRules?: {
+    pattern?: string;
+    min?: number;
+    max?: number;
+    minLength?: number;
+    maxLength?: number;
+    errorMessage?: string;
+  };
+  options?: string[];
+  order: number;
+  width?: 'full' | 'half' | 'third';
+  conditionalLogic?: {
+    fieldId: string;
+    operator: 'equals' | 'not_equals' | 'contains' | 'not_contains';
+    value: any;
+    action: 'show' | 'hide';
+  }[];
+}
+
+export interface IRsvpFormStep {
+  id: string;
+  title: string;
+  description?: string;
+  order: number;
+}
+
+export interface IRsvpFormAppearance {
+  backgroundColor?: string;
+  backgroundGradient?: string;
+  backgroundImage?: string;
+  backgroundOverlay?: string;
+  bannerUrl?: string;
+  eventLogo?: string;
+  headerImage?: string;
+  footerImage?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  textColor?: string;
+  cardBackground?: string;
+  buttonColor?: string;
+  buttonHoverColor?: string;
+  buttonText?: string;
+  buttonRadius?: number;
+  borderRadius?: number;
+  shadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  cardStyle?: 'flat' | 'elevated' | 'bordered' | 'glass';
+  fontFamily?: string;
+  fontSize?: number;
+  headingStyle?: 'standard' | 'serif' | 'display';
+  successMessage?: string;
+  successBannerUrl?: string;
+  successIcon?: string;
+  thankYouPageUrl?: string;
+  footerText?: string;
+  pageWidth?: 'narrow' | 'standard' | 'wide' | 'full';
+  containerWidth?: number;
+  showAttendeeCount?: boolean;
+  showRemainingSeats?: boolean;
+}
+
+export interface IRsvpEmailSettings {
+  confirmationEmail: {
+    enabled: boolean;
+    subject: string;
+    body: string;
+    senderName: string;
+    replyTo: string;
+    attachTicket: boolean;
+    attachQrCode: boolean;
+  };
+  reminderEmail: {
+    enabled: boolean;
+    subject: string;
+    body: string;
+    senderName: string;
+    replyTo: string;
+    attachTicket: boolean;
+    attachQrCode: boolean;
+  };
+  followUpEmail: {
+    enabled: boolean;
+    subject: string;
+    body: string;
+    senderName: string;
+    replyTo: string;
+  };
+}
+
+export interface IRsvpTicketSettings {
+  layout: 'standard' | 'minimal' | 'modern' | 'badge';
+  logo?: string;
+  background?: string;
+  qrPosition: 'top_right' | 'bottom_right' | 'center' | 'bottom_center';
+  numberFormat: string; // e.g. WH-EVENT-XXXXX
+  entryInstructions?: string;
+}
+
 // Core Event Entity interface
 export interface IEvent {
   id: string;
@@ -192,6 +301,24 @@ export interface IEvent {
   visibility: EventVisibility;
   category: string;
   tags: string[];
+  isFreeRsvp?: boolean;
+  rsvpFormFields?: IRsvpFormField[];
+  rsvpFormSteps?: IRsvpFormStep[];
+  rsvpFormAppearance?: IRsvpFormAppearance;
+  rsvpEmailSettings?: IRsvpEmailSettings;
+  rsvpTicketSettings?: IRsvpTicketSettings;
+  rsvpSettings?: {
+    allowMultipleRegistrations?: boolean;
+    allowGuestRegistration?: boolean;
+    maxGuestsPerRegistration?: number;
+    autoCloseWhenFull?: boolean;
+    passwordProtected?: boolean;
+    registrationPassword?: string;
+    isInviteOnly?: boolean;
+    secretLink?: boolean;
+    accessCode?: string;
+    hideFromSearch?: boolean;
+  };
   schedule: {
     startDate: string;
     endDate: string;
@@ -201,12 +328,15 @@ export interface IEvent {
     maxCapacity: number;
     activeRegistrations: number;
     isUnlimited: boolean;
+    enableWaitlist?: boolean;
   };
   registrationSettings: {
     registrationOpenDate?: string;
     registrationCloseDate?: string;
     requiresApproval: boolean;
     isInviteOnly?: boolean;
+    enableQrCheckIn?: boolean;
+    enableDigitalTickets?: boolean;
     customFormFields?: ICustomFormField[];
   };
   sessions: IEventSession[];

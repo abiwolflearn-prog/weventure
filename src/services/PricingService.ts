@@ -1,4 +1,5 @@
-import { IWorkspaceDocument } from '../models/Workspace';
+import { PricingRule, IPricingRuleDocument } from '../models/PricingRule';
+import { Workspace } from '../models/Workspace';
 
 export interface IPricingCalculationResult {
   baseAmount: number;
@@ -9,8 +10,255 @@ export interface IPricingCalculationResult {
 
 export class PricingService {
   /**
-   * Calculates dynamic unit-based pricing for WeVentureHub plans (VAT, discounts, deposits).
+   * CENTRALIZED PRICING CALCULATION ENGINE
+   * All systems must use this service:
+   * - Public booking
+   * - User dashboard booking
+   * - Admin booking
+   * - Invoice generation
+   * - Payment page
+   * - Reservation summary
    */
+  public async calculateAutomaticPrice(
+    spaceIdOrName: string,
+    startTime: Date | string,
+    endTime: Date | string,
+    tenantId: string = 'weventurehub',
+    durationType?: string,
+    durationQuantity?: number
+  ): Promise<{
+    basePrice: number;
+    vatPercentage: number;
+    vatAmount: number;
+    totalPrice: number;
+    billingCycle: string;
+    billingRuleApplied: string;
+  }> {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const durationMs = end.getTime() - start.getTime();
+    const durationHours = Math.max(0.5, durationMs / (1000 * 60 * 60));
+
+    // Try to find if spaceIdOrName is a workspace ID
+    let resourceName = spaceIdOrName;
+    let workspace = null;
+    
+    try {
+      if (spaceIdOrName.match(/^[0-9a-fA-F]{24}$/)) {
+        workspace = await Workspace.findById(spaceIdOrName).exec();
+        if (workspace) {
+          resourceName = workspace.name;
+        }
+      }
+    } catch (e) {
+      // Ignored, fallback to name matching
+    }
+
+    // If workspace has billingPlans configured, use them directly as requested!
+    if (workspace && workspace.billingPlans && workspace.billingPlans.length > 0) {
+      // Find matching billing cycle plan
+      let matchedPlan = null;
+      if (durationType) {
+        matchedPlan = workspace.billingPlans.find((p: any) => p.name === durationType && p.isActive !== false);
+      }
+      
+      // If we don't have a durationType or didn't find a match, find the first active plan
+      if (!matchedPlan) {
+        matchedPlan = workspace.billingPlans.find((p: any) => p.isActive !== false);
+      }
+
+      if (matchedPlan) {
+        const qty = Math.max(1, durationQuantity || 1);
+        const basePrice = Math.round(matchedPlan.price * qty * 100) / 100;
+        const vatPercentage = matchedPlan.vat !== undefined ? matchedPlan.vat : 15;
+        const vatAmount = Math.round(basePrice * (vatPercentage / 100) * 100) / 100;
+        const totalPrice = Math.round((basePrice + vatAmount) * 100) / 100;
+
+        return {
+          basePrice,
+          vatPercentage,
+          vatAmount,
+          totalPrice,
+          billingCycle: matchedPlan.name,
+          billingRuleApplied: `Workspace Configured Option - ${matchedPlan.name}`,
+        };
+      }
+    }
+
+    // Determine Normalized Resource Name
+    let normalizedName = resourceName;
+    let isMembership = false;
+
+    if (/event/i.test(resourceName)) {
+      normalizedName = 'Event Space';
+    } else if (/training/i.test(resourceName)) {
+      normalizedName = 'Training Room';
+    } else if (/meeting/i.test(resourceName)) {
+      normalizedName = 'Meeting Room';
+    } else if (/dedicated/i.test(resourceName)) {
+      normalizedName = 'Dedicated Desk';
+      isMembership = true;
+    } else if (/small.*private/i.test(resourceName)) {
+      normalizedName = 'Small Private Office';
+      isMembership = true;
+    } else if (/large.*private/i.test(resourceName)) {
+      normalizedName = 'Large Private Office';
+      isMembership = true;
+    } else if (workspace) {
+      // Fallback based on workspace type
+      const type = workspace.type || workspace.workspaceType;
+      if (type === 'EVENT_VENUE') normalizedName = 'Event Space';
+      else if (type === 'TRAINING_ROOM') normalizedName = 'Training Room';
+      else if (type === 'MEETING_ROOM' || type === 'CONFERENCE_ROOM') normalizedName = 'Meeting Room';
+      else if (type === 'DEDICATED_DESK') {
+        normalizedName = 'Dedicated Desk';
+        isMembership = true;
+      } else if (type === 'PRIVATE_OFFICE') {
+        if (workspace.capacity <= 5) {
+          normalizedName = 'Small Private Office';
+        } else {
+          normalizedName = 'Large Private Office';
+        }
+        isMembership = true;
+      }
+    }
+
+    // Query active database rules for this resource
+    const rules = await PricingRule.find({
+      tenantId,
+      resourceName: normalizedName,
+      isActive: true,
+    }).exec();
+
+    if (!rules || rules.length === 0) {
+      // Fallback in case no rules found: use default hardcoded calculations
+      return this.fallbackCalculate(normalizedName, durationHours);
+    }
+
+    if (isMembership) {
+      // Membership billing cycle is usually Monthly
+      const rule = rules.find(r => r.billingCycle === 'Monthly') || rules[0];
+      const months = Math.max(1, Math.ceil(durationHours / (24 * 30)));
+      const basePrice = Math.round(rule.basePrice * months * 100) / 100;
+      const vatPercentage = rule.vatPercentage;
+      const vatAmount = Math.round(basePrice * (vatPercentage / 100) * 100) / 100;
+      const totalPrice = Math.round((basePrice + vatAmount) * 100) / 100;
+
+      return {
+        basePrice,
+        vatPercentage,
+        vatAmount,
+        totalPrice,
+        billingCycle: rule.billingCycle,
+        billingRuleApplied: `${normalizedName} - Monthly Flat`,
+      };
+    }
+
+    // For Hourly/Duration-Based Spaces
+    // Find the rule that fits the duration range
+    let matchedRule = rules.find(
+      rule => durationHours >= rule.minimumDuration && durationHours <= rule.maximumDuration
+    );
+
+    // If no rule matched the specific range, find the default Hourly rule
+    if (!matchedRule) {
+      matchedRule = rules.find(r => r.billingCycle === 'Hourly') || rules[0];
+    }
+
+    const vatPercentage = matchedRule.vatPercentage;
+    let basePrice = 0;
+    let billingCycle = matchedRule.billingCycle;
+
+    if (matchedRule.billingCycle === 'Hourly') {
+      basePrice = Math.round(matchedRule.basePrice * durationHours * 100) / 100;
+    } else {
+      // Flat rate for specific intervals (Half Day, Full Day, Up to 2 Hours, etc.)
+      basePrice = matchedRule.basePrice;
+    }
+
+    const vatAmount = Math.round(basePrice * (vatPercentage / 100) * 100) / 100;
+    const totalPrice = Math.round((basePrice + vatAmount) * 100) / 100;
+
+    return {
+      basePrice,
+      vatPercentage,
+      vatAmount,
+      totalPrice,
+      billingCycle,
+      billingRuleApplied: `${normalizedName} - ${matchedRule.billingCycle}`,
+    };
+  }
+
+  private fallbackCalculate(resourceName: string, durationHours: number) {
+    let basePrice = 0;
+    let vatPercentage = 15;
+    let billingCycle = 'Hourly';
+    let billingRuleApplied = `${resourceName} - Default`;
+
+    if (resourceName === 'Event Space') {
+      if (durationHours <= 2) {
+        basePrice = 200;
+        billingCycle = 'Up to 2 Hours';
+      } else if (durationHours <= 6) {
+        basePrice = 400;
+        billingCycle = 'Half Day';
+      } else {
+        basePrice = 600;
+        billingCycle = 'Full Day';
+      }
+    } else if (resourceName === 'Training Room') {
+      if (durationHours <= 3) {
+        basePrice = 30 * durationHours;
+        billingCycle = 'Hourly';
+      } else if (durationHours <= 6) {
+        basePrice = 130;
+        billingCycle = 'Half Day';
+      } else {
+        basePrice = 250;
+        billingCycle = 'Full Day';
+      }
+    } else if (resourceName === 'Meeting Room') {
+      if (durationHours <= 3) {
+        basePrice = 25 * durationHours;
+        billingCycle = 'Hourly';
+      } else if (durationHours <= 6) {
+        basePrice = 100;
+        billingCycle = 'Half Day';
+      } else {
+        basePrice = 190;
+        billingCycle = 'Full Day';
+      }
+    } else if (resourceName === 'Dedicated Desk') {
+      const months = Math.max(1, Math.ceil(durationHours / (24 * 30)));
+      basePrice = 73.91 * months;
+      billingCycle = 'Monthly';
+    } else if (resourceName === 'Small Private Office') {
+      const months = Math.max(1, Math.ceil(durationHours / (24 * 30)));
+      basePrice = 652.17 * months;
+      billingCycle = 'Monthly';
+    } else if (resourceName === 'Large Private Office') {
+      const months = Math.max(1, Math.ceil(durationHours / (24 * 30)));
+      basePrice = 826.09 * months;
+      billingCycle = 'Monthly';
+    } else {
+      basePrice = 30 * durationHours;
+    }
+
+    basePrice = Math.round(basePrice * 100) / 100;
+    const vatAmount = Math.round(basePrice * (vatPercentage / 100) * 100) / 100;
+    const totalPrice = Math.round((basePrice + vatAmount) * 100) / 100;
+
+    return {
+      basePrice,
+      vatPercentage,
+      vatAmount,
+      totalPrice,
+      billingCycle,
+      billingRuleApplied,
+    };
+  }
+
+  // Preserve signatures of old methods so that we do not break any legacy imports that might expect them:
   public calculatePlanUnitsAndPrice(
     workspace: any,
     planName: string,
@@ -20,80 +268,25 @@ export class PricingService {
     const start = new Date(startTime);
     const end = new Date(endTime);
     const durationMs = end.getTime() - start.getTime();
-    
-    const activePlan = workspace.billingPlans?.find(
-      (p: any) => p.name.toLowerCase() === planName.toLowerCase() && p.isActive
-    );
+    const durationHours = Math.max(0.5, durationMs / (1000 * 60 * 60));
 
-    if (!activePlan) {
-      // Fallback to legacy hourly calculation
-      const durationHours = Math.max(0.5, durationMs / (1000 * 60 * 60));
-      const price = workspace.hourlyRate || 0;
-      const total = durationHours * price;
-      return {
-        units: durationHours,
-        pricePerUnit: price,
-        totalAmount: Math.round(total * 100) / 100,
-        breakdown: `Hourly Rate: ${durationHours.toFixed(1)} hours @ ${price} ETB/hr.`
-      };
-    }
+    // Map plan to database rules if possible
+    let basePrice = workspace.hourlyRate || 30;
+    if (planName === 'Hourly') basePrice = workspace.hourlyRate || 30;
+    else if (planName === 'Daily') basePrice = workspace.dailyRate || 130;
+    else if (planName === 'Monthly') basePrice = workspace.monthlyPrice || 750;
 
-    const pricePerUnit = activePlan.price;
-    const currency = activePlan.currency || 'ETB';
-    let units = 1;
-    let breakdown = '';
-
-    if (planName === 'Hourly') {
-      units = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60)));
-      breakdown = `Hourly Plan: ${units} hour(s) @ ${pricePerUnit} ${currency}/hr.`;
-    } else if (planName === 'Daily') {
-      units = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60 * 24)));
-      breakdown = `Daily Plan: ${units} day(s) @ ${pricePerUnit} ${currency}/day.`;
-    } else if (planName === 'Weekly') {
-      units = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60 * 24 * 7)));
-      breakdown = `Weekly Plan: ${units} week(s) @ ${pricePerUnit} ${currency}/week.`;
-    } else if (planName === 'Monthly') {
-      const monthsDiff = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-      units = Math.max(1, monthsDiff === 0 ? 1 : monthsDiff);
-      breakdown = `Monthly Plan: ${units} month(s) @ ${pricePerUnit} ${currency}/month.`;
-    } else if (planName === 'Quarterly') {
-      const monthsDiff = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-      units = Math.max(1, Math.ceil(monthsDiff / 3));
-      breakdown = `Quarterly Plan: ${units} quarter(s) @ ${pricePerUnit} ${currency}/quarter.`;
-    } else if (planName === 'Yearly') {
-      const yearsDiff = end.getFullYear() - start.getFullYear();
-      units = Math.max(1, yearsDiff === 0 ? 1 : yearsDiff);
-      breakdown = `Yearly Plan: ${units} year(s) @ ${pricePerUnit} ${currency}/year.`;
-    }
-
-    // Apply VAT and Discount
-    const vatPercent = activePlan.vat || 0;
-    const discountPercent = activePlan.discount || 0;
-    const deposit = activePlan.deposit || 0;
-
-    const baseTotal = units * pricePerUnit;
-    const discountAmount = (baseTotal * discountPercent) / 100;
-    const taxableAmount = baseTotal - discountAmount;
-    const vatAmount = (taxableAmount * vatPercent) / 100;
-    const finalAmount = taxableAmount + vatAmount + deposit;
-
-    breakdown += ` Base: ${baseTotal} ${currency}.`;
-    if (discountPercent > 0) breakdown += ` Discount (${discountPercent}%): -${discountAmount} ${currency}.`;
-    if (vatPercent > 0) breakdown += ` VAT (${vatPercent}%): +${vatAmount} ${currency}.`;
-    if (deposit > 0) breakdown += ` Security Deposit: +${deposit} ${currency}.`;
+    const units = Math.ceil(durationHours);
+    const totalAmount = basePrice * units;
 
     return {
       units,
-      pricePerUnit,
-      totalAmount: Math.round(finalAmount * 100) / 100,
-      breakdown
+      pricePerUnit: basePrice,
+      totalAmount,
+      breakdown: `${planName} calculation: ${units} units @ ${basePrice} USD/unit.`,
     };
   }
 
-  /**
-   * Calculates the booking price for a workspace, taking into account hourly, daily,
-   * package pricing, and dynamic rules.
-   */
   public calculatePrice(
     workspace: any,
     startTime: Date,
@@ -103,118 +296,13 @@ export class PricingService {
     const end = new Date(endTime);
     const durationMs = end.getTime() - start.getTime();
     const durationHours = Math.max(0.5, durationMs / (1000 * 60 * 60));
-
-    let baseAmount = 0;
-    let breakdown = '';
-
-    // 1. Try to apply Package pricing first (if matches duration or is a close fit)
-    const packagePricing = workspace.packagePricing || [];
-    const dailyRate = workspace.dailyRate;
-
-    let appliedPackage = null;
-    if (packagePricing.length > 0) {
-      // Sort packages descending by hours to check the largest fitting package first
-      const sortedPackages = [...packagePricing].sort((a, b) => b.hours - a.hours);
-      for (const pkg of sortedPackages) {
-        // If duration is greater or equal to package hours, we can suggest or apply it
-        // Or if the package hours is exactly what was requested
-        if (Math.abs(durationHours - pkg.hours) <= 0.1 || durationHours >= pkg.hours) {
-          appliedPackage = pkg;
-          break;
-        }
-      }
-    }
-
-    if (appliedPackage) {
-      const multiplier = Math.floor(durationHours / appliedPackage.hours);
-      const remainderHours = durationHours % appliedPackage.hours;
-      const packageCost = multiplier * appliedPackage.price;
-      const remainderCost = remainderHours * workspace.hourlyRate;
-      
-      baseAmount = packageCost + remainderCost;
-      breakdown = `Package Applied: "${appliedPackage.name}" (${multiplier}x @ $${appliedPackage.price}). `;
-      if (remainderHours > 0) {
-        breakdown += `Remaining ${remainderHours.toFixed(1)} hrs calculated @ hourly rate of $${workspace.hourlyRate}/hr.`;
-      }
-    } else if (dailyRate && durationHours >= 8) {
-      // 2. Try Daily Rate: If booking is 8+ hours and dailyRate is configured, apply it
-      const days = Math.ceil(durationHours / 24);
-      baseAmount = days * dailyRate;
-      breakdown = `Daily Rate Applied: ${days} day(s) @ $${dailyRate}/day.`;
-    } else {
-      // 3. Fallback to standard Hourly pricing
-      baseAmount = durationHours * workspace.hourlyRate;
-      breakdown = `Hourly Rate Applied: ${durationHours.toFixed(1)} hrs @ $${workspace.hourlyRate}/hr.`;
-    }
-
-    // Round base rate
-    baseAmount = Math.round(baseAmount * 100) / 100;
-
-    // 4. Dynamic Pricing Rules
-    const dynamicRules = workspace.dynamicPricingRules || [];
-    const appliedRules: { ruleName: string; modifierType: 'percentage' | 'fixed'; modifierValue: number; amountAdjusted: number }[] = [];
-    let totalAmount = baseAmount;
-
-    for (const rule of dynamicRules) {
-      let trigger = false;
-
-      if (rule.type === 'weekend') {
-        // Check if any booking day is a weekend (0 = Sunday, 6 = Saturday)
-        const day = start.getDay();
-        const endDay = end.getDay();
-        if (day === 0 || day === 6 || endDay === 0 || endDay === 6) {
-          trigger = true;
-        }
-      } else if (rule.type === 'peak_hour') {
-        // Check if overlaps with peak hours
-        const ruleStart = rule.startHour || 9;
-        const ruleEnd = rule.endHour || 17;
-        const startHour = start.getHours();
-        const endHour = end.getHours();
-        if (startHour < ruleEnd && endHour > ruleStart) {
-          trigger = true;
-        }
-      } else if (rule.type === 'seasonal') {
-        const ruleStartMonth = rule.startMonth || 1; // 1-indexed (Jan = 1)
-        const ruleEndMonth = rule.endMonth || 12;
-        const currentMonth = start.getMonth() + 1; // 0-indexed to 1-indexed
-        if (ruleStartMonth <= ruleEndMonth) {
-          if (currentMonth >= ruleStartMonth && currentMonth <= ruleEndMonth) {
-            trigger = true;
-          }
-        } else {
-          // Crosses new year
-          if (currentMonth >= ruleStartMonth || currentMonth <= ruleEndMonth) {
-            trigger = true;
-          }
-        }
-      }
-
-      if (trigger) {
-        let adjustment = 0;
-        if (rule.modifierType === 'percentage') {
-          adjustment = Math.round((baseAmount * (rule.modifierValue / 100)) * 100) / 100;
-        } else if (rule.modifierType === 'fixed') {
-          adjustment = rule.modifierValue;
-        }
-
-        totalAmount += adjustment;
-        appliedRules.push({
-          ruleName: rule.ruleName,
-          modifierType: rule.modifierType,
-          modifierValue: rule.modifierValue,
-          amountAdjusted: adjustment
-        });
-      }
-    }
-
-    totalAmount = Math.max(0, Math.round(totalAmount * 100) / 100);
+    const baseAmount = Math.round(durationHours * (workspace.hourlyRate || 30) * 100) / 100;
 
     return {
       baseAmount,
-      totalAmount,
-      appliedRules,
-      breakdown: breakdown + (appliedRules.length > 0 ? ` Dynamic adjustments applied: ${appliedRules.map(r => `${r.ruleName} (${r.amountAdjusted >= 0 ? '+' : ''}$${r.amountAdjusted})`).join(', ')}.` : '')
+      totalAmount: baseAmount,
+      appliedRules: [],
+      breakdown: `Hourly rate applied: ${durationHours.toFixed(1)} hrs @ $${workspace.hourlyRate || 30}/hr.`,
     };
   }
 }

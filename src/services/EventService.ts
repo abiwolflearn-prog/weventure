@@ -291,6 +291,24 @@ export class EventService {
         ...updatePayload.seo,
       };
     }
+    if (updatePayload.rsvpEmailSettings) {
+      updatePayload.rsvpEmailSettings = {
+        ...existing.rsvpEmailSettings,
+        ...updatePayload.rsvpEmailSettings,
+      };
+    }
+    if (updatePayload.rsvpTicketSettings) {
+      updatePayload.rsvpTicketSettings = {
+        ...existing.rsvpTicketSettings,
+        ...updatePayload.rsvpTicketSettings,
+      };
+    }
+    if (updatePayload.rsvpFormAppearance) {
+      updatePayload.rsvpFormAppearance = {
+        ...existing.rsvpFormAppearance,
+        ...updatePayload.rsvpFormAppearance,
+      };
+    }
 
     this.validateEventData(updatePayload);
 

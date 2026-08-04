@@ -21,6 +21,7 @@ import assistantRouter from './assistant.routes';
 import { emailRouter } from './email.routes';
 import { cmsRouter } from './cms.routes';
 import startupRouter from './startup.routes';
+import pricingRouter from './pricing.routes';
 
 const apiRouter = Router();
 
@@ -84,6 +85,9 @@ apiRouter.use('/cms', cmsRouter);
 
 // Mount Startup Programs & Applications module
 apiRouter.use('/startups', startupRouter);
+
+// Mount Pricing rules engine module
+apiRouter.use('/pricing', pricingRouter);
 
 /**
  * @route   GET /api/v1/health

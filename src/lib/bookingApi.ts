@@ -67,4 +67,9 @@ export const bookingApi = {
     const response = await axiosInstance.post(`/bookings/${bookingId}/generate-invoice`);
     return response.data.data;
   },
+
+  calculatePrice: async (payload: { spaceId: string; startTime: string; endTime: string; durationType?: string; durationQuantity?: number }) => {
+    const response = await axiosInstance.post('/pricing/calculate', payload);
+    return response.data.data;
+  },
 };

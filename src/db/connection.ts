@@ -9,6 +9,7 @@ import { Testimonial } from '../models/Testimonial';
 import { News } from '../models/News';
 import { Homepage } from '../models/Homepage';
 import { Event } from '../models/Event';
+import { PricingRule } from '../models/PricingRule';
 import { EventStatus, EventVisibility } from '../types';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
@@ -789,6 +790,198 @@ export async function connectDatabase(): Promise<typeof mongoose> {
           }
         ]);
         logger.info('🌱 Seeded status-grouped events');
+      }
+
+      // Auto-seed Pricing Rules if none exist
+      const pricingRuleCount = await PricingRule.countDocuments();
+      if (pricingRuleCount === 0) {
+        await PricingRule.create([
+          // Event Space Rules
+          {
+            tenantId: 'weventurehub',
+            resourceType: 'Event Space',
+            resourceName: 'Event Space',
+            pricingType: 'Duration-Based',
+            billingCycle: 'Up to 2 Hours',
+            minimumDuration: 0,
+            maximumDuration: 2,
+            basePrice: 200,
+            vatPercentage: 15,
+            totalPrice: 230,
+            currency: 'USD',
+            isActive: true,
+            createdBy: 'system'
+          },
+          {
+            tenantId: 'weventurehub',
+            resourceType: 'Event Space',
+            resourceName: 'Event Space',
+            pricingType: 'Duration-Based',
+            billingCycle: 'Half Day',
+            minimumDuration: 4,
+            maximumDuration: 6,
+            basePrice: 400,
+            vatPercentage: 15,
+            totalPrice: 460,
+            currency: 'USD',
+            isActive: true,
+            createdBy: 'system'
+          },
+          {
+            tenantId: 'weventurehub',
+            resourceType: 'Event Space',
+            resourceName: 'Event Space',
+            pricingType: 'Duration-Based',
+            billingCycle: 'Full Day',
+            minimumDuration: 8,
+            maximumDuration: 8,
+            basePrice: 600,
+            vatPercentage: 15,
+            totalPrice: 690,
+            currency: 'USD',
+            isActive: true,
+            createdBy: 'system'
+          },
+          // Training Room Rules
+          {
+            tenantId: 'weventurehub',
+            resourceType: 'Training Room',
+            resourceName: 'Training Room',
+            pricingType: 'Duration-Based',
+            billingCycle: 'Hourly',
+            minimumDuration: 0,
+            maximumDuration: 3,
+            basePrice: 30,
+            vatPercentage: 15,
+            totalPrice: 34.5,
+            currency: 'USD',
+            isActive: true,
+            createdBy: 'system'
+          },
+          {
+            tenantId: 'weventurehub',
+            resourceType: 'Training Room',
+            resourceName: 'Training Room',
+            pricingType: 'Duration-Based',
+            billingCycle: 'Half Day',
+            minimumDuration: 4,
+            maximumDuration: 6,
+            basePrice: 130,
+            vatPercentage: 15,
+            totalPrice: 149.5,
+            currency: 'USD',
+            isActive: true,
+            createdBy: 'system'
+          },
+          {
+            tenantId: 'weventurehub',
+            resourceType: 'Training Room',
+            resourceName: 'Training Room',
+            pricingType: 'Duration-Based',
+            billingCycle: 'Full Day',
+            minimumDuration: 7,
+            maximumDuration: 12,
+            basePrice: 250,
+            vatPercentage: 15,
+            totalPrice: 287.5,
+            currency: 'USD',
+            isActive: true,
+            createdBy: 'system'
+          },
+          // Meeting Room Rules
+          {
+            tenantId: 'weventurehub',
+            resourceType: 'Meeting Room',
+            resourceName: 'Meeting Room',
+            pricingType: 'Duration-Based',
+            billingCycle: 'Hourly',
+            minimumDuration: 0,
+            maximumDuration: 3,
+            basePrice: 25,
+            vatPercentage: 15,
+            totalPrice: 28.75,
+            currency: 'USD',
+            isActive: true,
+            createdBy: 'system'
+          },
+          {
+            tenantId: 'weventurehub',
+            resourceType: 'Meeting Room',
+            resourceName: 'Meeting Room',
+            pricingType: 'Duration-Based',
+            billingCycle: 'Half Day',
+            minimumDuration: 4,
+            maximumDuration: 6,
+            basePrice: 100,
+            vatPercentage: 15,
+            totalPrice: 115,
+            currency: 'USD',
+            isActive: true,
+            createdBy: 'system'
+          },
+          {
+            tenantId: 'weventurehub',
+            resourceType: 'Meeting Room',
+            resourceName: 'Meeting Room',
+            pricingType: 'Duration-Based',
+            billingCycle: 'Full Day',
+            minimumDuration: 7,
+            maximumDuration: 12,
+            basePrice: 190,
+            vatPercentage: 15,
+            totalPrice: 218.5,
+            currency: 'USD',
+            isActive: true,
+            createdBy: 'system'
+          },
+          // Workspace Membership Rules
+          {
+            tenantId: 'weventurehub',
+            resourceType: 'Workspace Membership',
+            resourceName: 'Dedicated Desk',
+            pricingType: 'Fixed',
+            billingCycle: 'Monthly',
+            minimumDuration: 0,
+            maximumDuration: 999999,
+            basePrice: 73.91,
+            vatPercentage: 15,
+            totalPrice: 85,
+            currency: 'USD',
+            isActive: true,
+            createdBy: 'system'
+          },
+          {
+            tenantId: 'weventurehub',
+            resourceType: 'Workspace Membership',
+            resourceName: 'Small Private Office',
+            pricingType: 'Fixed',
+            billingCycle: 'Monthly',
+            minimumDuration: 0,
+            maximumDuration: 999999,
+            basePrice: 652.17,
+            vatPercentage: 15,
+            totalPrice: 750,
+            currency: 'USD',
+            isActive: true,
+            createdBy: 'system'
+          },
+          {
+            tenantId: 'weventurehub',
+            resourceType: 'Workspace Membership',
+            resourceName: 'Large Private Office',
+            pricingType: 'Fixed',
+            billingCycle: 'Monthly',
+            minimumDuration: 0,
+            maximumDuration: 999999,
+            basePrice: 826.09,
+            vatPercentage: 15,
+            totalPrice: 950,
+            currency: 'USD',
+            isActive: true,
+            createdBy: 'system'
+          }
+        ]);
+        logger.info('🌱 Seeded active database pricing rules');
       }
     } catch (seedErr) {
       logger.error('⚠️ Seeding failed:', seedErr);

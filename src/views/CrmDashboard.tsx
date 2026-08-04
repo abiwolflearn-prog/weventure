@@ -114,6 +114,20 @@ export default function CrmDashboard() {
  const [isPrintInvoiceOpen, setIsPrintInvoiceOpen] = useState(false);
  const [activeInvoice, setActiveInvoice] = useState<any>(null);
 
+ // Enhanced Create Invoice States
+ const [invoiceLineItems, setInvoiceLineItems] = useState<Array<{
+   description: string;
+   quantity: number;
+   unitPrice: number;
+ }>>([
+   { description: 'Executive Coworking Suite - Workspace Rental', quantity: 1, unitPrice: 5000 }
+ ]);
+ const [invoiceExtraCharges, setInvoiceExtraCharges] = useState(0);
+ const [invoiceBankDetails, setInvoiceBankDetails] = useState('Commercial Bank of Ethiopia - Account: 1000123456789');
+ const [invoiceOriginalPrice, setInvoiceOriginalPrice] = useState(0);
+ const [invoiceAdjustedPrice, setInvoiceAdjustedPrice] = useState(0);
+ const [invoiceAdjustmentReason, setInvoiceAdjustmentReason] = useState('');
+
  // Form Modals State
  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
@@ -533,10 +547,11 @@ export default function CrmDashboard() {
  const handleCreateInvoiceSubmit = async (e: React.FormEvent) => {
  e.preventDefault();
  try {
- const subtotal = Number(invoiceForm.unitPrice) * Number(invoiceForm.durationQuantity);
+ const subtotal = invoiceLineItems.reduce((acc, item) => acc + (Number(item.unitPrice) * Number(item.quantity)), 0);
  const vat = invoiceForm.taxEnabled ? Math.round(subtotal * 0.15 * 100) / 100 : 0;
  const discount = Number(invoiceForm.discount || 0);
- const grandTotal = subtotal + vat - discount;
+ const extraCharges = Number(invoiceExtraCharges || 0);
+ const grandTotal = subtotal + vat + extraCharges - discount;
 
  const payload = {
  userName: invoiceForm.userName || 'Customer',
@@ -544,13 +559,14 @@ export default function CrmDashboard() {
  userPhone: invoiceForm.userPhone,
  companyName: invoiceForm.companyName,
  customerType: invoiceForm.customerType,
- workspaceName: invoiceForm.workspaceName,
+ workspaceName: invoiceForm.workspaceName || (invoiceLineItems[0]?.description || 'Custom Workspace Services'),
  durationType: invoiceForm.durationType,
- durationQuantity: Number(invoiceForm.durationQuantity),
- unitPrice: Number(invoiceForm.unitPrice),
+ durationQuantity: invoiceLineItems.reduce((acc, item) => acc + Number(item.quantity), 0),
+ unitPrice: invoiceLineItems[0]?.unitPrice || 0,
  amount: subtotal,
  vat,
  discount,
+ extraCharges,
  grandTotal,
  status: invoiceForm.status,
  dueDate: invoiceForm.dueDate,
@@ -560,16 +576,18 @@ export default function CrmDashboard() {
  phone: invoiceForm.userPhone,
  company: invoiceForm.companyName
  },
- lineItems: [
- {
- description: `WeVentureHub ${invoiceForm.workspaceName} - (${invoiceForm.durationQuantity} ${invoiceForm.durationType})`,
- quantity: Number(invoiceForm.durationQuantity),
- unitPrice: Number(invoiceForm.unitPrice),
- amount: subtotal
-          }
-        ]
-      };
-      await paymentApi.createInvoice(payload);
+ lineItems: invoiceLineItems.map(item => ({
+   description: item.description,
+   quantity: Number(item.quantity),
+   unitPrice: Number(item.unitPrice),
+   amount: Number(item.quantity) * Number(item.unitPrice)
+ })),
+ bankDetails: invoiceBankDetails,
+ originalPrice: invoiceOriginalPrice > 0 ? Number(invoiceOriginalPrice) : undefined,
+ adjustedPrice: invoiceAdjustedPrice > 0 ? Number(invoiceAdjustedPrice) : undefined,
+ adjustmentReason: invoiceAdjustmentReason || undefined
+ };
+ await paymentApi.createInvoice(payload);
  setIsCreateInvoiceOpen(false);
  loadCrmData();
  alert('Invoice generated successfully!');
@@ -701,6 +719,14 @@ export default function CrmDashboard() {
  dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
  notes: 'Payment is due within 14 days of invoice issuance.'
  });
+ setInvoiceLineItems([
+   { description: 'Executive Coworking Suite - Workspace Rental', quantity: 1, unitPrice: 5000 }
+ ]);
+ setInvoiceExtraCharges(0);
+ setInvoiceOriginalPrice(0);
+ setInvoiceAdjustedPrice(0);
+ setInvoiceAdjustmentReason('');
+ setInvoiceBankDetails('Commercial Bank of Ethiopia - Account: 1000123456789');
  setIsCreateInvoiceOpen(true);
  }}
  >
@@ -1484,6 +1510,14 @@ export default function CrmDashboard() {
  dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
  notes: 'Workspace subscription payment.'
  });
+ setInvoiceLineItems([
+   { description: `${row.workspaceName || 'Executive Coworking Suite'} - Workspace Rental`, quantity: 1, unitPrice: 5000 }
+ ]);
+ setInvoiceExtraCharges(0);
+ setInvoiceOriginalPrice(0);
+ setInvoiceAdjustedPrice(0);
+ setInvoiceAdjustmentReason('');
+ setInvoiceBankDetails('Commercial Bank of Ethiopia - Account: 1000123456789');
  setIsCreateInvoiceOpen(true);
  }
  }}
@@ -2166,119 +2200,348 @@ export default function CrmDashboard() {
  initial={{ opacity: 0, scale: 0.95 }}
  animate={{ opacity: 1, scale: 1 }}
  exit={{ opacity: 0, scale: 0.95 }}
- className="bg-white rounded-2xl border border-gray-200 shadow-2xl max-w-xl w-full p-6 space-y-4"
+ className="bg-white rounded-2xl border border-gray-200 shadow-2xl max-w-3xl w-full p-6 space-y-4"
  >
  <div className="flex items-center justify-between border-b border-gray-200 pb-3">
  <h3 className="font-bold text-lg text-[#111827] flex items-center gap-2">
  <Receipt className="w-5 h-5 text-[#84CC16]" />
- Create New Workspace Invoice
+ Create New Custom WeVentureHub Invoice
  </h3>
  <button onClick={() => setIsCreateInvoiceOpen(false)} className="text-[#6B7280] hover:text-[#111827]">
  <X className="w-5 h-5" />
  </button>
  </div>
 
- <form onSubmit={handleCreateInvoiceSubmit} className="space-y-3 text-xs">
- <div className="grid grid-cols-2 gap-3">
- <div>
- <label className="font-semibold block mb-1">Customer Name</label>
- <input
- type="text"
- value={invoiceForm.userName}
- onChange={(e) => setInvoiceForm({ ...invoiceForm, userName: e.target.value })}
- required
- placeholder="e.g. Samuel Kebede"
- className="w-full p-2 bg-[#F8FAFC] border border-gray-200 rounded-lg"
- />
+ <form onSubmit={handleCreateInvoiceSubmit} className="space-y-4 text-xs max-h-[75vh] overflow-y-auto pr-1">
+ 
+ {/* Section 1: Customer Details */}
+ <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-3">
+   <h4 className="font-bold text-slate-700 uppercase tracking-wider text-[10px]">1. Customer Billing Details</h4>
+   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+     <div>
+       <label className="font-semibold block mb-1">Customer Name</label>
+       <input
+       type="text"
+       value={invoiceForm.userName}
+       onChange={(e) => setInvoiceForm({ ...invoiceForm, userName: e.target.value })}
+       required
+       placeholder="e.g. Samuel Kebede"
+       className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold"
+       />
+     </div>
+
+     <div>
+       <label className="font-semibold block mb-1">Customer Email</label>
+       <input
+       type="email"
+       value={invoiceForm.userEmail}
+       onChange={(e) => setInvoiceForm({ ...invoiceForm, userEmail: e.target.value })}
+       required
+       placeholder="customer@email.com"
+       className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold"
+       />
+     </div>
+
+     <div>
+       <label className="font-semibold block mb-1">Customer Phone</label>
+       <input
+       type="text"
+       value={invoiceForm.userPhone}
+       onChange={(e) => setInvoiceForm({ ...invoiceForm, userPhone: e.target.value })}
+       placeholder="e.g. +251..."
+       className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold"
+       />
+     </div>
+   </div>
+
+   <div className="grid grid-cols-2 gap-3">
+     <div>
+       <label className="font-semibold block mb-1">Company Name (Optional)</label>
+       <input
+       type="text"
+       value={invoiceForm.companyName}
+       onChange={(e) => setInvoiceForm({ ...invoiceForm, companyName: e.target.value })}
+       placeholder="e.g. WeVenture Enterprises"
+       className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold"
+       />
+     </div>
+
+     <div>
+       <label className="font-semibold block mb-1">Customer Type</label>
+       <select
+       value={invoiceForm.customerType}
+       onChange={(e) => setInvoiceForm({ ...invoiceForm, customerType: e.target.value })}
+       className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold"
+       >
+       <option value="Individual">Individual</option>
+       <option value="Company">Company</option>
+       <option value="Group">Group</option>
+       <option value="Government">Government</option>
+       <option value="NGO">NGO</option>
+       </select>
+     </div>
+   </div>
  </div>
 
- <div>
- <label className="font-semibold block mb-1">Customer Email</label>
- <input
- type="email"
- value={invoiceForm.userEmail}
- onChange={(e) => setInvoiceForm({ ...invoiceForm, userEmail: e.target.value })}
- required
- placeholder="customer@email.com"
- className="w-full p-2 bg-[#F8FAFC] border border-gray-200 rounded-lg"
- />
- </div>
+ {/* Section 2: Multiple Line Items & Services Editor */}
+ <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-3">
+   <div className="flex justify-between items-center">
+     <h4 className="font-bold text-slate-700 uppercase tracking-wider text-[10px]">2. Line Items & Custom Services</h4>
+     <button
+       type="button"
+       onClick={() => setInvoiceLineItems([...invoiceLineItems, { description: '', quantity: 1, unitPrice: 0 }])}
+       className="px-2.5 py-1 bg-[#111827] hover:bg-slate-800 text-white font-bold rounded-lg text-[10px] flex items-center gap-1"
+     >
+       <Plus className="w-3.5 h-3.5" />
+       Add Line Item / Custom Service
+     </button>
+   </div>
+
+   <div className="space-y-2">
+     {invoiceLineItems.map((item, index) => (
+       <div key={index} className="grid grid-cols-12 gap-2 items-center bg-white p-2.5 rounded-lg border border-slate-200">
+         <div className="col-span-6">
+           <label className="text-[9px] font-bold text-slate-500 block mb-0.5">Description / Service Name</label>
+           <input
+             type="text"
+             value={item.description}
+             onChange={(e) => {
+               const newList = [...invoiceLineItems];
+               newList[index].description = e.target.value;
+               setInvoiceLineItems(newList);
+             }}
+             required
+             placeholder="e.g. Catering, Dedicated Desk Subscription, High Speed Fiber Optic"
+             className="w-full p-1.5 border border-slate-200 rounded text-xs font-bold"
+           />
+         </div>
+
+         <div className="col-span-2">
+           <label className="text-[9px] font-bold text-slate-500 block mb-0.5">Unit Price (ETB)</label>
+           <input
+             type="number"
+             value={item.unitPrice}
+             onChange={(e) => {
+               const newList = [...invoiceLineItems];
+               newList[index].unitPrice = Number(e.target.value);
+               setInvoiceLineItems(newList);
+             }}
+             required
+             min="0"
+             className="w-full p-1.5 border border-slate-200 rounded text-xs font-semibold font-mono"
+           />
+         </div>
+
+         <div className="col-span-2">
+           <label className="text-[9px] font-bold text-slate-500 block mb-0.5">Quantity</label>
+           <input
+             type="number"
+             value={item.quantity}
+             onChange={(e) => {
+               const newList = [...invoiceLineItems];
+               newList[index].quantity = Number(e.target.value);
+               setInvoiceLineItems(newList);
+             }}
+             required
+             min="1"
+             className="w-full p-1.5 border border-slate-200 rounded text-xs font-semibold font-mono"
+           />
+         </div>
+
+         <div className="col-span-2 flex items-center justify-between pt-3">
+           <span className="text-[11px] font-mono font-bold text-slate-700">
+             {(Number(item.quantity) * Number(item.unitPrice)).toFixed(2)}
+           </span>
+           {invoiceLineItems.length > 1 && (
+             <button
+               type="button"
+               onClick={() => {
+                 setInvoiceLineItems(invoiceLineItems.filter((_, idx) => idx !== index));
+               }}
+               className="text-rose-500 hover:text-rose-700 p-1"
+               title="Remove Item"
+             >
+               <Trash2 className="w-3.5 h-3.5" />
+             </button>
+           )}
+         </div>
+       </div>
+     ))}
+   </div>
  </div>
 
- <div className="grid grid-cols-2 gap-3">
- <div>
- <label className="font-semibold block mb-1">Workspace Reserved</label>
- <select
- value={invoiceForm.workspaceName}
- onChange={(e) => setInvoiceForm({ ...invoiceForm, workspaceName: e.target.value })}
- className="w-full p-2 bg-[#F8FAFC] border border-gray-200 rounded-lg"
- >
- <option value="Executive Coworking Suite">Executive Coworking Suite</option>
- <option value="Hot Desk Flex Desk">Hot Desk Flex Desk</option>
- <option value="Private Office Suite 402">Private Office Suite 402</option>
- <option value="Main Event Hall Venue">Main Event Hall Venue</option>
- <option value="Meeting Room B">Meeting Room B</option>
- </select>
+ {/* Section 3: Financial Modifiers & Settings */}
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-3">
+     <h4 className="font-bold text-slate-700 uppercase tracking-wider text-[10px]">3. Terms & Metadata</h4>
+     
+     <div className="grid grid-cols-2 gap-2">
+       <div>
+         <label className="font-semibold block mb-1">Due Date</label>
+         <input
+         type="date"
+         value={invoiceForm.dueDate}
+         onChange={(e) => setInvoiceForm({ ...invoiceForm, dueDate: e.target.value })}
+         required
+         className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold"
+         />
+       </div>
+
+       <div>
+         <label className="font-semibold block mb-1">Invoice Status</label>
+         <select
+         value={invoiceForm.status}
+         onChange={(e) => setInvoiceForm({ ...invoiceForm, status: e.target.value })}
+         className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold"
+         >
+           <option value="Pending Payment">Pending Payment</option>
+           <option value="Paid">Paid</option>
+           <option value="Voided">Voided</option>
+         </select>
+       </div>
+     </div>
+
+     <div className="flex items-center gap-2 py-1">
+       <input
+         type="checkbox"
+         id="invoiceTaxEnabled"
+         checked={invoiceForm.taxEnabled}
+         onChange={(e) => setInvoiceForm({ ...invoiceForm, taxEnabled: e.target.checked })}
+         className="w-3.5 h-3.5 rounded border-gray-300 text-[#84CC16] focus:ring-[#84CC16]"
+       />
+       <label htmlFor="invoiceTaxEnabled" className="font-bold text-slate-700 select-none cursor-pointer">
+         Apply 15.00% standard VAT rate on line items
+       </label>
+     </div>
+
+     <div>
+       <label className="font-semibold block mb-1">Bank Settlement Details</label>
+       <textarea
+         value={invoiceBankDetails}
+         onChange={(e) => setInvoiceBankDetails(e.target.value)}
+         placeholder="Commercial bank details for swift / bank wire..."
+         className="w-full p-2 bg-white border border-gray-200 rounded-lg font-mono text-[10px] h-12 outline-none"
+       />
+     </div>
+   </div>
+
+   {/* Section 4: Pricing Adjustments, Extra Charges & Manual Auditing Override */}
+   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-3">
+     <h4 className="font-bold text-slate-700 uppercase tracking-wider text-[10px]">4. Adjustment Metrics & Auditing</h4>
+     
+     <div className="grid grid-cols-2 gap-2">
+       <div>
+         <label className="font-semibold block mb-1">Extra Charges (ETB)</label>
+         <input
+           type="number"
+           min="0"
+           value={invoiceExtraCharges}
+           onChange={(e) => setInvoiceExtraCharges(Number(e.target.value))}
+           className="w-full p-2 bg-white border border-gray-200 rounded-lg font-semibold font-mono"
+           placeholder="0"
+         />
+       </div>
+
+       <div>
+         <label className="font-semibold block mb-1">General Discount (ETB)</label>
+         <input
+           type="number"
+           min="0"
+           value={invoiceForm.discount}
+           onChange={(e) => setInvoiceForm({ ...invoiceForm, discount: Number(e.target.value) })}
+           className="w-full p-2 bg-white border border-gray-200 rounded-lg font-semibold font-mono"
+           placeholder="0"
+         />
+       </div>
+     </div>
+
+     <div className="border-t border-dashed border-slate-200 pt-2.5 mt-1 space-y-2">
+       <span className="text-[10px] font-bold text-slate-500 block">Manual Price Override Audit Fields (Optional):</span>
+       <div className="grid grid-cols-2 gap-2">
+         <div>
+           <label className="text-[10px] font-semibold block mb-0.5">Original Cost (ETB)</label>
+           <input
+             type="number"
+             min="0"
+             value={invoiceOriginalPrice || ''}
+             onChange={(e) => setInvoiceOriginalPrice(Number(e.target.value))}
+             className="w-full p-1.5 bg-white border border-gray-200 rounded font-mono"
+             placeholder="e.g. 6000"
+           />
+         </div>
+         <div>
+           <label className="text-[10px] font-semibold block mb-0.5">Adjusted Cost (ETB)</label>
+           <input
+             type="number"
+             min="0"
+             value={invoiceAdjustedPrice || ''}
+             onChange={(e) => setInvoiceAdjustedPrice(Number(e.target.value))}
+             className="w-full p-1.5 bg-white border border-gray-200 rounded font-mono"
+             placeholder="e.g. 5000"
+           />
+         </div>
+       </div>
+       <div>
+         <label className="text-[10px] font-semibold block mb-0.5">Reason for Price Adjustment</label>
+         <input
+           type="text"
+           value={invoiceAdjustmentReason}
+           onChange={(e) => setInvoiceAdjustmentReason(e.target.value)}
+           className="w-full p-1.5 bg-white border border-gray-200 rounded"
+           placeholder="e.g. Approved bulk booking discount by center manager"
+         />
+       </div>
+     </div>
+   </div>
  </div>
 
- <div>
- <label className="font-semibold block mb-1">Customer Type</label>
- <select
- value={invoiceForm.customerType}
- onChange={(e) => setInvoiceForm({ ...invoiceForm, customerType: e.target.value })}
- className="w-full p-2 bg-[#F8FAFC] border border-gray-200 rounded-lg"
- >
- <option value="Individual">Individual</option>
- <option value="Company">Company</option>
- <option value="Group">Group</option>
- <option value="Government">Government</option>
- <option value="NGO">NGO</option>
- </select>
- </div>
- </div>
+ {/* Live Calculations Summary Banner */}
+ {(() => {
+   const subtotal = invoiceLineItems.reduce((acc, item) => acc + (Number(item.unitPrice) * Number(item.quantity)), 0);
+   const vat = invoiceForm.taxEnabled ? Math.round(subtotal * 0.15 * 100) / 100 : 0;
+   const discount = Number(invoiceForm.discount || 0);
+   const extraCharges = Number(invoiceExtraCharges || 0);
+   const grandTotal = subtotal + vat + extraCharges - discount;
 
- <div className="grid grid-cols-3 gap-3">
- <div>
- <label className="font-semibold block mb-1">Unit Price (ETB)</label>
- <input
- type="number"
- value={invoiceForm.unitPrice}
- onChange={(e) => setInvoiceForm({ ...invoiceForm, unitPrice: Number(e.target.value) })}
- required
- className="w-full p-2 bg-[#F8FAFC] border border-gray-200 rounded-lg"
- />
- </div>
-
- <div>
- <label className="font-semibold block mb-1">Quantity</label>
- <input
- type="number"
- value={invoiceForm.durationQuantity}
- onChange={(e) => setInvoiceForm({ ...invoiceForm, durationQuantity: Number(e.target.value) })}
- required
- className="w-full p-2 bg-[#F8FAFC] border border-gray-200 rounded-lg"
- />
- </div>
-
- <div>
- <label className="font-semibold block mb-1">Due Date</label>
- <input
- type="date"
- value={invoiceForm.dueDate}
- onChange={(e) => setInvoiceForm({ ...invoiceForm, dueDate: e.target.value })}
- required
- className="w-full p-2 bg-[#F8FAFC] border border-gray-200 rounded-lg"
- />
- </div>
- </div>
+   return (
+     <div className="p-3 bg-slate-900 text-white rounded-xl flex flex-wrap justify-between items-center text-xs gap-3 font-bold">
+       <div className="flex gap-4">
+         <div>
+           <span className="text-slate-400 block text-[9px] uppercase font-bold">Subtotal</span>
+           <span className="font-mono font-bold text-sm">ETB {subtotal.toFixed(2)}</span>
+         </div>
+         <div>
+           <span className="text-slate-400 block text-[9px] uppercase font-bold">VAT (15%)</span>
+           <span className="font-mono font-bold text-sm">ETB {vat.toFixed(2)}</span>
+         </div>
+         {extraCharges > 0 && (
+           <div>
+             <span className="text-emerald-400 block text-[9px] uppercase font-bold">Extra Charges</span>
+             <span className="font-mono font-bold text-sm text-emerald-400">+ ETB {extraCharges.toFixed(2)}</span>
+           </div>
+         )}
+         {discount > 0 && (
+           <div>
+             <span className="text-rose-400 block text-[9px] uppercase font-bold">Discounts</span>
+             <span className="font-mono font-bold text-sm text-rose-400">- ETB {discount.toFixed(2)}</span>
+           </div>
+         )}
+       </div>
+       <div className="text-right">
+         <span className="text-[#84CC16] block text-[10px] uppercase font-bold tracking-wider">Final Recalculated Grand Total</span>
+         <span className="font-mono font-bold text-lg text-[#84CC16]">ETB {grandTotal.toFixed(2)}</span>
+       </div>
+     </div>
+   );
+ })()}
 
  <div className="pt-3 border-t border-gray-200 flex justify-end gap-2">
- <Button type="button" variant="outline" onClick={() => setIsCreateInvoiceOpen(false)}>
- Cancel
- </Button>
- <Button type="submit" className="bg-[#84CC16] text-[#111827] font-bold">
- Generate Invoice
- </Button>
+   <Button type="button" variant="outline" onClick={() => setIsCreateInvoiceOpen(false)}>
+     Cancel
+   </Button>
+   <Button type="submit" className="bg-[#84CC16] text-[#111827] font-bold">
+     Generate Custom Invoice
+   </Button>
  </div>
  </form>
  </motion.div>

@@ -45,6 +45,7 @@ import {
 import { Button } from '../Button';
 import { Input } from '../Input';
 import { IEvent, EventStatus, EventVisibility, IEventSession, ICustomFormField, IEventModule } from '../../types';
+import { RegistrationConfig } from './RegistrationConfig';
 
 interface EventBuilderDashboardProps {
   initialValues?: Partial<IEvent> | null;
@@ -193,6 +194,7 @@ export const EventBuilderDashboard: React.FC<EventBuilderDashboardProps> = ({
     control,
     watch,
     setValue,
+    trigger,
     formState: { errors },
   } = useForm({
     defaultValues,
@@ -550,7 +552,13 @@ export const EventBuilderDashboard: React.FC<EventBuilderDashboardProps> = ({
                 <div className="flex justify-end pt-4">
                   <Button
                     type="button"
-                    onClick={() => setWizardStep(2)}
+                    onClick={() => {
+                      if (!selectedTemplate) {
+                        alert('Please select an event template to proceed.');
+                        return;
+                      }
+                      setWizardStep(2);
+                    }}
                     className="text-xs font-bold px-6 bg-brand-primary"
                   >
                     <span>Proceed to Specs</span>
@@ -573,7 +581,7 @@ export const EventBuilderDashboard: React.FC<EventBuilderDashboardProps> = ({
                     label="Event Title"
                     placeholder="e.g. Next-Gen Enterprise Tech Summit"
                     error={errors.title?.message}
-                    {...register('title', { required: 'Event title is required', minLength: { value: 3, message: 'Minimum 3 chars' } })}
+                    {...register('title', { required: 'Event title is required' })}
                   />
                   <Input
                     label="Vertical / Category"
@@ -692,12 +700,11 @@ export const EventBuilderDashboard: React.FC<EventBuilderDashboardProps> = ({
                   </Button>
                   <Button
                     type="button"
-                    onClick={() => {
-                      if (!watchTitle) {
-                        alert('Please fill out the Event Title.');
-                        return;
+                    onClick={async () => {
+                      const isValid = await trigger(['title', 'category', 'description']);
+                      if (isValid) {
+                        setWizardStep(3);
                       }
-                      setWizardStep(3);
                     }}
                     className="text-xs font-bold px-6 bg-brand-primary"
                   >
@@ -720,11 +727,13 @@ export const EventBuilderDashboard: React.FC<EventBuilderDashboardProps> = ({
                   <Input
                     label="Event Opens"
                     type="datetime-local"
+                    error={errors.schedule?.startDate?.message}
                     {...register('schedule.startDate', { required: 'Start time is required' })}
                   />
                   <Input
                     label="Event Closes"
                     type="datetime-local"
+                    error={errors.schedule?.endDate?.message}
                     {...register('schedule.endDate', { required: 'End time is required' })}
                   />
                   <div className="flex flex-col space-y-1.5">
@@ -751,7 +760,12 @@ export const EventBuilderDashboard: React.FC<EventBuilderDashboardProps> = ({
                   </Button>
                   <Button
                     type="button"
-                    onClick={() => setWizardStep(4)}
+                    onClick={async () => {
+                      const isValid = await trigger(['schedule.startDate', 'schedule.endDate']);
+                      if (isValid) {
+                        setWizardStep(4);
+                      }
+                    }}
                     className="text-xs font-bold px-6 bg-brand-primary"
                   >
                     <span>Proceed to Capacity</span>
@@ -1410,7 +1424,7 @@ export const EventBuilderDashboard: React.FC<EventBuilderDashboardProps> = ({
           <div className="fixed inset-0 z-50 overflow-hidden flex justify-end" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
             <div className="absolute inset-0 bg-neutral-slate-950/45 backdrop-blur-xs transition-opacity" onClick={() => setConfiguringModuleId(null)} />
             
-            <div className="relative w-full max-w-lg bg-white h-full flex flex-col shadow-2xl overflow-y-auto">
+            <div className={`relative w-full ${configuringModuleId === 'registration' ? 'max-w-full' : 'max-w-lg'} bg-white h-full flex flex-col shadow-2xl overflow-y-auto`}>
               
               {/* Drawer Header */}
               <div className="p-6 bg-[#F9FAFB] border-b border-gray-200 flex justify-between items-center text-left">
@@ -1435,29 +1449,19 @@ export const EventBuilderDashboard: React.FC<EventBuilderDashboardProps> = ({
               </div>
 
               {/* Drawer Config Body */}
-              <div className="flex-1 p-6 space-y-6 text-left">
+              <div className={`flex-1 ${configuringModuleId === 'registration' ? 'p-0' : 'p-6 space-y-6'} text-left`}>
                 
                 {/* 1. REGISTRATION MODULE CONFIGS */}
-                {configuringModuleId === 'registration' && (
-                  <div className="space-y-4">
-                    <span className="text-[10px] font-bold uppercase text-neutral-slate-400 tracking-wider">Registration Policy Settings</span>
-                    <div className="flex items-center space-x-3 py-2">
-                      <input
-                        id="drawerApproval"
-                        type="checkbox"
-                        className="rounded text-brand-primary"
-                        checked={initialValues?.registrationSettings?.requiresApproval || false}
-                        onChange={(e) => {}}
-                        disabled
-                      />
-                      <label htmlFor="drawerApproval" className="text-xs font-bold text-neutral-slate-600 uppercase">
-                        Requires Staff manual approval (Enabled in Specs)
-                      </label>
-                    </div>
-                    <div className="p-4 bg-[#F9FAFB] rounded-2xl border text-xs text-neutral-slate-500 leading-relaxed font-medium">
-                      This module captures first names, last names, emails, and triggers the workspace check-in QR codes automatically. To design extra custom questions, use the registration form designer inside the specifications tab.
-                    </div>
-                  </div>
+                {configuringModuleId === 'registration' && initialValues && (
+                  <RegistrationConfig 
+                    event={initialValues as IEvent}
+                    onUpdate={(data) => {
+                      Object.entries(data).forEach(([key, value]) => {
+                        setValue(key as any, value);
+                      });
+                    }}
+                    onClose={() => setConfiguringModuleId(null)}
+                  />
                 )}
 
                 {/* 2. TICKETING MODULE CONFIGS */}

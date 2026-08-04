@@ -47,6 +47,24 @@ export interface IEventDocument extends Document {
     metaKeywords: string[];
   };
   template?: string;
+  isFreeRsvp?: boolean;
+  rsvpFormFields?: any[];
+  rsvpFormSteps?: any[];
+  rsvpFormAppearance?: any;
+  rsvpEmailSettings?: any;
+  rsvpTicketSettings?: any;
+  rsvpSettings?: {
+    allowMultipleRegistrations?: boolean;
+    allowGuestRegistration?: boolean;
+    maxGuestsPerRegistration?: number;
+    autoCloseWhenFull?: boolean;
+    passwordProtected?: boolean;
+    registrationPassword?: string;
+    isInviteOnly?: boolean;
+    secretLink?: boolean;
+    accessCode?: string;
+    hideFromSearch?: boolean;
+  };
   modules?: {
     id: string;
     enabled: boolean;
@@ -96,12 +114,15 @@ const EventSchema = new Schema<IEventDocument>(
       maxCapacity: { type: Number, required: true, default: 0 },
       activeRegistrations: { type: Number, default: 0 },
       isUnlimited: { type: Boolean, required: true, default: false },
+      enableWaitlist: { type: Boolean, default: false },
     },
     registrationSettings: {
       registrationOpenDate: { type: Date },
       registrationCloseDate: { type: Date },
       requiresApproval: { type: Boolean, default: false, required: true },
       isInviteOnly: { type: Boolean, default: false },
+      enableQrCheckIn: { type: Boolean, default: false },
+      enableDigitalTickets: { type: Boolean, default: false },
       customFormFields: [
         {
           id: { type: String, required: true },
@@ -128,6 +149,24 @@ const EventSchema = new Schema<IEventDocument>(
       metaKeywords: [{ type: String }],
     },
     template: { type: String, default: 'default' },
+    isFreeRsvp: { type: Boolean, default: false },
+    rsvpFormFields: { type: Schema.Types.Mixed, default: [] },
+    rsvpFormSteps: { type: Schema.Types.Mixed, default: [] },
+    rsvpFormAppearance: { type: Schema.Types.Mixed, default: {} },
+    rsvpEmailSettings: { type: Schema.Types.Mixed, default: {} },
+    rsvpTicketSettings: { type: Schema.Types.Mixed, default: {} },
+    rsvpSettings: {
+      allowMultipleRegistrations: { type: Boolean, default: false },
+      allowGuestRegistration: { type: Boolean, default: false },
+      maxGuestsPerRegistration: { type: Number, default: 0 },
+      autoCloseWhenFull: { type: Boolean, default: false },
+      passwordProtected: { type: Boolean, default: false },
+      registrationPassword: { type: String },
+      isInviteOnly: { type: Boolean, default: false },
+      secretLink: { type: Boolean, default: false },
+      accessCode: { type: String },
+      hideFromSearch: { type: Boolean, default: false },
+    },
     modules: [
       {
         id: { type: String, required: true },

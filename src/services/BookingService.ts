@@ -137,35 +137,11 @@ export class BookingService {
       }
     }
 
-    // 3. Price & Plan Constraints Calculation
-    let totalAmount = 0;
-    let billingPlanName: 'Hourly' | 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly' = 'Hourly';
-    let breakdown = '';
-
-    if (data.billingPlanId && workspace.billingPlans && workspace.billingPlans.length > 0) {
-      const selectedPlan = workspace.billingPlans.find(
-        (p: any) => p.id === data.billingPlanId || (p._id && p._id.toString() === data.billingPlanId)
-      );
-      if (selectedPlan) {
-        billingPlanName = selectedPlan.name;
-        const calcRes = pricingService.calculatePlanUnitsAndPrice(workspace, billingPlanName, start, end);
-        
-        // Enforce bookings satisfy the minimum and maximum duration constraints set in active plan
-        if (selectedPlan.minimumDuration && calcRes.units < selectedPlan.minimumDuration) {
-          throw new ValidationError(`Selected plan '${billingPlanName}' requires a minimum booking duration of ${selectedPlan.minimumDuration} unit(s). Current reservation duration is ${calcRes.units} unit(s).`);
-        }
-        if (selectedPlan.maximumDuration && calcRes.units > selectedPlan.maximumDuration) {
-          throw new ValidationError(`Selected plan '${billingPlanName}' restricts booking duration to a maximum of ${selectedPlan.maximumDuration} unit(s). Current reservation duration is ${calcRes.units} unit(s).`);
-        }
-        
-        totalAmount = calcRes.totalAmount;
-        breakdown = calcRes.breakdown;
-      }
-    } else {
-      const calcRes = pricingService.calculatePlanUnitsAndPrice(workspace, 'Hourly', start, end);
-      totalAmount = calcRes.totalAmount;
-      breakdown = calcRes.breakdown;
-    }
+    // 3. Price & Plan Constraints Calculation (Fully Database-Driven)
+    const pricingResult = await pricingService.calculateAutomaticPrice(workspace.id, start, end, tenantId);
+    const totalAmount = pricingResult.totalPrice;
+    const billingPlanName = pricingResult.billingCycle || 'Hourly';
+    const breakdown = pricingResult.billingRuleApplied;
 
     // 4. Booking Status & Approval System Flow
     // All normal user bookings start as PENDING_REVIEW as per WeVentureHub Enterprise guidelines
@@ -666,17 +642,17 @@ export class BookingService {
 
     const agreement = await Agreement.findOne({ bookingId: booking.id, tenantId }).exec();
 
-    // Compute prices with accurate VAT/discount/deposits
-    const calc = pricingService.calculatePlanUnitsAndPrice(workspace, booking.billingPlanName || 'Hourly', booking.startTime, booking.endTime);
+    // Compute prices with accurate VAT/discount/deposits (Fully Database-Driven)
+    const calc = await pricingService.calculateAutomaticPrice(workspace.id, booking.startTime, booking.endTime, tenantId);
 
     const durationType = (booking.billingPlanName as any) || 'Hourly';
-    const durationQuantity = calc.units || booking.durationQuantity || 1;
-    const unitPrice = calc.pricePerUnit || (calc.totalAmount / (durationQuantity || 1));
+    const durationQuantity = 1;
+    const unitPrice = calc.basePrice;
     const isCompany = Boolean(booking.billingDetails?.company || (booking as any).userType === 'company');
     const customerType = isCompany ? 'Company' : 'Individual';
-    const vatAmount = Math.round(calc.totalAmount * 0.15 * 100) / 100;
+    const vatAmount = calc.vatAmount;
     const discountAmount = 0;
-    const grandTotal = Math.round((calc.totalAmount + vatAmount) * 100) / 100;
+    const grandTotal = calc.totalPrice;
 
     // Check if an invoice already exists for this reservation to avoid duplicates
     let existing = await Invoice.findOne({
@@ -692,7 +668,7 @@ export class BookingService {
       existing.userEmail = booking.userEmail;
       existing.workspaceId = workspace.id;
       existing.workspaceName = workspace.name;
-      existing.amount = calc.totalAmount;
+      existing.amount = calc.basePrice;
       existing.grandTotal = grandTotal;
       existing.vat = vatAmount;
       if (agreement) {
@@ -728,7 +704,7 @@ export class BookingService {
       invoiceNumber,
       bookingId: booking.id,
       reservationId: booking.id,
-      amount: calc.totalAmount,
+      amount: calc.basePrice,
       grandTotal: grandTotal,
       currency: workspace.currency || 'ETB',
       status: InvoiceStatus.PENDING,
@@ -757,7 +733,7 @@ export class BookingService {
           description: `Workspace Rental: ${workspace.name} (${durationType} Plan)\nPeriod: ${new Date(booking.startTime).toLocaleString()} to ${new Date(booking.endTime).toLocaleString()}\nPurpose: ${booking.purpose || 'Workspace Utilization'}${booking.teamSize ? ` | Team Size: ${booking.teamSize}` : ''}${booking.qrCode ? ` | QR Pass: ${booking.qrCode}` : ''}`,
           quantity: durationQuantity,
           unitPrice: unitPrice,
-          amount: calc.totalAmount,
+          amount: calc.basePrice,
         }
       ],
     });
@@ -821,7 +797,7 @@ export class BookingService {
           <table style="width: 100%; font-size: 13px;">
             <tr><td style="color: #64748b;">Invoice Number:</td><td style="font-weight: bold; text-align: right;">${invoiceNumber}</td></tr>
             <tr><td style="color: #64748b;">Workspace:</td><td style="font-weight: bold; text-align: right;">${workspace.name}</td></tr>
-            <tr><td style="color: #64748b;">Total Due:</td><td style="font-weight: bold; text-align: right; color: #1e3a8a;">${calc.totalAmount} ${workspace.currency || 'ETB'}</td></tr>
+            <tr><td style="color: #64748b;">Total Due:</td><td style="font-weight: bold; text-align: right; color: #1e3a8a;">${calc.totalPrice} ${workspace.currency || 'ETB'}</td></tr>
           </table>
         </div>
         <div style="text-align: center; margin-top: 24px;">
@@ -840,7 +816,7 @@ export class BookingService {
       tenantId,
       userId: booking.userId,
       title: 'Invoice Issued',
-      message: `A new invoice (${invoiceNumber}) for ${calc.totalAmount} ETB has been generated. Please proceed to payment.`,
+      message: `A new invoice (${invoiceNumber}) for ${calc.totalPrice} ETB has been generated. Please proceed to payment.`,
       category: NotificationCategory.PAYMENT,
       link: '/dashboard/payments',
     });

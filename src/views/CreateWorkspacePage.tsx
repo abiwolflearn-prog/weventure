@@ -14,7 +14,9 @@ import {
   Sparkles,
   Layers,
   Clock,
-  ShieldCheck
+  ShieldCheck,
+  SlidersHorizontal,
+  Trash2
 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
@@ -65,11 +67,54 @@ export default function CreateWorkspacePage() {
     status: 'published',
     featured: false,
     displayOrder: 1,
+    billingPlans: [],
   });
 
   const [amenityInput, setAmenityInput] = useState('');
   const [dragActive, setDragActive] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const handleAddNewBillingPlan = () => {
+    const newPlan = {
+      id: 'plan_' + Date.now(),
+      name: 'Hourly',
+      price: 30,
+      currency: formData.currency || 'USD',
+      vat: 15,
+      validityThreshold: '0 - 3 Hours',
+      minimumDuration: 1,
+      maximumDuration: 999999,
+      availableSeats: Number(formData.capacity) || 10,
+      bookingCapacity: Number(formData.capacity) || 10,
+      isActive: true,
+      agreementTemplate: "This workspace booking agreement is entered into by WeVentureHub and the Client."
+    };
+    setFormData(prev => ({
+      ...prev,
+      billingPlans: [...(prev.billingPlans || []), newPlan]
+    }));
+  };
+
+  const handleUpdatePlanField = (index: number, field: string, value: any) => {
+    setFormData(prev => {
+      const updated = [...(prev.billingPlans || [])];
+      updated[index] = {
+        ...updated[index],
+        [field]: value
+      };
+      return {
+        ...prev,
+        billingPlans: updated
+      };
+    });
+  };
+
+  const handleRemovePlan = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      billingPlans: (prev.billingPlans || []).filter((_, idx) => idx !== index)
+    }));
+  };
 
   const createMutation = useMutation({
     mutationFn: (payload: IWorkspacePayload) => workspaceApi.createWorkspace(payload),
@@ -305,61 +350,228 @@ export default function CreateWorkspacePage() {
 
         {/* Section 2: Pricing Matrix */}
         <div className="space-y-6">
-          <div className="flex items-center space-x-2.5 border-b border-[#E5E7EB] pb-3">
-            <DollarSign className="w-5 h-5 text-[#84CC16]" />
-            <h2 className="font-display font-bold text-[18px] text-[#111827]">Rates & Billing Structure</h2>
+          <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
+            <div className="flex items-center space-x-2.5">
+              <SlidersHorizontal className="w-5 h-5 text-[#84CC16]" />
+              <h2 className="font-display font-bold text-[18px] text-[#111827]">Rates & Billing Structure</h2>
+            </div>
+            <button
+              type="button"
+              onClick={handleAddNewBillingPlan}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#84CC16] hover:bg-[#65A30D] text-[#111111] font-bold text-xs rounded-lg transition"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add Pricing Option
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
-            <div className="space-y-1.5">
-              <label className="text-[13px] font-bold text-[#374151]">Currency</label>
-              <select
-                name="currency"
-                value={formData.currency}
-                onChange={handleChange}
-                className="w-full bg-white border border-[#E5E7EB] rounded-[12px] px-4 py-2.5 text-[14px] text-[#111827] focus:ring-2 focus:ring-[#A3E635] outline-none"
-              >
-                <option value="USD">USD ($)</option>
-                <option value="EUR">EUR (€)</option>
-                <option value="GBP">GBP (£)</option>
-                <option value="KES">KES (KSh)</option>
-                <option value="NGN">NGN (₦)</option>
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[13px] font-bold text-[#374151]">Hourly Rate</label>
-              <input
-                type="number"
-                name="hourlyPrice"
-                value={formData.hourlyPrice}
-                onChange={handleChange}
-                className="w-full bg-white border border-[#E5E7EB] rounded-[12px] px-4 py-2.5 text-[14px] text-[#111827] focus:ring-2 focus:ring-[#A3E635] outline-none"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[13px] font-bold text-[#374151]">Daily Rate</label>
-              <input
-                type="number"
-                name="dailyPrice"
-                value={formData.dailyPrice}
-                onChange={handleChange}
-                className="w-full bg-white border border-[#E5E7EB] rounded-[12px] px-4 py-2.5 text-[14px] text-[#111827] focus:ring-2 focus:ring-[#A3E635] outline-none"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[13px] font-bold text-[#374151]">Monthly Price</label>
-              <input
-                type="number"
-                name="monthlyPrice"
-                value={formData.monthlyPrice}
-                onChange={handleChange}
-                className="w-full bg-white border border-[#E5E7EB] rounded-[12px] px-4 py-2.5 text-[14px] text-[#111827] focus:ring-2 focus:ring-[#A3E635] outline-none"
-              />
-            </div>
+          <div className="overflow-x-auto border border-gray-100 rounded-xl bg-white">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-bold uppercase tracking-wider">
+                  <th className="p-3">Billing Cycle</th>
+                  <th className="p-3">Validity Threshold</th>
+                  <th className="p-3">Base Price</th>
+                  <th className="p-3">VAT Rate</th>
+                  <th className="p-3">Grand Total</th>
+                  <th className="p-3">Min/Max Qty</th>
+                  <th className="p-3">Capacity / Seats</th>
+                  <th className="p-3 text-center">Active</th>
+                  <th className="p-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {!formData.billingPlans || formData.billingPlans.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="p-4 text-center text-gray-400 font-medium">
+                      No billing options configured. Please click "Add Pricing Option" to configure dynamic pricing.
+                    </td>
+                  </tr>
+                ) : (
+                  formData.billingPlans.map((plan, index) => {
+                    const basePrice = Number(plan.price) || 0;
+                    const vatRate = plan.vat !== undefined ? plan.vat : 15;
+                    const grandTotal = basePrice * (1 + vatRate / 100);
+                    
+                    return (
+                      <tr key={plan.id || plan._id || index} className="hover:bg-gray-50/50">
+                        <td className="p-3 font-bold text-gray-900">
+                          <select
+                            value={plan.name}
+                            onChange={(e) => handleUpdatePlanField(index, 'name', e.target.value)}
+                            className="bg-white border border-gray-200 rounded px-1.5 py-1 font-bold outline-none text-xs"
+                          >
+                            <option value="Hourly">Hourly</option>
+                            <option value="Up to 2 Hours">Up to 2 Hours</option>
+                            <option value="Half Day">Half Day</option>
+                            <option value="Full Day">Full Day</option>
+                            <option value="Daily">Daily</option>
+                            <option value="Weekly">Weekly</option>
+                            <option value="Monthly">Monthly</option>
+                            <option value="Quarterly">Quarterly</option>
+                            <option value="Yearly">Yearly</option>
+                          </select>
+                        </td>
+                        <td className="p-3">
+                          <input
+                            type="text"
+                            value={plan.validityThreshold || ''}
+                            placeholder="e.g. 0 - ∞ Hours"
+                            onChange={(e) => handleUpdatePlanField(index, 'validityThreshold', e.target.value)}
+                            className="w-24 bg-white border border-gray-200 rounded px-1.5 py-1 outline-none font-mono text-xs"
+                          />
+                        </td>
+                        <td className="p-3 font-mono">
+                          <div className="flex items-center gap-1">
+                            <select
+                              value={plan.currency || 'USD'}
+                              onChange={(e) => handleUpdatePlanField(index, 'currency', e.target.value)}
+                              className="bg-white border border-gray-100 rounded px-1 py-0.5 outline-none text-[10px]"
+                            >
+                              <option value="USD">USD</option>
+                              <option value="EUR">EUR</option>
+                              <option value="ETB">ETB</option>
+                            </select>
+                            <input
+                              type="number"
+                              step="any"
+                              value={plan.price}
+                              onChange={(e) => handleUpdatePlanField(index, 'price', Number(e.target.value))}
+                              className="w-16 bg-white border border-gray-200 rounded px-1.5 py-1 text-right outline-none text-xs"
+                            />
+                          </div>
+                        </td>
+                        <td className="p-3 font-mono">
+                          <div className="flex items-center gap-0.5">
+                            <input
+                              type="number"
+                              value={plan.vat !== undefined ? plan.vat : 15}
+                              onChange={(e) => handleUpdatePlanField(index, 'vat', Number(e.target.value))}
+                              className="w-10 bg-white border border-gray-200 rounded px-1 py-1 text-right outline-none text-xs"
+                            />
+                            <span>%</span>
+                          </div>
+                        </td>
+                        <td className="p-3 font-bold text-gray-900 font-mono text-xs">
+                          {(plan.currency || 'USD')} {grandTotal.toFixed(2)}
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              placeholder="Min"
+                              value={plan.minimumDuration || 1}
+                              onChange={(e) => handleUpdatePlanField(index, 'minimumDuration', Number(e.target.value))}
+                              className="w-10 bg-white border border-gray-200 rounded px-1 py-0.5 text-center outline-none text-[11px]"
+                            />
+                            <span>-</span>
+                            <input
+                              type="number"
+                              placeholder="Max"
+                              value={plan.maximumDuration || 999999}
+                              onChange={(e) => handleUpdatePlanField(index, 'maximumDuration', Number(e.target.value))}
+                              className="w-14 bg-white border border-gray-200 rounded px-1 py-0.5 text-center outline-none text-[11px]"
+                            />
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              placeholder="Seats"
+                              value={plan.availableSeats || Number(formData.capacity) || 10}
+                              onChange={(e) => handleUpdatePlanField(index, 'availableSeats', Number(e.target.value))}
+                              className="w-10 bg-white border border-gray-200 rounded px-1 py-0.5 text-center outline-none text-[11px]"
+                            />
+                            <span>/</span>
+                            <input
+                              type="number"
+                              placeholder="Capacity"
+                              value={plan.bookingCapacity || Number(formData.capacity) || 10}
+                              onChange={(e) => handleUpdatePlanField(index, 'bookingCapacity', Number(e.target.value))}
+                              className="w-10 bg-white border border-gray-200 rounded px-1 py-0.5 text-center outline-none text-[11px]"
+                            />
+                          </div>
+                        </td>
+                        <td className="p-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={plan.isActive !== false}
+                            onChange={(e) => handleUpdatePlanField(index, 'isActive', e.target.checked)}
+                            className="w-4 h-4 text-[#84CC16] rounded border-[#E5E7EB] focus:ring-[#84CC16] cursor-pointer"
+                          />
+                        </td>
+                        <td className="p-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePlan(index)}
+                            className="p-1 text-rose-500 hover:text-rose-700 transition"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
+
+          {/* Expandable Legacy Rates */}
+          <details className="text-xs text-gray-500 cursor-pointer select-none">
+            <summary className="font-semibold text-gray-400 hover:text-gray-600 transition">Show legacy single-value rates (for backwards compatibility)</summary>
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 mt-3 cursor-default" onClick={(e) => e.stopPropagation()}>
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-bold text-[#374151]">Currency</label>
+                <select
+                  name="currency"
+                  value={formData.currency}
+                  onChange={handleChange}
+                  className="w-full bg-white border border-[#E5E7EB] rounded-[12px] px-4 py-2.5 text-[14px] text-[#111827] focus:ring-2 focus:ring-[#A3E635] outline-none"
+                >
+                  <option value="USD">USD ($)</option>
+                  <option value="EUR">EUR (€)</option>
+                  <option value="GBP">GBP (£)</option>
+                  <option value="KES">KES (KSh)</option>
+                  <option value="NGN">NGN (₦)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-bold text-[#374151]">Hourly Rate</label>
+                <input
+                  type="number"
+                  name="hourlyPrice"
+                  value={formData.hourlyPrice}
+                  onChange={handleChange}
+                  className="w-full bg-white border border-[#E5E7EB] rounded-[12px] px-4 py-2.5 text-[14px] text-[#111827] focus:ring-2 focus:ring-[#A3E635] outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-bold text-[#374151]">Daily Rate</label>
+                <input
+                  type="number"
+                  name="dailyPrice"
+                  value={formData.dailyPrice}
+                  onChange={handleChange}
+                  className="w-full bg-white border border-[#E5E7EB] rounded-[12px] px-4 py-2.5 text-[14px] text-[#111827] focus:ring-2 focus:ring-[#A3E635] outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-bold text-[#374151]">Monthly Price</label>
+                <input
+                  type="number"
+                  name="monthlyPrice"
+                  value={formData.monthlyPrice}
+                  onChange={handleChange}
+                  className="w-full bg-white border border-[#E5E7EB] rounded-[12px] px-4 py-2.5 text-[14px] text-[#111827] focus:ring-2 focus:ring-[#A3E635] outline-none"
+                />
+              </div>
+            </div>
+          </details>
         </div>
 
         {/* Section 3: Media & Location */}

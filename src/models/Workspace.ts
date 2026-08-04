@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IBillingPlan {
   id: string;
-  name: 'Hourly' | 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly';
+  name: string;
   price: number;
   currency: string;
   deposit?: number;
@@ -15,6 +15,10 @@ export interface IBillingPlan {
   gracePeriod?: number;
   lateFee?: number;
   isActive: boolean;
+  validityThreshold?: string;
+  totalPrice?: number;
+  availableSeats?: number;
+  bookingCapacity?: number;
 }
 
 export interface IWorkspaceDocument extends Document {
@@ -154,7 +158,7 @@ const WorkspaceSchema = new Schema<IWorkspaceDocument>(
     ],
     billingPlans: [
       {
-        name: { type: String, enum: ['Hourly', 'Daily', 'Weekly', 'Monthly', 'Quarterly', 'Yearly'], required: true },
+        name: { type: String, required: true },
         price: { type: Number, required: true, min: 0 },
         currency: { type: String, required: true, default: 'USD' },
         deposit: { type: Number, min: 0 },
@@ -167,6 +171,10 @@ const WorkspaceSchema = new Schema<IWorkspaceDocument>(
         gracePeriod: { type: Number, min: 0, default: 0 },
         lateFee: { type: Number, min: 0, default: 0 },
         isActive: { type: Boolean, default: true, required: true },
+        validityThreshold: { type: String, default: '0 - ∞ Hours' },
+        totalPrice: { type: Number, min: 0 },
+        availableSeats: { type: Number, min: 0 },
+        bookingCapacity: { type: Number, min: 0 },
       }
     ],
     availabilityRules: {

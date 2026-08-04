@@ -1,4 +1,4 @@
-export type DurationType = 'Hourly' | 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
+export type DurationType = string;
 
 /**
  * Formats duration type and quantity into a readable string format.
@@ -39,6 +39,15 @@ export function formatBookingDuration(durationType?: string, quantity?: number |
 export function getWorkspaceUnitPrice(workspace: any, durationType: DurationType = 'Daily'): number {
   if (!workspace) return 0;
   
+  // 1. Check if workspace has billingPlans configured
+  if (workspace.billingPlans && Array.isArray(workspace.billingPlans)) {
+    const matchedPlan = workspace.billingPlans.find((p: any) => p.name === durationType && p.isActive !== false);
+    if (matchedPlan) {
+      return Number(matchedPlan.price);
+    }
+  }
+
+  // Fallback to legacy structure
   const hourly = Number(workspace.hourlyPrice !== undefined && Number(workspace.hourlyPrice) > 0 
     ? workspace.hourlyPrice 
     : (workspace.hourlyRate || 35));
@@ -79,12 +88,29 @@ export function getWorkspaceUnitPrice(workspace: any, durationType: DurationType
  * Calculates total breakdown including base subtotal, service fee, and total amount.
  */
 export function calculateBookingPrices(workspace: any, durationType: DurationType, quantity: number, desks: number = 1, feePercentage: number = 0.15) {
-  const unitPrice = getWorkspaceUnitPrice(workspace, durationType);
   const qty = Math.max(1, Number(quantity) || 1);
   const dsk = Math.max(1, Number(desks) || 1);
+
+  let unitPrice = 0;
+  let vatRate = feePercentage; // default 15%
+  let foundPlan = false;
+
+  // Search in billing plans
+  if (workspace && workspace.billingPlans && Array.isArray(workspace.billingPlans)) {
+    const matchedPlan = workspace.billingPlans.find((p: any) => p.name === durationType && p.isActive !== false);
+    if (matchedPlan) {
+      unitPrice = Number(matchedPlan.price);
+      vatRate = (matchedPlan.vat !== undefined ? matchedPlan.vat : 15) / 100;
+      foundPlan = true;
+    }
+  }
+
+  if (!foundPlan) {
+    unitPrice = getWorkspaceUnitPrice(workspace, durationType);
+  }
   
   const subtotal = unitPrice * qty * dsk;
-  const serviceFee = subtotal * feePercentage;
+  const serviceFee = subtotal * vatRate;
   const totalAmount = subtotal + serviceFee;
 
   return {

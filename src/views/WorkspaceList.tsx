@@ -94,6 +94,33 @@ export default function WorkspaceList() {
   const [billingCompany, setBillingCompany] = useState('');
   const [billingAddress, setBillingAddress] = useState('');
 
+  // Dynamic Pricing Rule Calculations
+  const [calculatedPricing, setCalculatedPricing] = useState<any>(null);
+  const [isCalculatingPrice, setIsCalculatingPrice] = useState(false);
+
+  useEffect(() => {
+    const fetchLivePrice = async () => {
+      if (!selectedWorkspace) return;
+      try {
+        setIsCalculatingPrice(true);
+        const startIso = new Date(`${bookingDate}T${bookingStart}:00`).toISOString();
+        const endIso = new Date(`${bookingDate}T${bookingEnd}:00`).toISOString();
+        const res = await bookingApi.calculatePrice({
+          spaceId: selectedWorkspace._id || selectedWorkspace.id,
+          startTime: startIso,
+          endTime: endIso,
+        });
+        setCalculatedPricing(res);
+      } catch (e) {
+        console.error('Failed to calculate price live:', e);
+      } finally {
+        setIsCalculatingPrice(false);
+      }
+    };
+
+    fetchLivePrice();
+  }, [selectedWorkspace, bookingDate, bookingStart, bookingEnd]);
+
   // Comprehensive Workspace Form States
   const [wsTitle, setWsTitle] = useState('');
   const [wsShortDescription, setWsShortDescription] = useState('');
@@ -220,11 +247,8 @@ export default function WorkspaceList() {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       queryClient.invalidateQueries({ queryKey: ['workspaces'] });
       
-      const selectedPlanObj = selectedWorkspace?.billingPlans?.find((p: any) => p.id === selectedBillingPlanId || p._id === selectedBillingPlanId);
-      const checkoutPrice = selectedPlanObj 
-        ? (selectedPlanObj.price + (selectedPlanObj.deposit || 0)) 
-        : calculateEstimatedPrice();
-      const currency = selectedPlanObj ? (selectedPlanObj.currency || 'USD') : 'USD';
+      const checkoutPrice = calculatedPricing ? calculatedPricing.totalPrice : calculateEstimatedPrice();
+      const currency = selectedWorkspace?.currency || 'USD';
       
       setTimeout(() => {
         setSelectedWorkspace(null);
@@ -237,9 +261,9 @@ export default function WorkspaceList() {
               amount: checkoutPrice,
               currency: currency,
               title: selectedWorkspace?.title || selectedWorkspace?.name || 'Workspace Reservation',
-              description: selectedPlanObj 
-                ? `${selectedPlanObj.name} Coworking Plan for ${selectedWorkspace?.title || selectedWorkspace?.name}` 
-                : `Hourly reservation for ${selectedWorkspace?.title || selectedWorkspace?.name}`
+              description: calculatedPricing 
+                ? `${calculatedPricing.billingRuleApplied} booking for ${selectedWorkspace?.title || selectedWorkspace?.name}` 
+                : `Reservation for ${selectedWorkspace?.title || selectedWorkspace?.name}`
             }
           });
         }
@@ -516,6 +540,12 @@ export default function WorkspaceList() {
       deposit: Number(newPlanDeposit) || undefined,
       paymentDueDay: Number(newPlanDueDay) || 1,
       agreementTemplate: newPlanAgreement,
+      vat: 15,
+      validityThreshold: '0 - ∞ Hours',
+      minimumDuration: 1,
+      maximumDuration: 999999,
+      availableSeats: Number(wsCapacity) || 10,
+      bookingCapacity: Number(wsCapacity) || 10,
       isActive: true
     };
     setWsBillingPlans([...wsBillingPlans, newPlan]);
@@ -524,8 +554,41 @@ export default function WorkspaceList() {
     setNewPlanDeposit('');
   };
 
+  const handleUpdatePlanField = (index: number, field: string, value: any) => {
+    setWsBillingPlans(prev => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        [field]: value
+      };
+      return updated;
+    });
+  };
+
+  const handleAddNewBillingPlan = () => {
+    const newPlan = {
+      id: 'plan_' + Date.now(),
+      name: 'Hourly',
+      price: 30,
+      currency: wsCurrency || 'USD',
+      vat: 15,
+      validityThreshold: '0 - 3 Hours',
+      minimumDuration: 1,
+      maximumDuration: 999999,
+      availableSeats: Number(wsCapacity) || 10,
+      bookingCapacity: Number(wsCapacity) || 10,
+      isActive: true,
+      agreementTemplate: "This workspace booking agreement is entered into by WeVentureHub and the Client."
+    };
+    setWsBillingPlans(prev => [...prev, newPlan]);
+  };
+
   const handleRemovePlan = (id: string) => {
     setWsBillingPlans(wsBillingPlans.filter(p => p.id !== id && p._id !== id));
+  };
+
+  const handleRemovePlanByIndex = (index: number) => {
+    setWsBillingPlans(prev => prev.filter((_, idx) => idx !== index));
   };
 
   const handleTogglePlanActive = (id: string) => {
@@ -927,28 +990,6 @@ export default function WorkspaceList() {
               )}
             </div>
 
-            {/* Plan selection dropdown */}
-            {selectedWorkspace.billingPlans && selectedWorkspace.billingPlans.filter((p: any) => p.isActive).length > 0 && (
-              <div className="flex flex-col space-y-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-[#6B7280]">Select Billing Plan / Membership</label>
-                <select
-                  value={selectedBillingPlanId}
-                  onChange={(e) => {
-                    setSelectedBillingPlanId(e.target.value);
-                    setBookingError(null);
-                  }}
-                  className="w-full px-3.5 py-2.5 rounded-[10px] border text-[13px] font-bold outline-none bg-white border-[#E5E7EB] text-[#374151]"
-                >
-                  <option value="">Standard Hourly Rate ({selectedWorkspace.currency || 'USD'} {Number(selectedWorkspace.hourlyPrice || selectedWorkspace.hourlyRate || 0).toFixed(2)}/hr)</option>
-                  {selectedWorkspace.billingPlans.filter((p: any) => p.isActive).map((p: any) => (
-                    <option key={p.id || p._id} value={p.id || p._id}>
-                      {p.name} Membership - {p.currency} {p.price.toFixed(2)} {p.deposit ? `(+ ${p.deposit} Deposit)` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
             {/* Form Fields */}
             <div className="space-y-4">
               <Input 
@@ -983,12 +1024,34 @@ export default function WorkspaceList() {
               />
             </div>
 
-            {/* Estimated Rates Display */}
-            <div className="p-4 bg-[#F8FAFC] rounded-[14px] border border-[#E5E7EB] flex justify-between items-center text-[13px]">
-              <span className="font-bold text-[#4B5563]">Estimated Total Rate</span>
-              <span className="font-bold text-[#65A30D] font-mono text-[16px]">
-                {selectedWorkspace.currency || 'USD'} {calculateEstimatedPrice().toFixed(2)}
-              </span>
+            {/* Dynamic Calculated Pricing Display */}
+            <div className="p-4 bg-white rounded-[14px] border border-[#E5E7EB] space-y-2 text-[13px]">
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-[#4B5563]">Price Calculation</span>
+                <span className="font-bold text-[11px] bg-[#84CC16]/15 text-[#4D7C0F] px-2 py-0.5 rounded-[4px] uppercase tracking-wider">
+                  {isCalculatingPrice ? 'Calculating...' : (calculatedPricing?.billingRuleApplied || 'Standard Rate')}
+                </span>
+              </div>
+              <div className="border-t border-gray-100 pt-2 space-y-1.5">
+                <div className="flex justify-between items-center text-[#4B5563]">
+                  <span>Base Price</span>
+                  <span className="font-mono font-bold">
+                    {selectedWorkspace.currency || 'USD'} {(calculatedPricing?.basePrice || 0).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-[#4B5563]">
+                  <span>VAT ({calculatedPricing?.vatPercentage || 15}%)</span>
+                  <span className="font-mono font-bold">
+                    {selectedWorkspace.currency || 'USD'} {(calculatedPricing?.vatAmount || 0).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center border-t border-gray-100 pt-2 text-[#111827] font-bold">
+                  <span>Total Amount</span>
+                  <span className="font-mono text-[#65A30D] text-[15px]">
+                    {selectedWorkspace.currency || 'USD'} {(calculatedPricing?.totalPrice || 0).toFixed(2)}
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
@@ -1094,42 +1157,217 @@ export default function WorkspaceList() {
             />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            <Input 
-              label="Hourly Price" 
-              type="number" 
-              value={wsHourlyPrice} 
-              onChange={(e) => setWsHourlyPrice(e.target.value)}
-              className="w-full rounded-[10px] border-[#E5E7EB]"
-            />
-            <Input 
-              label="Daily Price" 
-              type="number" 
-              value={wsDailyPrice} 
-              onChange={(e) => setWsDailyPrice(e.target.value)}
-              className="w-full rounded-[10px] border-[#E5E7EB]"
-            />
-            <Input 
-              label="Weekly Price" 
-              type="number" 
-              value={wsWeeklyPrice} 
-              onChange={(e) => setWsWeeklyPrice(e.target.value)}
-              className="w-full rounded-[10px] border-[#E5E7EB]"
-            />
-            <Input 
-              label="Monthly Price" 
-              type="number" 
-              value={wsMonthlyPrice} 
-              onChange={(e) => setWsMonthlyPrice(e.target.value)}
-              className="w-full rounded-[10px] border-[#E5E7EB]"
-            />
-            <Input 
-              label="Yearly Price" 
-              type="number" 
-              value={wsYearlyPrice} 
-              onChange={(e) => setWsYearlyPrice(e.target.value)}
-              className="w-full rounded-[10px] border-[#E5E7EB]"
-            />
+          {/* Section 2: Rates & Billing Structure */}
+          <div className="space-y-4 border-t border-b border-gray-100 py-4 my-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <SlidersHorizontal className="w-5 h-5 text-[#84CC16]" />
+                <h3 className="font-display font-bold text-[15px] text-[#111827]">Configured Booking & Pricing Plans</h3>
+              </div>
+              <button
+                type="button"
+                onClick={handleAddNewBillingPlan}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#84CC16] hover:bg-[#65A30D] text-[#111111] font-bold text-xs rounded-lg transition"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Billing Option
+              </button>
+            </div>
+
+            <div className="overflow-x-auto border border-gray-100 rounded-xl bg-white">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-bold uppercase tracking-wider">
+                    <th className="p-3">Billing Cycle</th>
+                    <th className="p-3">Validity Threshold</th>
+                    <th className="p-3">Base Price</th>
+                    <th className="p-3">VAT Rate</th>
+                    <th className="p-3">Grand Total</th>
+                    <th className="p-3">Min/Max Qty</th>
+                    <th className="p-3">Capacity / Seats</th>
+                    <th className="p-3 text-center">Active</th>
+                    <th className="p-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {wsBillingPlans.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="p-4 text-center text-gray-400 font-medium">
+                        No billing options configured. Please add at least one dynamic pricing option!
+                      </td>
+                    </tr>
+                  ) : (
+                    wsBillingPlans.map((plan, index) => {
+                      const basePrice = Number(plan.price) || 0;
+                      const vatRate = plan.vat !== undefined ? plan.vat : 15;
+                      const grandTotal = basePrice * (1 + vatRate / 100);
+                      
+                      return (
+                        <tr key={plan.id || plan._id || index} className="hover:bg-gray-50/50">
+                          <td className="p-3 font-bold text-gray-900">
+                            <select
+                              value={plan.name}
+                              onChange={(e) => handleUpdatePlanField(index, 'name', e.target.value)}
+                              className="bg-white border border-gray-200 rounded px-1.5 py-1 font-bold outline-none text-xs"
+                            >
+                              <option value="Hourly">Hourly</option>
+                              <option value="Up to 2 Hours">Up to 2 Hours</option>
+                              <option value="Half Day">Half Day</option>
+                              <option value="Full Day">Full Day</option>
+                              <option value="Daily">Daily</option>
+                              <option value="Weekly">Weekly</option>
+                              <option value="Monthly">Monthly</option>
+                              <option value="Quarterly">Quarterly</option>
+                              <option value="Yearly">Yearly</option>
+                            </select>
+                          </td>
+                          <td className="p-3">
+                            <input
+                              type="text"
+                              value={plan.validityThreshold || ''}
+                              placeholder="e.g. 0 - ∞ Hours"
+                              onChange={(e) => handleUpdatePlanField(index, 'validityThreshold', e.target.value)}
+                              className="w-24 bg-white border border-gray-200 rounded px-1.5 py-1 outline-none font-mono text-xs"
+                            />
+                          </td>
+                          <td className="p-3 font-mono">
+                            <div className="flex items-center gap-1">
+                              <select
+                                value={plan.currency || 'USD'}
+                                onChange={(e) => handleUpdatePlanField(index, 'currency', e.target.value)}
+                                className="bg-white border border-gray-100 rounded px-1 py-0.5 outline-none text-[10px]"
+                              >
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                                <option value="ETB">ETB</option>
+                              </select>
+                              <input
+                                type="number"
+                                step="any"
+                                value={plan.price}
+                                onChange={(e) => handleUpdatePlanField(index, 'price', Number(e.target.value))}
+                                className="w-16 bg-white border border-gray-200 rounded px-1.5 py-1 text-right outline-none text-xs"
+                              />
+                            </div>
+                          </td>
+                          <td className="p-3 font-mono">
+                            <div className="flex items-center gap-0.5">
+                              <input
+                                type="number"
+                                value={plan.vat !== undefined ? plan.vat : 15}
+                                onChange={(e) => handleUpdatePlanField(index, 'vat', Number(e.target.value))}
+                                className="w-10 bg-white border border-gray-200 rounded px-1 py-1 text-right outline-none text-xs"
+                              />
+                              <span>%</span>
+                            </div>
+                          </td>
+                          <td className="p-3 font-bold text-gray-900 font-mono text-xs">
+                            {(plan.currency || 'USD')} {grandTotal.toFixed(2)}
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="number"
+                                placeholder="Min"
+                                value={plan.minimumDuration || 1}
+                                onChange={(e) => handleUpdatePlanField(index, 'minimumDuration', Number(e.target.value))}
+                                className="w-10 bg-white border border-gray-200 rounded px-1 py-0.5 text-center outline-none text-[11px]"
+                              />
+                              <span>-</span>
+                              <input
+                                type="number"
+                                placeholder="Max"
+                                value={plan.maximumDuration || 999999}
+                                onChange={(e) => handleUpdatePlanField(index, 'maximumDuration', Number(e.target.value))}
+                                className="w-14 bg-white border border-gray-200 rounded px-1 py-0.5 text-center outline-none text-[11px]"
+                              />
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="number"
+                                placeholder="Seats"
+                                value={plan.availableSeats || Number(wsCapacity) || 10}
+                                onChange={(e) => handleUpdatePlanField(index, 'availableSeats', Number(e.target.value))}
+                                className="w-10 bg-white border border-gray-200 rounded px-1 py-0.5 text-center outline-none text-[11px]"
+                              />
+                              <span>/</span>
+                              <input
+                                type="number"
+                                placeholder="Capacity"
+                                value={plan.bookingCapacity || Number(wsCapacity) || 10}
+                                onChange={(e) => handleUpdatePlanField(index, 'bookingCapacity', Number(e.target.value))}
+                                className="w-10 bg-white border border-gray-200 rounded px-1 py-0.5 text-center outline-none text-[11px]"
+                              />
+                            </div>
+                          </td>
+                          <td className="p-3 text-center">
+                            <input
+                              type="checkbox"
+                              checked={plan.isActive !== false}
+                              onChange={(e) => handleUpdatePlanField(index, 'isActive', e.target.checked)}
+                              className="w-4 h-4 text-[#84CC16] rounded border-[#E5E7EB] focus:ring-[#84CC16] cursor-pointer"
+                            />
+                          </td>
+                          <td className="p-3 text-right">
+                            <button
+                              type="button"
+                              onClick={() => handleRemovePlanByIndex(index)}
+                              className="p-1 text-rose-500 hover:text-rose-700 transition"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Expandable Legacy Rates */}
+            <details className="text-xs text-gray-500 cursor-pointer select-none">
+              <summary className="font-semibold text-gray-400 hover:text-gray-600 transition">Show legacy single-value rates (for backwards compatibility)</summary>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-2 cursor-default" onClick={(e) => e.stopPropagation()}>
+                <Input 
+                  label="Hourly Price" 
+                  type="number" 
+                  value={wsHourlyPrice} 
+                  onChange={(e) => setWsHourlyPrice(e.target.value)}
+                  className="w-full rounded-[10px] border-[#E5E7EB]"
+                />
+                <Input 
+                  label="Daily Price" 
+                  type="number" 
+                  value={wsDailyPrice} 
+                  onChange={(e) => setWsDailyPrice(e.target.value)}
+                  className="w-full rounded-[10px] border-[#E5E7EB]"
+                />
+                <Input 
+                  label="Weekly Price" 
+                  type="number" 
+                  value={wsWeeklyPrice} 
+                  onChange={(e) => setWsWeeklyPrice(e.target.value)}
+                  className="w-full rounded-[10px] border-[#E5E7EB]"
+                />
+                <Input 
+                  label="Monthly Price" 
+                  type="number" 
+                  value={wsMonthlyPrice} 
+                  onChange={(e) => setWsMonthlyPrice(e.target.value)}
+                  className="w-full rounded-[10px] border-[#E5E7EB]"
+                />
+                <Input 
+                  label="Yearly Price" 
+                  type="number" 
+                  value={wsYearlyPrice} 
+                  onChange={(e) => setWsYearlyPrice(e.target.value)}
+                  className="w-full rounded-[10px] border-[#E5E7EB]"
+                />
+              </div>
+            </details>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

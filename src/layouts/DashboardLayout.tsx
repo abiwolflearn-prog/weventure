@@ -24,7 +24,8 @@ import {
   Mail,
   Rocket,
   PlusCircle,
-  CalendarPlus
+  CalendarPlus,
+  DollarSign
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store';
 import { logout } from '../store/authSlice';
@@ -109,6 +110,7 @@ export default function DashboardLayout() {
     { name: 'My Bookings', path: '/dashboard/bookings', icon: CalendarRange, requiredPermission: Permission.BOOKINGS_READ },
     { name: 'Invoices', path: '/dashboard/invoices', icon: Receipt },
     { name: 'Payment Gateway', path: '/dashboard/checkout', icon: CreditCard },
+    { name: 'Pricing Rules', path: '/dashboard/pricing-rules', icon: DollarSign, requiredPermission: Permission.SETTINGS_UPDATE },
     { name: 'System Settings', path: '/dashboard/settings', icon: Settings, requiredPermission: Permission.SETTINGS_UPDATE },
     { name: 'Email Center', path: '/dashboard/emails', icon: Mail },
     { name: 'Startup Programs', path: '/dashboard/startups', icon: Rocket, requiredPermission: Permission.ANALYTICS_READ, adminOnly: true },

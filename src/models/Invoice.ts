@@ -61,6 +61,13 @@ export interface IInvoiceDocument extends Document {
   currentBalance?: number;
   outstandingBalance?: number;
   qrCode?: string;
+  originalPrice?: number;
+  adjustedPrice?: number;
+  adjustmentReason?: string;
+  adjustedBy?: string;
+  adjustedAt?: Date;
+  extraCharges?: number;
+  bankDetails?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -121,6 +128,13 @@ const InvoiceSchema = new Schema<IInvoiceDocument>(
     currentBalance: { type: Number, default: 0 },
     outstandingBalance: { type: Number, default: 0 },
     qrCode: { type: String },
+    originalPrice: { type: Number },
+    adjustedPrice: { type: Number },
+    adjustmentReason: { type: String },
+    adjustedBy: { type: String },
+    adjustedAt: { type: Date },
+    extraCharges: { type: Number, default: 0 },
+    bankDetails: { type: String },
   },
   {
     timestamps: true,

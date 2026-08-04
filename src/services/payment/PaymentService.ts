@@ -1163,10 +1163,12 @@ export class PaymentService {
   public async createInvoice(tenantId: string, data: any, user?: IUserIdentity): Promise<any> {
     const invCount = await Invoice.countDocuments({ tenantId });
     const invoiceNumber = data.invoiceNumber || `INV-WV-${(1000 + invCount + 1)}`;
+    
     const amount = Number(data.amount || data.subtotal || 0);
     const vat = data.vat !== undefined ? Number(data.vat) : Math.round(amount * 0.15 * 100) / 100;
     const discount = Number(data.discount || 0);
-    const grandTotal = Number(data.grandTotal || (amount + vat - discount));
+    const extraCharges = Number(data.extraCharges || 0);
+    const grandTotal = Number(data.grandTotal !== undefined ? data.grandTotal : (amount + vat + extraCharges - discount));
 
     const invoice = new Invoice({
       tenantId,
@@ -1181,6 +1183,7 @@ export class PaymentService {
       amount,
       vat,
       discount,
+      extraCharges,
       grandTotal,
       outstandingBalance: data.status === 'Paid' ? 0 : grandTotal,
       status: data.status || 'Pending Payment',
@@ -1199,6 +1202,12 @@ export class PaymentService {
           amount: amount,
         }
       ],
+      bankDetails: data.bankDetails,
+      originalPrice: data.originalPrice,
+      adjustedPrice: data.adjustedPrice,
+      adjustmentReason: data.adjustmentReason,
+      adjustedBy: data.adjustedBy || (data.adjustedPrice ? (user?.email || 'Admin') : undefined),
+      adjustedAt: data.adjustedAt || (data.adjustedPrice ? new Date() : undefined),
       createdAt: new Date(),
     });
 

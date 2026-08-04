@@ -160,6 +160,77 @@ export const EventForm: React.FC<EventFormProps> = ({
   // Tag list management state
   const [tags, setTags] = useState<string[]>(initialValues?.tags || []);
 
+  // Free RSVP Mode State
+  const [isFreeRsvp, setIsFreeRsvp] = useState<boolean>(initialValues?.isFreeRsvp || false);
+  const [rsvpFormFields, setRsvpFormFields] = useState<any[]>(
+    initialValues?.rsvpFormFields && initialValues.rsvpFormFields.length > 0
+      ? initialValues.rsvpFormFields
+      : [
+          { id: 'f_name', type: 'text', label: 'Full Name', required: true, placeholder: 'Enter your full name' },
+          { id: 'f_email', type: 'email', label: 'Email Address', required: true, placeholder: 'Enter your email address' },
+          { id: 'f_phone', type: 'phone', label: 'Phone Number', required: false, placeholder: 'Enter your phone number' },
+          { id: 'f_company', type: 'text', label: 'Company / Organization', required: false, placeholder: 'Enter your company name' },
+          { id: 'f_guest_count', type: 'number', label: 'Guest Count', required: false, placeholder: 'Number of extra guests (including yourself)' }
+        ]
+  );
+  const [rsvpFormAppearance, setRsvpFormAppearance] = useState<any>(
+    initialValues?.rsvpFormAppearance || {
+      backgroundColor: '#ffffff',
+      textColor: '#111827',
+      buttonColor: '#84cc16',
+      cardStyle: 'shadowed',
+      borderRadius: 12,
+      thankYouMessage: 'Thank you for RSVPing! Your digital ticket is on its way.'
+    }
+  );
+
+  const [rsvpSubTab, setRsvpSubTab] = useState<'fields' | 'appearance'>('fields');
+  const [rsvpFieldLabel, setRsvpFieldLabel] = useState('');
+  const [rsvpFieldType, setRsvpFieldType] = useState<any>('text');
+  const [rsvpFieldRequired, setRsvpFieldRequired] = useState(false);
+  const [rsvpFieldPlaceholder, setRsvpFieldPlaceholder] = useState('');
+  const [rsvpFieldOptions, setRsvpFieldOptions] = useState('');
+
+  const handleAddRsvpField = () => {
+    if (!rsvpFieldLabel.trim()) {
+      alert('Please enter a descriptive field label.');
+      return;
+    }
+    const newField = {
+      id: 'rsvp_' + Math.random().toString(36).substr(2, 9),
+      type: rsvpFieldType,
+      label: rsvpFieldLabel.trim(),
+      required: rsvpFieldRequired,
+      placeholder: rsvpFieldPlaceholder.trim(),
+      options: ['dropdown', 'radio', 'multiselect'].includes(rsvpFieldType) && rsvpFieldOptions.trim()
+        ? rsvpFieldOptions.split(',').map(o => o.trim()).filter(Boolean)
+        : undefined
+    };
+    setRsvpFormFields([...rsvpFormFields, newField]);
+    setRsvpFieldLabel('');
+    setRsvpFieldPlaceholder('');
+    setRsvpFieldOptions('');
+    setRsvpFieldRequired(false);
+  };
+
+  const handleRemoveRsvpField = (id: string) => {
+    setRsvpFormFields(rsvpFormFields.filter(f => f.id !== id));
+  };
+
+  const handleReorderRsvpField = (index: number, direction: 'up' | 'down') => {
+    const nextIndex = direction === 'up' ? index - 1 : index + 1;
+    if (nextIndex < 0 || nextIndex >= rsvpFormFields.length) return;
+    const reordered = [...rsvpFormFields];
+    const temp = reordered[index];
+    reordered[index] = reordered[nextIndex];
+    reordered[nextIndex] = temp;
+    setRsvpFormFields(reordered);
+  };
+
+  const handleUpdateRsvpFieldInline = (id: string, key: string, value: any) => {
+    setRsvpFormFields(rsvpFormFields.map(f => f.id === id ? { ...f, [key]: value } : f));
+  };
+
   // Custom Form Fields Designer States
   const [customFormFields, setCustomFormFields] = useState<ICustomFormField[]>(
     initialValues?.registrationSettings?.customFormFields || []
@@ -226,6 +297,9 @@ export const EventForm: React.FC<EventFormProps> = ({
     const isoPayload = {
       ...data,
       tags,
+      isFreeRsvp,
+      rsvpFormFields,
+      rsvpFormAppearance,
       schedule: {
         ...data.schedule,
         startDate: data.schedule.startDate ? new Date(data.schedule.startDate).toISOString() : '',
@@ -264,7 +338,7 @@ export const EventForm: React.FC<EventFormProps> = ({
   const tabs: { id: typeof activeTab; name: string; icon: any }[] = [
     { id: 'basic', name: 'Basic Info & Dates', icon: FileText },
     { id: 'capacity', name: 'Capacity & RSVP', icon: Users },
-    { id: 'formDesigner', name: 'Registration Form Designer', icon: ClipboardList },
+    { id: 'formDesigner', name: isFreeRsvp ? 'RSVP Form & Design Builder' : 'Registration Form Designer', icon: ClipboardList },
     { id: 'agenda', name: 'Sessions Agenda', icon: Clock },
     { id: 'media', name: 'Event Media', icon: Image },
     { id: 'seo', name: 'SEO Specs', icon: Sparkles },
@@ -520,6 +594,70 @@ export const EventForm: React.FC<EventFormProps> = ({
                 />
               </div>
             </div>
+
+            {/* Free RSVP Mode Block */}
+            <div className="border-t border-gray-200 pt-6 space-y-4">
+              <h4 className="font-display font-bold text-sm text-gray-700">Free RSVP Community Enlistment</h4>
+              <div className="bg-[#F9FAFB] p-6 rounded-2xl border border-gray-200">
+                <div className="flex items-start space-x-3.5">
+                  <input
+                    id="isFreeRsvp"
+                    type="checkbox"
+                    checked={isFreeRsvp}
+                    onChange={(e) => setIsFreeRsvp(e.target.checked)}
+                    className="w-5 h-5 text-brand-primary border-neutral-slate-300 rounded focus:ring-brand-primary outline-none cursor-pointer mt-0.5"
+                  />
+                  <div className="space-y-1 text-left">
+                    <label htmlFor="isFreeRsvp" className="text-sm font-bold text-gray-900 uppercase tracking-wider cursor-pointer">
+                      Free RSVP Event (No Hub Account Required)
+                    </label>
+                    <p className="text-xs text-neutral-slate-500 leading-relaxed">
+                      Enable zero-barrier community registrations. Bypasses WeVentureHub account login requirements completely. Generates a custom public RSVP landing page with QR code scanning capabilities.
+                    </p>
+                  </div>
+                </div>
+
+                {isFreeRsvp && initialValues?.id && (
+                  <div className="pt-4 mt-4 border-t border-gray-200/60 space-y-3 text-left">
+                    <h5 className="text-xs font-extrabold uppercase text-gray-600 tracking-wider">Public RSVP Access Details</h5>
+                    <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-xl border border-gray-200">
+                      <div className="flex-1 space-y-1 w-full">
+                        <span className="text-[10px] font-black uppercase text-neutral-slate-400 block mb-1">Shareable RSVP Link</span>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            readOnly
+                            value={`${window.location.origin}/public/events/${initialValues.slug}/rsvp`}
+                            className="w-full text-xs bg-neutral-50 px-3 py-2 border rounded-lg outline-none font-mono text-neutral-600"
+                            id="rsvp-share-link"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const el = document.getElementById('rsvp-share-link') as HTMLInputElement;
+                              el.select();
+                              document.execCommand('copy');
+                              alert('Copied to clipboard!');
+                            }}
+                            className="bg-[#84cc16] hover:bg-[#72b012] text-white px-3 py-1.5 rounded-lg text-xs font-bold font-display shrink-0"
+                          >
+                            Copy Link
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-center p-2 bg-neutral-50 rounded-lg border border-dashed border-gray-200 shrink-0">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`${window.location.origin}/public/events/${initialValues.slug}/rsvp`)}`}
+                          alt="RSVP Page QR Code"
+                          className="w-20 h-20 border rounded bg-white"
+                        />
+                        <span className="text-[9px] text-neutral-slate-400 mt-1 font-bold uppercase tracking-wider">Form QR Code</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
@@ -527,171 +665,606 @@ export const EventForm: React.FC<EventFormProps> = ({
         {activeTab === 'formDesigner' && (
           <div className="space-y-6">
             <div className="border-b pb-3 border-gray-200">
-              <h4 className="font-display font-bold text-base text-gray-900 text-left">Registration Custom Fields Designer</h4>
+              <h4 className="font-display font-bold text-base text-gray-900 text-left">
+                {isFreeRsvp ? 'RSVP Form & Design Builder' : 'Registration Custom Fields Designer'}
+              </h4>
               <p className="text-xs text-neutral-slate-400 mt-1 text-left">
-                Establish custom, dynamic checkout questionnaires. Perfect for capturing dietary preferences, badge names, file resumes, or company roles.
+                {isFreeRsvp
+                  ? 'Design the dynamic checkout fields and custom visual theme of your community-facing RSVP registration form.'
+                  : 'Establish custom, dynamic checkout questionnaires. Perfect for capturing dietary preferences, badge names, file resumes, or company roles.'}
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
-              
-              {/* Left Column: Create Field Form */}
-              <div className="lg:col-span-5 bg-[#F9FAFB] p-5 rounded-2xl border border-gray-200 space-y-4">
-                <span className="text-xs font-extrabold uppercase text-neutral-slate-400 tracking-wider">Add Custom Questionnaire Field</span>
-                
-                <div className="space-y-3">
-                  <Input
-                    label="Field Title / Label"
-                    placeholder="e.g. Provide Your Github Handle"
-                    value={newFieldLabel}
-                    onChange={(e) => setNewFieldLabel(e.target.value)}
-                  />
-
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-neutral-slate-500 uppercase">Input Response Type</label>
-                    <select
-                      value={newFieldType}
-                      onChange={(e) => setNewFieldType(e.target.value as any)}
-                      className="w-full text-xs px-3 py-2.5 bg-white border border-gray-200 rounded-lg outline-none"
+            {isFreeRsvp ? (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
+                {/* Left Column: RSVP Editor Controls */}
+                <div className="lg:col-span-5 bg-[#F9FAFB] p-5 rounded-2xl border border-gray-200 space-y-4">
+                  {/* Selector Header */}
+                  <div className="flex space-x-2 border-b border-gray-200 pb-3 mb-2">
+                    <button
+                      type="button"
+                      onClick={() => setRsvpSubTab('fields')}
+                      className={`text-[11px] uppercase tracking-wider font-extrabold px-3 py-1.5 rounded-lg transition-all ${
+                        rsvpSubTab === 'fields'
+                          ? 'bg-[#84cc16] text-white'
+                          : 'bg-white text-neutral-600 hover:bg-neutral-100 border border-gray-200'
+                      }`}
                     >
-                      <option value="text">Single Line Text</option>
-                      <option value="number">Number Entry</option>
-                      <option value="email">Email Address</option>
-                      <option value="checkbox">Binary Checkbox</option>
-                      <option value="select">Dropdown Menu Options</option>
-                      <option value="file">Document/Image File Upload</option>
-                    </select>
+                      1. Manage RSVP Fields
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRsvpSubTab('appearance')}
+                      className={`text-[11px] uppercase tracking-wider font-extrabold px-3 py-1.5 rounded-lg transition-all ${
+                        rsvpSubTab === 'appearance'
+                          ? 'bg-[#84cc16] text-white'
+                          : 'bg-white text-neutral-600 hover:bg-neutral-100 border border-gray-200'
+                      }`}
+                    >
+                      2. Style & Appearance
+                    </button>
                   </div>
 
-                  {newFieldType === 'select' && (
-                    <Input
-                      label="Dropdown Options (Comma-Separated)"
-                      placeholder="e.g. Small, Medium, Large"
-                      value={newFieldOptions}
-                      onChange={(e) => setNewFieldOptions(e.target.value)}
-                    />
-                  )}
-
-                  <div className="flex items-center space-x-2 py-1">
-                    <input
-                      id="newFieldRequired"
-                      type="checkbox"
-                      checked={newFieldRequired}
-                      onChange={(e) => setNewFieldRequired(e.target.checked)}
-                      className="rounded text-brand-primary"
-                    />
-                    <label htmlFor="newFieldRequired" className="text-xs font-bold text-neutral-slate-500 uppercase tracking-wide select-none cursor-pointer">
-                      Strictly Required response
-                    </label>
-                  </div>
-
-                  {/* Conditional Logic Toggle */}
-                  {customFormFields.length > 0 && (
-                    <div className="border-t pt-3 border-gray-200 space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          id="newFieldConditional"
-                          type="checkbox"
-                          checked={newFieldConditional}
-                          onChange={(e) => setNewFieldConditional(e.target.checked)}
-                          className="rounded text-brand-primary"
+                  {rsvpSubTab === 'fields' ? (
+                    <div className="space-y-4">
+                      {/* Field Creation Form */}
+                      <div className="bg-white p-4 rounded-xl border border-gray-200 space-y-3">
+                        <span className="text-[10px] font-extrabold uppercase text-neutral-slate-400 tracking-wider block">Add Field to Form</span>
+                        
+                        <Input
+                          label="Field Question / Label text"
+                          placeholder="e.g. Dietary Preferences"
+                          value={rsvpFieldLabel}
+                          onChange={(e) => setRsvpFieldLabel(e.target.value)}
                         />
-                        <label htmlFor="newFieldConditional" className="text-xs font-bold text-neutral-slate-500 uppercase tracking-wide select-none cursor-pointer">
-                          Apply Conditional Display Logic
-                        </label>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] font-bold text-neutral-slate-500 uppercase">Input Response Type</label>
+                          <select
+                            value={rsvpFieldType}
+                            onChange={(e) => setRsvpFieldType(e.target.value as any)}
+                            className="w-full text-xs px-3 py-2.5 bg-white border border-gray-200 rounded-lg outline-none"
+                          >
+                            <option value="text">Single Line Text</option>
+                            <option value="textarea">Text Area (Multi-line)</option>
+                            <option value="email">Email Address</option>
+                            <option value="phone">Phone Number</option>
+                            <option value="number">Number Input</option>
+                            <option value="dropdown">Dropdown Menu</option>
+                            <option value="radio">Radio Buttons List</option>
+                            <option value="checkbox">Binary Checkbox</option>
+                            <option value="multiselect">Multi-Select List</option>
+                            <option value="date">Calendar Date Selection</option>
+                            <option value="file">File Upload Component</option>
+                            <option value="section_title">Visual Section Title</option>
+                            <option value="paragraph">Paragraph / Instructions Text</option>
+                          </select>
+                        </div>
+
+                        {['dropdown', 'radio', 'multiselect'].includes(rsvpFieldType) && (
+                          <Input
+                            label="Dropdown/Radio Options (Comma-Separated)"
+                            placeholder="e.g. Vegan, Vegetarian, Halal, None"
+                            value={rsvpFieldOptions}
+                            onChange={(e) => setRsvpFieldOptions(e.target.value)}
+                          />
+                        )}
+
+                        {!['section_title', 'paragraph', 'checkbox'].includes(rsvpFieldType) && (
+                          <Input
+                            label="Input Placeholder Text (Optional)"
+                            placeholder="e.g. Any food allergies?"
+                            value={rsvpFieldPlaceholder}
+                            onChange={(e) => setRsvpFieldPlaceholder(e.target.value)}
+                          />
+                        )}
+
+                        <div className="flex items-center space-x-2 py-1">
+                          <input
+                            id="rsvpFieldRequired"
+                            type="checkbox"
+                            checked={rsvpFieldRequired}
+                            onChange={(e) => setRsvpFieldRequired(e.target.checked)}
+                            className="rounded text-[#84cc16] focus:ring-[#84cc16]"
+                          />
+                          <label htmlFor="rsvpFieldRequired" className="text-xs font-bold text-neutral-slate-500 uppercase tracking-wide select-none cursor-pointer">
+                            Strictly Required response
+                          </label>
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="primary"
+                          className="w-full text-xs font-bold py-2"
+                          onClick={handleAddRsvpField}
+                        >
+                          Add RSVP Question
+                        </Button>
                       </div>
 
-                      {newFieldConditional && (
-                        <div className="bg-white border border-gray-200 shadow-sm p-3 rounded-xl space-y-2.5">
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-black uppercase text-neutral-slate-400">If Field</label>
-                            <select
-                              value={newFieldCondId}
-                              onChange={(e) => setNewFieldCondId(e.target.value)}
-                              className="w-full text-[11px] p-2 border border-gray-200 bg-transparent rounded-lg text-neutral-slate-800"
-                            >
-                              <option value="">Select Trigger Field...</option>
-                              {customFormFields.map(f => (
-                                <option key={f.id} value={f.id}>{f.label}</option>
-                              ))}
-                            </select>
+                      {/* Configured Fields List with reordering, inline edits & deletion */}
+                      <div className="space-y-3">
+                        <span className="text-[10px] font-extrabold uppercase text-neutral-slate-400 tracking-wider block">Manage Field Ordering & Constraints</span>
+                        
+                        <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                          {rsvpFormFields.map((f, index) => (
+                            <div key={f.id} className="p-3 bg-white border border-gray-200 rounded-xl space-y-2 relative shadow-xs text-xs">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-neutral-500 uppercase tracking-wide text-[9px] font-mono">
+                                  Field {index + 1}: {f.type}
+                                </span>
+                                <div className="flex items-center space-x-1">
+                                  <button
+                                    type="button"
+                                    disabled={index === 0}
+                                    onClick={() => handleReorderRsvpField(index, 'up')}
+                                    className="p-1 hover:bg-neutral-100 rounded text-neutral-500 disabled:opacity-30 text-xs font-bold"
+                                  >
+                                    ↑
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={index === rsvpFormFields.length - 1}
+                                    onClick={() => handleReorderRsvpField(index, 'down')}
+                                    className="p-1 hover:bg-neutral-100 rounded text-neutral-500 disabled:opacity-30 text-xs font-bold"
+                                  >
+                                    ↓
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveRsvpField(f.id)}
+                                    className="p-1 hover:bg-rose-50 rounded text-rose-500"
+                                  >
+                                    <Trash className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="space-y-1.5">
+                                <input
+                                  type="text"
+                                  value={f.label}
+                                  onChange={(e) => handleUpdateRsvpFieldInline(f.id, 'label', e.target.value)}
+                                  placeholder="Question text or title"
+                                  className="w-full text-xs px-2 py-1 bg-neutral-50 border rounded outline-none font-medium text-gray-800"
+                                />
+                                {!['checkbox', 'section_title', 'paragraph'].includes(f.type) && (
+                                  <input
+                                    type="text"
+                                    value={f.placeholder || ''}
+                                    onChange={(e) => handleUpdateRsvpFieldInline(f.id, 'placeholder', e.target.value)}
+                                    placeholder="Input placeholder text..."
+                                    className="w-full text-[11px] px-2 py-1 bg-neutral-50 border rounded outline-none text-neutral-500"
+                                  />
+                                )}
+                                {['dropdown', 'radio', 'multiselect'].includes(f.type) && (
+                                  <input
+                                    type="text"
+                                    value={f.options ? f.options.join(', ') : ''}
+                                    onChange={(e) => handleUpdateRsvpFieldInline(f.id, 'options', e.target.value.split(',').map(o => o.trim()).filter(Boolean))}
+                                    placeholder="Options (comma-separated): Option 1, Option 2, Option 3"
+                                    className="w-full text-[11px] px-2 py-1 bg-neutral-50 border rounded outline-none text-neutral-500 font-mono"
+                                  />
+                                )}
+                                {!['section_title', 'paragraph'].includes(f.type) && (
+                                  <div className="flex items-center space-x-2 pt-0.5">
+                                    <input
+                                      id={`req-${f.id}`}
+                                      type="checkbox"
+                                      checked={f.required}
+                                      onChange={(e) => handleUpdateRsvpFieldInline(f.id, 'required', e.target.checked)}
+                                      className="rounded text-[#84cc16] focus:ring-[#84cc16]"
+                                    />
+                                    <label htmlFor={`req-${f.id}`} className="text-[10px] font-bold text-neutral-slate-500 uppercase cursor-pointer">
+                                      Strictly Required response
+                                    </label>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Form Style & Appearance Controllers */}
+                      <div className="bg-white p-4 rounded-xl border border-gray-200 space-y-4">
+                        <div>
+                          <label className="text-[11px] font-bold text-neutral-slate-500 uppercase block mb-1">Background Theme Color</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="color"
+                              value={rsvpFormAppearance.backgroundColor || '#ffffff'}
+                              onChange={(e) => setRsvpFormAppearance({ ...rsvpFormAppearance, backgroundColor: e.target.value })}
+                              className="w-8 h-8 rounded border cursor-pointer"
+                            />
+                            <input
+                              type="text"
+                              value={rsvpFormAppearance.backgroundColor || '#ffffff'}
+                              onChange={(e) => setRsvpFormAppearance({ ...rsvpFormAppearance, backgroundColor: e.target.value })}
+                              className="flex-1 text-xs px-3 border rounded-lg outline-none font-mono text-neutral-700"
+                            />
                           </div>
-                          
-                          <Input
-                            label="Has Answer Value"
-                            placeholder="e.g. Yes"
-                            value={newFieldCondVal}
-                            onChange={(e) => setNewFieldCondVal(e.target.value)}
-                            className="text-[11px] h-8"
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-bold text-neutral-slate-500 uppercase block mb-1">Text Color</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="color"
+                              value={rsvpFormAppearance.textColor || '#111827'}
+                              onChange={(e) => setRsvpFormAppearance({ ...rsvpFormAppearance, textColor: e.target.value })}
+                              className="w-8 h-8 rounded border cursor-pointer"
+                            />
+                            <input
+                              type="text"
+                              value={rsvpFormAppearance.textColor || '#111827'}
+                              onChange={(e) => setRsvpFormAppearance({ ...rsvpFormAppearance, textColor: e.target.value })}
+                              className="flex-1 text-xs px-3 border rounded-lg outline-none font-mono text-neutral-700"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-bold text-neutral-slate-500 uppercase block mb-1">Button Color</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="color"
+                              value={rsvpFormAppearance.buttonColor || '#84cc16'}
+                              onChange={(e) => setRsvpFormAppearance({ ...rsvpFormAppearance, buttonColor: e.target.value })}
+                              className="w-8 h-8 rounded border cursor-pointer"
+                            />
+                            <input
+                              type="text"
+                              value={rsvpFormAppearance.buttonColor || '#84cc16'}
+                              onChange={(e) => setRsvpFormAppearance({ ...rsvpFormAppearance, buttonColor: e.target.value })}
+                              className="flex-1 text-xs px-3 border rounded-lg outline-none font-mono text-neutral-700"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-bold text-neutral-slate-500 uppercase block mb-1">Card Container Style</label>
+                          <select
+                            value={rsvpFormAppearance.cardStyle || 'shadowed'}
+                            onChange={(e) => setRsvpFormAppearance({ ...rsvpFormAppearance, cardStyle: e.target.value })}
+                            className="w-full text-xs px-3 py-2 bg-white border border-gray-200 rounded-lg outline-none"
+                          >
+                            <option value="flat">Flat Minimalist</option>
+                            <option value="bordered">Bordered Accent</option>
+                            <option value="shadowed">Standard Shadowed</option>
+                            <option value="elevated">Elevated Floating</option>
+                            <option value="glass">Semi-Transparent Glassmorphic</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-bold text-neutral-slate-500 uppercase block mb-1">Border Corner Radius (px)</label>
+                          <div className="flex gap-3 items-center">
+                            <input
+                              type="range"
+                              min="0"
+                              max="30"
+                              value={rsvpFormAppearance.borderRadius || 12}
+                              onChange={(e) => setRsvpFormAppearance({ ...rsvpFormAppearance, borderRadius: parseInt(e.target.value) })}
+                              className="flex-1 cursor-pointer accent-[#84cc16]"
+                            />
+                            <span className="text-xs font-mono font-bold text-neutral-500 w-8 text-right">
+                              {rsvpFormAppearance.borderRadius || 12}px
+                            </span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-bold text-neutral-slate-500 uppercase block mb-1">Banner Image URL</label>
+                          <input
+                            type="text"
+                            value={rsvpFormAppearance.bannerUrl || ''}
+                            onChange={(e) => setRsvpFormAppearance({ ...rsvpFormAppearance, bannerUrl: e.target.value })}
+                            placeholder="e.g. https://images.unsplash.com/... or base64"
+                            className="w-full text-xs px-3 py-2 border rounded-lg outline-none font-mono text-neutral-700"
                           />
                         </div>
-                      )}
+
+                        <div>
+                          <label className="text-[11px] font-bold text-neutral-slate-500 uppercase block mb-1">Post-Submission Success Message</label>
+                          <textarea
+                            rows={3}
+                            value={rsvpFormAppearance.thankYouMessage || ''}
+                            onChange={(e) => setRsvpFormAppearance({ ...rsvpFormAppearance, thankYouMessage: e.target.value })}
+                            placeholder="Thank you for RSVPing! Your spot has been secured."
+                            className="w-full text-xs p-3 border rounded-lg outline-none text-neutral-700 leading-relaxed"
+                          />
+                        </div>
+                      </div>
                     </div>
                   )}
 
-                  <Button
-                    type="button"
-                    variant="primary"
-                    className="w-full text-xs font-bold py-2"
-                    onClick={handleAddCustomField}
-                  >
-                    Add Field to Designer
-                  </Button>
                 </div>
-              </div>
 
-              {/* Right Column: Live Form Layout Preview */}
-              <div className="lg:col-span-7 space-y-4">
-                <span className="text-xs font-extrabold uppercase text-neutral-slate-400 tracking-wider">Dynamic Form Live Preview</span>
-                
-                {customFormFields.length === 0 ? (
-                  <div className="py-12 border border-dashed border-gray-200 rounded-2xl text-center space-y-2">
-                    <ClipboardList className="w-8 h-8 text-neutral-slate-300 mx-auto" />
-                    <span className="text-xs font-bold text-neutral-slate-400 uppercase tracking-wider block">No custom questions designed</span>
-                    <p className="text-[11px] text-neutral-slate-400 max-w-xs mx-auto leading-relaxed">
-                      Only default profile inputs (Name, Email) will be prompted at checkout unless designed here.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                    {customFormFields.map((f, index) => (
-                      <div key={f.id} className="p-4 bg-white border border-gray-200 shadow-sm rounded-xl flex items-center justify-between shadow-xs">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-extrabold text-gray-900">
+                {/* Right Column: Live Form Layout Preview */}
+                <div className="lg:col-span-7 space-y-4">
+                  <span className="text-xs font-extrabold uppercase text-neutral-slate-400 tracking-wider block text-left">Dynamic Form Live Preview</span>
+                  
+                  <div 
+                    className="p-6 border transition-all duration-300 max-h-[600px] overflow-y-auto"
+                    style={{
+                      backgroundColor: rsvpFormAppearance.backgroundColor || '#ffffff',
+                      color: rsvpFormAppearance.textColor || '#111827',
+                      borderRadius: `${rsvpFormAppearance.borderRadius || 12}px`,
+                      boxShadow: rsvpFormAppearance.cardStyle === 'elevated' ? '0 10px 25px rgba(0,0,0,0.1)' : rsvpFormAppearance.cardStyle === 'shadowed' ? '0 4px 6px -1px rgba(0,0,0,0.05)' : 'none',
+                      borderColor: rsvpFormAppearance.cardStyle === 'bordered' ? (rsvpFormAppearance.buttonColor || '#84cc16') : '#E5E7EB',
+                      borderWidth: rsvpFormAppearance.cardStyle === 'bordered' ? '2px' : '1px'
+                    }}
+                  >
+                    {rsvpFormAppearance.bannerUrl && (
+                      <img 
+                        src={rsvpFormAppearance.bannerUrl} 
+                        alt="Banner Preview" 
+                        className="w-full h-32 object-cover rounded-lg mb-4"
+                      />
+                    )}
+                    
+                    <div className="text-center mb-6">
+                      <h3 className="font-display font-bold text-lg" style={{ color: rsvpFormAppearance.textColor || '#111827' }}>
+                        RSVP Registration Preview
+                      </h3>
+                      <p className="text-xs opacity-70 mt-1">Please fill out this form to reserve your free digital ticket</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      {rsvpFormFields.map((f) => (
+                        <div key={f.id} className="text-left space-y-1">
+                          {f.type === 'section_title' ? (
+                            <h4 className="font-display font-bold text-sm border-b pb-1 mt-4" style={{ color: rsvpFormAppearance.textColor || '#111827' }}>
                               {f.label}
-                            </span>
-                            {f.required && (
-                              <span className="text-rose-500 font-extrabold text-xs">*</span>
-                            )}
-                            <span className="text-[10px] bg-brand-primary/10 text-brand-primary font-mono px-2 py-0.5 rounded-full font-bold uppercase select-none">
-                              {f.type}
-                            </span>
-                          </div>
-                          <div className="text-[10px] text-neutral-slate-400 font-medium">
-                            {f.options && f.options.length > 0 && `Options: ${f.options.join(', ')}`}
-                            {f.conditionalShow && (
-                              <span className="text-brand-primary font-bold ml-1">
-                                 (Show conditional when field answer equals "{f.conditionalShow.value}")
-                              </span>
-                            )}
-                          </div>
+                            </h4>
+                          ) : f.type === 'paragraph' ? (
+                            <p className="text-[11px] opacity-80 leading-relaxed font-medium">
+                              {f.label}
+                            </p>
+                          ) : (
+                            <>
+                              <label className="text-[11px] font-bold uppercase tracking-wider block opacity-80">
+                                {f.label} {f.required && <span className="text-rose-500 font-extrabold">*</span>}
+                              </label>
+                              
+                              {f.type === 'textarea' ? (
+                                <textarea
+                                  readOnly
+                                  rows={2}
+                                  placeholder={f.placeholder || 'Your response...'}
+                                  className="w-full text-xs p-2.5 bg-neutral-50/50 border border-gray-200 rounded-lg outline-none opacity-80"
+                                  style={{ borderRadius: `${rsvpFormAppearance.borderRadius ? rsvpFormAppearance.borderRadius / 1.5 : 8}px` }}
+                                />
+                              ) : f.type === 'dropdown' ? (
+                                <select
+                                  disabled
+                                  className="w-full text-xs p-2.5 bg-neutral-50/50 border border-gray-200 rounded-lg outline-none opacity-80"
+                                  style={{ borderRadius: `${rsvpFormAppearance.borderRadius ? rsvpFormAppearance.borderRadius / 1.5 : 8}px` }}
+                                >
+                                  <option>{f.placeholder || 'Select an option...'}</option>
+                                  {f.options?.map((opt: string, i: number) => <option key={i}>{opt}</option>)}
+                                </select>
+                              ) : f.type === 'radio' ? (
+                                <div className="space-y-1.5 pt-1">
+                                  {f.options?.map((opt: string, i: number) => (
+                                    <div key={i} className="flex items-center space-x-2 text-xs">
+                                      <input type="radio" disabled className="w-3.5 h-3.5" />
+                                      <span className="opacity-80">{opt}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : f.type === 'checkbox' ? (
+                                <div className="flex items-center space-x-2 py-1">
+                                  <input type="checkbox" disabled className="w-3.5 h-3.5" />
+                                  <span className="text-xs opacity-80">{f.label}</span>
+                                </div>
+                              ) : f.type === 'multiselect' ? (
+                                <div className="space-y-1.5 pt-1">
+                                  {f.options?.map((opt: string, i: number) => (
+                                    <div key={i} className="flex items-center space-x-2 text-xs">
+                                      <input type="checkbox" disabled className="w-3.5 h-3.5" />
+                                      <span className="opacity-80">{opt}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <input
+                                  type={f.type}
+                                  readOnly
+                                  placeholder={f.placeholder || `Enter your ${f.label.toLowerCase()}...`}
+                                  className="w-full text-xs p-2.5 bg-neutral-50/50 border border-gray-200 rounded-lg outline-none opacity-80"
+                                  style={{ borderRadius: `${rsvpFormAppearance.borderRadius ? rsvpFormAppearance.borderRadius / 1.5 : 8}px` }}
+                                />
+                              )}
+                            </>
+                          )}
                         </div>
+                      ))}
 
+                      <div className="pt-4">
                         <button
                           type="button"
-                          onClick={() => handleRemoveCustomField(f.id)}
-                          className="p-1 text-neutral-slate-400 hover:text-rose-500 hover:bg-rose-500/5 rounded-lg transition-all"
+                          disabled
+                          className="w-full py-2.5 text-white font-bold text-xs font-display shadow-sm transition-all uppercase tracking-wider"
+                          style={{
+                            backgroundColor: rsvpFormAppearance.buttonColor || '#84cc16',
+                            borderRadius: `${rsvpFormAppearance.borderRadius || 12}px`
+                          }}
                         >
-                          <Trash className="w-4 h-4" />
+                          Submit RSVP Reservation
                         </button>
                       </div>
-                    ))}
+                    </div>
                   </div>
-                )}
-              </div>
+                </div>
 
-            </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
+                
+                {/* Left Column: Create Field Form */}
+                <div className="lg:col-span-5 bg-[#F9FAFB] p-5 rounded-2xl border border-gray-200 space-y-4">
+                  <span className="text-xs font-extrabold uppercase text-neutral-slate-400 tracking-wider">Add Custom Questionnaire Field</span>
+                  
+                  <div className="space-y-3">
+                    <Input
+                      label="Field Title / Label"
+                      placeholder="e.g. Provide Your Github Handle"
+                      value={newFieldLabel}
+                      onChange={(e) => setNewFieldLabel(e.target.value)}
+                    />
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-neutral-slate-500 uppercase">Input Response Type</label>
+                      <select
+                        value={newFieldType}
+                        onChange={(e) => setNewFieldType(e.target.value as any)}
+                        className="w-full text-xs px-3 py-2.5 bg-white border border-gray-200 rounded-lg outline-none"
+                      >
+                        <option value="text">Single Line Text</option>
+                        <option value="number">Number Entry</option>
+                        <option value="email">Email Address</option>
+                        <option value="checkbox">Binary Checkbox</option>
+                        <option value="select">Dropdown Menu Options</option>
+                        <option value="file">Document/Image File Upload</option>
+                      </select>
+                    </div>
+
+                    {newFieldType === 'select' && (
+                      <Input
+                        label="Dropdown Options (Comma-Separated)"
+                        placeholder="e.g. Small, Medium, Large"
+                        value={newFieldOptions}
+                        onChange={(e) => setNewFieldOptions(e.target.value)}
+                      />
+                    )}
+
+                    <div className="flex items-center space-x-2 py-1">
+                      <input
+                        id="newFieldRequired"
+                        type="checkbox"
+                        checked={newFieldRequired}
+                        onChange={(e) => setNewFieldRequired(e.target.checked)}
+                        className="rounded text-brand-primary"
+                      />
+                      <label htmlFor="newFieldRequired" className="text-xs font-bold text-neutral-slate-500 uppercase tracking-wide select-none cursor-pointer">
+                        Strictly Required response
+                      </label>
+                    </div>
+
+                    {/* Conditional Logic Toggle */}
+                    {customFormFields.length > 0 && (
+                      <div className="border-t pt-3 border-gray-200 space-y-3">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            id="newFieldConditional"
+                            type="checkbox"
+                            checked={newFieldConditional}
+                            onChange={(e) => setNewFieldConditional(e.target.checked)}
+                            className="rounded text-brand-primary"
+                          />
+                          <label htmlFor="newFieldConditional" className="text-xs font-bold text-neutral-slate-500 uppercase tracking-wide select-none cursor-pointer">
+                            Apply Conditional Display Logic
+                          </label>
+                        </div>
+
+                        {newFieldConditional && (
+                          <div className="bg-white border border-gray-200 shadow-sm p-3 rounded-xl space-y-2.5">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-black uppercase text-neutral-slate-400">If Field</label>
+                              <select
+                                value={newFieldCondId}
+                                onChange={(e) => setNewFieldCondId(e.target.value)}
+                                className="w-full text-[11px] p-2 border border-gray-200 bg-transparent rounded-lg text-neutral-slate-800"
+                              >
+                                <option value="">Select Trigger Field...</option>
+                                {customFormFields.map(f => (
+                                  <option key={f.id} value={f.id}>{f.label}</option>
+                                ))}
+                              </select>
+                            </div>
+                            
+                            <Input
+                              label="Has Answer Value"
+                              placeholder="e.g. Yes"
+                              value={newFieldCondVal}
+                              onChange={(e) => setNewFieldCondVal(e.target.value)}
+                              className="text-[11px] h-8"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <Button
+                      type="button"
+                      variant="primary"
+                      className="w-full text-xs font-bold py-2"
+                      onClick={handleAddCustomField}
+                    >
+                      Add Field to Designer
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Right Column: Live Form Layout Preview */}
+                <div className="lg:col-span-7 space-y-4">
+                  <span className="text-xs font-extrabold uppercase text-neutral-slate-400 tracking-wider">Dynamic Form Live Preview</span>
+                  
+                  {customFormFields.length === 0 ? (
+                    <div className="py-12 border border-dashed border-gray-200 rounded-2xl text-center space-y-2">
+                      <ClipboardList className="w-8 h-8 text-neutral-slate-300 mx-auto" />
+                      <span className="text-xs font-bold text-neutral-slate-400 uppercase tracking-wider block">No custom questions designed</span>
+                      <p className="text-[11px] text-neutral-slate-400 max-w-xs mx-auto leading-relaxed">
+                        Only default profile inputs (Name, Email) will be prompted at checkout unless designed here.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                      {customFormFields.map((f, index) => (
+                        <div key={f.id} className="p-4 bg-white border border-gray-200 shadow-sm rounded-xl flex items-center justify-between shadow-xs">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-extrabold text-gray-900">
+                                {f.label}
+                              </span>
+                              {f.required && (
+                                <span className="text-rose-500 font-extrabold text-xs">*</span>
+                              )}
+                              <span className="text-[10px] bg-brand-primary/10 text-brand-primary font-mono px-2 py-0.5 rounded-full font-bold uppercase select-none">
+                                {f.type}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-neutral-slate-400 font-medium">
+                              {f.options && f.options.length > 0 && `Options: ${f.options.join(', ')}`}
+                              {f.conditionalShow && (
+                                <span className="text-brand-primary font-bold ml-1">
+                                   (Show conditional when field answer equals "{f.conditionalShow.value}")
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCustomField(f.id)}
+                            className="p-1 text-neutral-slate-400 hover:text-rose-500 hover:bg-rose-500/5 rounded-lg transition-all"
+                          >
+                            <Trash className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            )}
+
           </div>
         )}
 

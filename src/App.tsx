@@ -49,6 +49,8 @@ import AssistantAdminDashboard from './components/assistant/AssistantAdminDashbo
 import BookingRegistrationPage from './views/BookingRegistrationPage';
 import CreateWorkspacePage from './views/CreateWorkspacePage';
 import CreateEventPage from './views/CreateEventPage';
+import PricingRulesPage from './views/PricingRulesPage';
+import PublicRsvpPage from './views/PublicRsvpPage';
 
 /**
  * Access Guard to restrict access to authenticated members/admins
@@ -81,6 +83,7 @@ export default function App() {
       <Route path="events/create" element={<CreateEventPage />} />
       <Route path="events/new" element={<CreateEventPage />} />
       <Route path="settings" element={<SettingsPage />} />
+      <Route path="pricing-rules" element={<PricingRulesPage />} />
       <Route path="organizations" element={<OrganizationsPage />} />
       <Route path="checkout" element={<CheckoutPage />} />
       <Route path="billing" element={<BillingPage />} />
@@ -108,6 +111,7 @@ export default function App() {
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/events" element={<EventMarketplace />} />
                 <Route path="/events/:slug" element={<EventDetailsPage />} />
+                <Route path="/events/:slug/rsvp" element={<PublicRsvpPage />} />
                 <Route path="/workspaces" element={<WorkspaceMarketplace />} />
                 <Route path="/workspaces/:id" element={<WorkspaceDetailsPage />} />
                 <Route path="/organizers/:id" element={<OrganizerProfilePage />} />
