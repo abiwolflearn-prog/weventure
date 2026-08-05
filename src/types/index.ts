@@ -320,8 +320,8 @@ export interface IEvent {
     hideFromSearch?: boolean;
   };
   schedule: {
-    startDate: string;
-    endDate: string;
+    startDate: string | Date;
+    endDate: string | Date;
     timezone: string;
   };
   capacity: {
@@ -331,8 +331,8 @@ export interface IEvent {
     enableWaitlist?: boolean;
   };
   registrationSettings: {
-    registrationOpenDate?: string;
-    registrationCloseDate?: string;
+    registrationOpenDate?: string | Date;
+    registrationCloseDate?: string | Date;
     requiresApproval: boolean;
     isInviteOnly?: boolean;
     enableQrCheckIn?: boolean;

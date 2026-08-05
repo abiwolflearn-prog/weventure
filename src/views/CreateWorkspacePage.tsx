@@ -120,6 +120,9 @@ export default function CreateWorkspacePage() {
     mutationFn: (payload: IWorkspacePayload) => workspaceApi.createWorkspace(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-workspaces'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-analytics'] });
       setFeedback({ type: 'success', message: 'Workspace created successfully!' });
       setTimeout(() => {
         navigate(`${currentPrefix}/workspaces`);

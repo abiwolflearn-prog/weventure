@@ -24,12 +24,15 @@ export const errorHandler = (
     // Standard Mongoose ValidationError mapping
     statusCode = 422;
     code = 'VALIDATION_FAILED';
-    message = 'Data persistence validation failed';
     if (err.errors) {
+      const issueMsgs = Object.keys(err.errors).map((key) => `${key}: ${err.errors[key].message}`);
+      message = `Validation failed: ${issueMsgs.join('; ')}`;
       details = Object.keys(err.errors).map((key) => ({
         field: key,
         issue: err.errors[key].message,
       }));
+    } else {
+      message = err.message || 'Data persistence validation failed';
     }
   } else if (err.name === 'CastError') {
     statusCode = 400;

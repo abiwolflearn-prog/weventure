@@ -23,6 +23,9 @@ export default function CreateEventPage() {
       eventApi.createEvent(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-events'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-analytics'] });
       setFeedback({ type: 'success', message: 'Event published successfully!' });
       setTimeout(() => {
         navigate(`${currentPrefix}/events`);

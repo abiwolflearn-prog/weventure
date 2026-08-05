@@ -66,8 +66,11 @@ export class EventService {
    * Validates event parameters for timing, registration limits, and multi-sessions
    */
   private validateEventData(data: Partial<IEvent>): void {
-    const start = data.schedule?.startDate ? new Date(data.schedule.startDate) : null;
-    const end = data.schedule?.endDate ? new Date(data.schedule.endDate) : null;
+    const rawStart = data.schedule?.startDate ? new Date(data.schedule.startDate) : null;
+    const rawEnd = data.schedule?.endDate ? new Date(data.schedule.endDate) : null;
+
+    const start = rawStart && !isNaN(rawStart.getTime()) ? rawStart : null;
+    const end = rawEnd && !isNaN(rawEnd.getTime()) ? rawEnd : null;
 
     if (start && end && start >= end) {
       throw new ValidationError('Event start date must be strictly earlier than end date');
@@ -88,10 +91,10 @@ export class EventService {
         ? new Date(data.registrationSettings.registrationCloseDate) 
         : null;
 
-      if (regOpen && regClose && regOpen >= regClose) {
+      if (regOpen && !isNaN(regOpen.getTime()) && regClose && !isNaN(regClose.getTime()) && regOpen >= regClose) {
         throw new ValidationError('Registration open date must be earlier than registration close date');
       }
-      if (regClose && end && regClose > end) {
+      if (regClose && !isNaN(regClose.getTime()) && end && !isNaN(end.getTime()) && regClose > end) {
         throw new ValidationError('Registration close date cannot be later than event end date');
       }
     }
@@ -102,15 +105,15 @@ export class EventService {
         const sStart = new Date(session.startTime);
         const sEnd = new Date(session.endTime);
 
-        if (sStart >= sEnd) {
+        if (!isNaN(sStart.getTime()) && !isNaN(sEnd.getTime()) && sStart >= sEnd) {
           throw new ValidationError(`Session [Index ${index}: "${session.title}"] has invalid times: Start must precede End`);
         }
 
-        if (start && sStart < start) {
+        if (start && !isNaN(sStart.getTime()) && sStart < start) {
           throw new ValidationError(`Session [Index ${index}: "${session.title}"] starts before the main event scheduled start`);
         }
 
-        if (end && sEnd > end) {
+        if (end && !isNaN(sEnd.getTime()) && sEnd > end) {
           throw new ValidationError(`Session [Index ${index}: "${session.title}"] extends beyond the main event scheduled end`);
         }
       });
@@ -185,19 +188,56 @@ export class EventService {
       ? eventPayload.modules
       : this.getDefaultModulesForTemplate(template);
 
+    // Sanitize dates for Mongoose schema validation
+    const now = new Date();
+    const defaultEnd = new Date(now.getTime() + 4 * 3600 * 1000); // 4 hours later
+
+    const parsedStart = eventPayload.schedule?.startDate ? new Date(eventPayload.schedule.startDate) : now;
+    const parsedEnd = eventPayload.schedule?.endDate ? new Date(eventPayload.schedule.endDate) : defaultEnd;
+
+    const startDate = !isNaN(parsedStart.getTime()) ? parsedStart : now;
+    const endDate = !isNaN(parsedEnd.getTime()) && parsedEnd > startDate ? parsedEnd : new Date(startDate.getTime() + 4 * 3600 * 1000);
+
+    // Sanitize custom form fields to match enum ['text', 'number', 'email', 'checkbox', 'select', 'file']
+    const rawFields = eventPayload.registrationSettings?.customFormFields || [];
+    const validTypes = ['text', 'number', 'email', 'checkbox', 'select', 'file'];
+    const sanitizedFields = Array.isArray(rawFields)
+      ? rawFields.map((f: any, idx: number) => ({
+          id: f.id || `field_${idx}`,
+          label: f.label || `Field ${idx + 1}`,
+          type: validTypes.includes(f.type) ? f.type : 'text',
+          required: !!f.required,
+          options: Array.isArray(f.options) ? f.options : [],
+        }))
+      : [];
+
     const fullPayload: Partial<IEvent> = {
       ...eventPayload,
       tenantId,
       slug,
       template,
+      category: eventPayload.category || 'Workshop',
+      description: eventPayload.description || eventPayload.title || 'Event overview',
       modules,
       status: eventPayload.status || EventStatus.DRAFT,
       visibility: eventPayload.visibility || EventVisibility.PUBLIC,
       createdBy: user.id,
+      schedule: {
+        startDate,
+        endDate,
+        timezone: eventPayload.schedule?.timezone || 'UTC',
+      },
       capacity: {
         maxCapacity: eventPayload.capacity?.isUnlimited ? 0 : (eventPayload.capacity?.maxCapacity || 0),
         activeRegistrations: 0,
         isUnlimited: eventPayload.capacity?.isUnlimited || false,
+      },
+      registrationSettings: {
+        registrationOpenDate: eventPayload.registrationSettings?.registrationOpenDate ? new Date(eventPayload.registrationSettings.registrationOpenDate) : undefined,
+        registrationCloseDate: eventPayload.registrationSettings?.registrationCloseDate ? new Date(eventPayload.registrationSettings.registrationCloseDate) : undefined,
+        requiresApproval: !!eventPayload.registrationSettings?.requiresApproval,
+        isInviteOnly: !!eventPayload.registrationSettings?.isInviteOnly,
+        customFormFields: sanitizedFields,
       },
     };
 

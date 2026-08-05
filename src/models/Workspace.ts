@@ -208,8 +208,8 @@ const WorkspaceSchema = new Schema<IWorkspaceDocument>(
   }
 );
 
-// Pre-save middleware to keep fields synchronized
-WorkspaceSchema.pre('save', function (this: any) {
+// Pre-validate middleware to keep fields synchronized before validation checks
+WorkspaceSchema.pre('validate', function (this: any) {
   // Sync title and name
   if (this.title && !this.name) this.name = this.title;
   if (this.name && !this.title) this.title = this.name;
@@ -223,12 +223,20 @@ WorkspaceSchema.pre('save', function (this: any) {
   }
 
   // Sync hourly rates
-  if (this.hourlyPrice !== undefined) this.hourlyRate = this.hourlyPrice;
-  if (this.hourlyRate !== undefined) this.hourlyPrice = this.hourlyRate;
+  if (this.hourlyPrice !== undefined && (this.hourlyRate === undefined || this.hourlyRate === null)) {
+    this.hourlyRate = Number(this.hourlyPrice);
+  }
+  if (this.hourlyRate !== undefined && (this.hourlyPrice === undefined || this.hourlyPrice === null)) {
+    this.hourlyPrice = Number(this.hourlyRate);
+  }
 
   // Sync daily rates
-  if (this.dailyPrice !== undefined) this.dailyRate = this.dailyPrice;
-  if (this.dailyRate !== undefined) this.dailyPrice = this.dailyRate;
+  if (this.dailyPrice !== undefined && (this.dailyRate === undefined || this.dailyRate === null)) {
+    this.dailyRate = Number(this.dailyPrice);
+  }
+  if (this.dailyRate !== undefined && (this.dailyPrice === undefined || this.dailyPrice === null)) {
+    this.dailyPrice = Number(this.dailyRate);
+  }
 
   // Sync images
   if (this.coverImage && !this.imageUrl) this.imageUrl = this.coverImage;
@@ -237,8 +245,11 @@ WorkspaceSchema.pre('save', function (this: any) {
   // Sync availability & isAvailable
   if (this.availability) {
     this.isAvailable = this.availability === 'Available';
-  } else {
+  } else if (this.isAvailable !== undefined) {
     this.availability = this.isAvailable ? 'Available' : 'Occupied';
+  } else {
+    this.isAvailable = true;
+    this.availability = 'Available';
   }
 
   // Sync type / workspaceType
@@ -246,9 +257,14 @@ WorkspaceSchema.pre('save', function (this: any) {
     const validEnums = ['HOT_DESK', 'DEDICATED_DESK', 'PRIVATE_OFFICE', 'MEETING_ROOM', 'CONFERENCE_ROOM', 'EVENT_VENUE', 'PODCAST_STUDIO', 'TRAINING_ROOM', 'CREATIVE_SPACE'];
     if (validEnums.includes(this.workspaceType)) {
       this.type = this.workspaceType as any;
+    } else {
+      this.type = 'MEETING_ROOM';
     }
   } else if (this.type && !this.workspaceType) {
     this.workspaceType = this.type;
+  } else if (!this.type && !this.workspaceType) {
+    this.type = 'MEETING_ROOM';
+    this.workspaceType = 'MEETING_ROOM';
   }
 });
 
