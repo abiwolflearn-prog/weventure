@@ -13,7 +13,7 @@ export class ReportController {
   public getSavedReports = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tenantId = req.tenantId!;
-      const reports = await Report.find({ tenantId: tenantId.toLowerCase() }).sort({ createdAt: -1 });
+      const reports = await Report.find({ tenantId: tenantId?.toLowerCase() || '' }).sort({ createdAt: -1 });
       ApiResponse.success(res, reports, 200, { message: 'Fetched saved report configurations successfully' });
     } catch (error) {
       next(error);
@@ -49,7 +49,7 @@ export class ReportController {
       }
 
       const report = await Report.create({
-        tenantId: tenantId.toLowerCase(),
+        tenantId: tenantId?.toLowerCase() || '',
         name,
         type,
         description,
@@ -80,7 +80,7 @@ export class ReportController {
       const tenantId = req.tenantId!;
       const { id } = req.params;
 
-      const report = await Report.findOneAndDelete({ _id: id, tenantId: tenantId.toLowerCase() });
+      const report = await Report.findOneAndDelete({ _id: id, tenantId: tenantId?.toLowerCase() || '' });
       if (!report) {
         throw new NotFoundError('Report template not found or unauthorized access');
       }
@@ -99,7 +99,7 @@ export class ReportController {
   public getReportHistory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tenantId = req.tenantId!;
-      const history = await ReportHistory.find({ tenantId: tenantId.toLowerCase() }).sort({ createdAt: -1 });
+      const history = await ReportHistory.find({ tenantId: tenantId?.toLowerCase() || '' }).sort({ createdAt: -1 });
       ApiResponse.success(res, history, 200, { message: 'Report download records fetched successfully' });
     } catch (error) {
       next(error);
@@ -135,7 +135,7 @@ export class ReportController {
       const tenantId = req.tenantId!;
       const { id } = req.params;
 
-      const report = await Report.findOne({ _id: id, tenantId: tenantId.toLowerCase() });
+      const report = await Report.findOne({ _id: id, tenantId: tenantId?.toLowerCase() || '' });
       if (!report) {
         throw new NotFoundError('Report template not found or unauthorized access');
       }

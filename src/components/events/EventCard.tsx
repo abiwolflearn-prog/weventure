@@ -44,7 +44,12 @@ export const EventCard: React.FC<EventCardProps> = ({
   const isAdminOrStaff = 
     user?.role === UserRole.SUPER_ADMIN || 
     user?.role === UserRole.TENANT_ADMIN || 
-    user?.role === UserRole.STAFF;
+    user?.role === UserRole.STAFF ||
+    (user?.role as string) === 'ADMIN' ||
+    (user?.role as string) === 'SUPER_ADMIN' ||
+    (user?.role as string) === 'MANAGER' ||
+    (user?.role as string) === 'EVENT_MANAGER' ||
+    (user?.permissions && user.permissions.includes(Permission.EVENTS_UPDATE));
 
   const canEdit = isCreator || isAdminOrStaff;
   const canDelete = isCreator || user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.TENANT_ADMIN;

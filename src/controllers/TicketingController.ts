@@ -435,6 +435,24 @@ export class TicketingController {
       next(error);
     }
   }
+
+  public async importAttendees(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId!;
+      const { eventId } = req.params;
+      const { attendees } = req.body;
+      const user = req.user as IUserIdentity;
+
+      if (!attendees || !Array.isArray(attendees)) {
+        throw new ValidationError('Attendees array is required');
+      }
+
+      const result = await ticketingService.importAttendees(tenantId, eventId, attendees, user);
+      ApiResponse.success(res, result, 200, { message: 'Attendees imported successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const ticketingController = new TicketingController();

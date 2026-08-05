@@ -45,7 +45,9 @@ import BillingPage from './views/BillingPage';
 import IntegrationsPage from './views/IntegrationsPage';
 import EmailCenterPage from './views/EmailCenterPage';
 import StartupManagementPage from './views/StartupManagementPage';
+import CompanyExpenses from './views/CompanyExpenses';
 import AssistantAdminDashboard from './components/assistant/AssistantAdminDashboard';
+
 import BookingRegistrationPage from './views/BookingRegistrationPage';
 import CreateWorkspacePage from './views/CreateWorkspacePage';
 import CreateEventPage from './views/CreateEventPage';
@@ -92,6 +94,7 @@ export default function App() {
       <Route path="announcements" element={<AnnouncementsPage />} />
       <Route path="emails" element={<EmailCenterPage />} />
       <Route path="startups" element={<StartupManagementPage />} />
+      <Route path="expenses" element={<CompanyExpenses />} />
     </>
   );
 

@@ -62,7 +62,7 @@ export class ReportService {
     filters: any = {}
   ): Promise<ReportDataResult> {
     const { startDate, endDate, preset, eventId, workspaceId, paymentStatus, registrationStatus } = filters;
-    const tenantLower = tenantId.toLowerCase();
+    const tenantLower = tenantId?.toLowerCase() || '';
 
     switch (type) {
       case ReportType.EVENT: {

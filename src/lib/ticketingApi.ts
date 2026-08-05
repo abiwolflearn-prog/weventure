@@ -145,4 +145,9 @@ export const ticketingApi = {
     const response = await axiosInstance.post(`/ticketing/invitations/${id}/revoke`);
     return response.data.data;
   },
+
+  importAttendees: async (eventId: string, attendees: any[]): Promise<any> => {
+    const response = await axiosInstance.post(`/ticketing/events/${eventId}/attendees/import`, { attendees });
+    return response.data.data;
+  },
 };

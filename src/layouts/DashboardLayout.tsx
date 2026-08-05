@@ -110,6 +110,7 @@ export default function DashboardLayout() {
     { name: 'My Bookings', path: '/dashboard/bookings', icon: CalendarRange, requiredPermission: Permission.BOOKINGS_READ },
     { name: 'Invoices', path: '/dashboard/invoices', icon: Receipt },
     { name: 'Payment Gateway', path: '/dashboard/checkout', icon: CreditCard },
+    { name: 'Company Expenses', path: '/dashboard/expenses', icon: DollarSign, requiredPermission: Permission.SETTINGS_UPDATE },
     { name: 'Pricing Rules', path: '/dashboard/pricing-rules', icon: DollarSign, requiredPermission: Permission.SETTINGS_UPDATE },
     { name: 'System Settings', path: '/dashboard/settings', icon: Settings, requiredPermission: Permission.SETTINGS_UPDATE },
     { name: 'Email Center', path: '/dashboard/emails', icon: Mail },

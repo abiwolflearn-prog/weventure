@@ -5,6 +5,7 @@ import { eventApi } from '../../lib/eventApi';
 import { paymentApi } from '../../lib/paymentApi';
 import { Button } from '../Button';
 import { Input } from '../Input';
+import { ImportAttendeesModal } from './ImportAttendeesModal';
 import {
   Ticket,
   Users,
@@ -29,7 +30,8 @@ import {
   Mail,
   UserPlus,
   Trash,
-  Tag
+  Tag,
+  FileUp
 } from 'lucide-react';
 import { TicketVisibility, TicketStatus, OrderStatus, RegistrationStatus, WaitlistStatus } from '../../types';
 
@@ -70,6 +72,7 @@ export function AdminTicketingDashboard() {
   const [promoFormValue, setPromoFormValue] = useState('');
   const [promoFormMaxUses, setPromoFormMaxUses] = useState('');
   const [promoFormExpiry, setPromoFormExpiry] = useState('');
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // 1. Queries
   const { data: eventsResponse } = useQuery({
@@ -736,6 +739,16 @@ export function AdminTicketingDashboard() {
           ======================================================== */}
       {activeTab === 'REGISTRATIONS' && (
         <div className="space-y-6">
+          {showImportModal && (
+            <ImportAttendeesModal 
+              eventId={selectedEventId}
+              onClose={() => setShowImportModal(false)}
+              onSuccess={() => {
+                refetchRegistrations();
+                setShowImportModal(false);
+              }}
+            />
+          )}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
             {/* Attendees and Queue list (Left) */}
@@ -748,6 +761,10 @@ export function AdminTicketingDashboard() {
                   <Button size="xs" variant="secondary" onClick={handleExportCSV} className="text-[10px] font-extrabold flex items-center gap-1.5 py-1 px-3">
                     <Download className="w-3.5 h-3.5 text-neutral-slate-500" />
                     <span>Export CSV</span>
+                  </Button>
+                  <Button size="xs" variant="secondary" onClick={() => setShowImportModal(true)} className="text-[10px] font-extrabold flex items-center gap-1.5 py-1 px-3">
+                    <FileUp className="w-3.5 h-3.5 text-neutral-slate-500" />
+                    <span>Import Attendees</span>
                   </Button>
                 </div>
 

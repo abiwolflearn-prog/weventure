@@ -77,7 +77,7 @@ export default function EventsCatalog() {
     (user?.role as string) === 'SUPER_ADMIN' ||
     (user?.role as string) === 'MANAGER' ||
     (user?.role as string) === 'EVENT_MANAGER' ||
-    (user?.permissions && user.permissions.includes(Permission.EVENTS_CREATE));
+    (user?.permissions && (user.permissions.includes(Permission.EVENTS_CREATE) || user.permissions.includes(Permission.EVENTS_UPDATE)));
 
   useEffect(() => {
     if (location.pathname.endsWith('/create') || location.pathname.endsWith('/new')) {

@@ -227,8 +227,8 @@ class NotificationService {
    */
   public async getUserNotifications(userId: string, tenantId: string, limit = 50): Promise<INotificationDocument[]> {
     return await Notification.find({
-      userId: userId.toLowerCase(),
-      tenantId: tenantId.toLowerCase(),
+      userId: userId?.toLowerCase() || '',
+      tenantId: tenantId?.toLowerCase() || '',
     })
       .sort({ createdAt: -1 })
       .limit(limit);
@@ -243,7 +243,7 @@ class NotificationService {
     limit = 20
   ): Promise<IAnnouncementDocument[]> {
     const query: any = {
-      tenantId: tenantId.toLowerCase(),
+      tenantId: tenantId?.toLowerCase() || '',
       isPublished: true,
       $or: [
         { scheduledFor: { $exists: false } },
@@ -264,7 +264,7 @@ class NotificationService {
    * Fetch timeline activities
    */
   public async getActivities(tenantId: string, limit = 50): Promise<IActivityDocument[]> {
-    return await Activity.find({ tenantId: tenantId.toLowerCase() })
+    return await Activity.find({ tenantId: tenantId?.toLowerCase() || '' })
       .sort({ createdAt: -1 })
       .limit(limit);
   }

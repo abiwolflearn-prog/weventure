@@ -1091,6 +1091,83 @@ export class TicketingService {
 
     return true;
   }
+
+  public async importAttendees(
+    tenantId: string,
+    eventId: string,
+    attendees: any[],
+    user: IUserIdentity
+  ): Promise<{ success: number; failed: number; total: number; errors: any[] }> {
+    const event = await Event.findOne({ _id: eventId, tenantId }).exec();
+    if (!event) {
+      throw new NotFoundError('Event not found');
+    }
+
+    let success = 0;
+    let failed = 0;
+    const errors: any[] = [];
+    const createdRegistrations = [];
+
+    for (const attendee of attendees) {
+      try {
+        // Basic validation
+        if (!attendee.email || !attendee.firstName || !attendee.lastName) {
+          throw new ValidationError('Missing required fields: firstName, lastName, or email');
+        }
+
+        // Duplicate check
+        const existing = await Registration.findOne({
+          tenantId,
+          eventId,
+          attendeeEmail: attendee.email.toLowerCase(),
+        }).exec();
+
+        if (existing) {
+          throw new ConflictError('Attendee with this email already registered for this event');
+        }
+
+        // Create registration
+        const uniqueString = `${eventId.substring(18)}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+        const ticketNumber = `WH-REG-${uniqueString}`;
+        
+        const registration = new Registration({
+          tenantId,
+          userId: user.id, // Using the admin as userId for now
+          userEmail: attendee.email.toLowerCase(),
+          eventId,
+          ticketNumber,
+          qrCode: ticketNumber,
+          attendeeName: `${attendee.firstName} ${attendee.lastName}`,
+          attendeeEmail: attendee.email.toLowerCase(),
+          status: RegistrationStatus.CONFIRMED,
+          checkedIn: false,
+          registrationDate: new Date(),
+        });
+
+        const savedReg = await registration.save();
+        createdRegistrations.push(savedReg);
+        success++;
+      } catch (err: any) {
+        failed++;
+        errors.push({ attendee, reason: err.message });
+      }
+    }
+
+    // Update Event capacity
+    if (success > 0) {
+      await Event.updateOne(
+        { _id: eventId, tenantId },
+        { $inc: { 'capacity.activeRegistrations': success } }
+      ).exec();
+    }
+
+    await this.logActivity(tenantId, user, 'IMPORT_ATTENDEES', 'REGISTRATION', eventId, {
+      successCount: success,
+      failedCount: failed,
+    });
+
+    return { success, failed, total: attendees.length, errors };
+  }
 }
 
 export const ticketingService = new TicketingService();

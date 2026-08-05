@@ -189,6 +189,13 @@ ticketingRouter.post(
   ticketingController.validateQrCode
 );
 
+ticketingRouter.post(
+  '/events/:eventId/attendees/import',
+  authGuard,
+  hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF]),
+  ticketingController.importAttendees
+);
+
 // Fallback payment webhook routing path
 ticketingRouter.post('/payments/webhooks/chapa', paymentController.handleChapaWebhook);
 

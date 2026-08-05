@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import WeVentureLogo from '../components/WeVentureLogo';
 import { paymentApi } from '../lib/paymentApi';
 import { workspaceApi } from '../lib/workspaceApi';
 import { getSocket } from '../lib/socket';
@@ -1139,7 +1140,7 @@ export default function InvoicesPage() {
  <div>
  <div className="flex items-center gap-2">
  <div className="w-8 h-8 rounded-lg bg-[#84CC16] flex items-center justify-center font-black text-black">
- WV
+ <WeVentureLogo size="32" mode="light" />
  </div>
  <span className="font-display font-black text-xl text-neutral-900 tracking-tight">
  WEVENTUREHUB

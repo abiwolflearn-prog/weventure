@@ -22,11 +22,10 @@ import { emailRouter } from './email.routes';
 import { cmsRouter } from './cms.routes';
 import startupRouter from './startup.routes';
 import pricingRouter from './pricing.routes';
+import expenseRouter from './expense.routes';
 
 const apiRouter = Router();
 
-// Mount global tenant context extraction across all API pathways
-apiRouter.use(tenantContext);
 
 // Mount public marketplace module
 apiRouter.use('/public', publicRouter);
@@ -86,8 +85,12 @@ apiRouter.use('/cms', cmsRouter);
 // Mount Startup Programs & Applications module
 apiRouter.use('/startups', startupRouter);
 
+// Mount Expense module
+apiRouter.use('/expenses', expenseRouter);
+
 // Mount Pricing rules engine module
 apiRouter.use('/pricing', pricingRouter);
+
 
 /**
  * @route   GET /api/v1/health
