@@ -1161,7 +1161,8 @@ export class PaymentService {
    * Create new Invoice
    */
   public async createInvoice(tenantId: string, data: any, user?: IUserIdentity): Promise<any> {
-    const invCount = await Invoice.countDocuments({ tenantId });
+    const tid = tenantId || 'weventurehub';
+    const invCount = await Invoice.countDocuments({ tenantId: tid });
     const invoiceNumber = data.invoiceNumber || `INV-WV-${(1000 + invCount + 1)}`;
     
     const amount = Number(data.amount || data.subtotal || 0);
@@ -1171,7 +1172,7 @@ export class PaymentService {
     const grandTotal = Number(data.grandTotal !== undefined ? data.grandTotal : (amount + vat + extraCharges - discount));
 
     const invoice = new Invoice({
-      tenantId,
+      tenantId: tid,
       invoiceNumber,
       userId: data.userId || user?.id || 'usr-admin',
       userEmail: data.userEmail || data.billingDetails?.email || 'customer@weventurehub.com',

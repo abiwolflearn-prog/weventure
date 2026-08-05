@@ -17,8 +17,8 @@ export const createEventSchema = z.object({
   status: z.nativeEnum(EventStatus).default(EventStatus.DRAFT),
   visibility: z.nativeEnum(EventVisibility).default(EventVisibility.PUBLIC),
   schedule: z.object({
-    startDate: z.string().datetime({ message: 'Start date must be a valid ISO datetime' }),
-    endDate: z.string().datetime({ message: 'End date must be a valid ISO datetime' }),
+    startDate: z.string().min(1, 'Start date is required'),
+    endDate: z.string().min(1, 'End date is required'),
     timezone: z.string().default('UTC'),
   }),
   capacity: z.object({
@@ -26,8 +26,8 @@ export const createEventSchema = z.object({
     isUnlimited: z.boolean().default(false),
   }).default({ maxCapacity: 0, isUnlimited: true }),
   registrationSettings: z.object({
-    registrationOpenDate: z.string().datetime().optional().nullable(),
-    registrationCloseDate: z.string().datetime().optional().nullable(),
+    registrationOpenDate: z.string().optional().nullable(),
+    registrationCloseDate: z.string().optional().nullable(),
     requiresApproval: z.boolean().default(false),
     isInviteOnly: z.boolean().default(false),
     customFormFields: z.array(z.any()).optional().default([]),

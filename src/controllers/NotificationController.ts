@@ -10,7 +10,7 @@ export class NotificationController {
    */
   public async getNotifications(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const user = req.user as IUserIdentity;
       const limit = parseInt(req.query.limit as string) || 50;
 
@@ -47,7 +47,7 @@ export class NotificationController {
    */
   public async markAllRead(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const user = req.user as IUserIdentity;
 
       const count = await notificationService.markAllAsRead(user.id, tenantId);
@@ -64,7 +64,7 @@ export class NotificationController {
    */
   public async getActivities(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const limit = parseInt(req.query.limit as string) || 50;
 
       const activities = await notificationService.getActivities(tenantId, limit);
@@ -79,7 +79,7 @@ export class NotificationController {
    */
   public async getAnnouncements(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const user = req.user as IUserIdentity;
       const limit = parseInt(req.query.limit as string) || 20;
 
@@ -107,7 +107,7 @@ export class NotificationController {
    */
   public async createAnnouncement(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const user = req.user as IUserIdentity;
 
       const isAdminOrStaff = [UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF].includes(user.role);

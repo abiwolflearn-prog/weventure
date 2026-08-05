@@ -10,7 +10,7 @@ export class EventController {
    */
   public async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const user = req.user as IUserIdentity;
       
       const event = await eventService.createEvent(tenantId, user, req.body);
@@ -28,7 +28,7 @@ export class EventController {
    */
   public async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       
       const event = await eventService.getEventById(id, tenantId);
@@ -44,7 +44,7 @@ export class EventController {
    */
   public async getBySlug(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { slug } = req.params;
       
       const event = await eventService.getEventBySlug(slug, tenantId);
@@ -60,7 +60,7 @@ export class EventController {
    */
   public async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const user = req.user as IUserIdentity;
       
@@ -79,7 +79,7 @@ export class EventController {
    */
   public async delete(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const user = req.user as IUserIdentity;
       
@@ -98,7 +98,7 @@ export class EventController {
    */
   public async publish(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const user = req.user as IUserIdentity;
       
@@ -117,7 +117,7 @@ export class EventController {
    */
   public async cancel(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const user = req.user as IUserIdentity;
       
@@ -136,7 +136,7 @@ export class EventController {
    */
   public async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       
       const page = parseInt(req.query.page as string, 10) || 1;
       const limit = parseInt(req.query.limit as string, 10) || 10;
@@ -188,7 +188,7 @@ export class EventController {
    */
   public async getCategories(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const categories = await eventService.getCategories(tenantId);
       ApiResponse.success(res, categories);
     } catch (error) {
@@ -201,7 +201,7 @@ export class EventController {
    */
   public async getTags(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const tags = await eventService.getTags(tenantId);
       ApiResponse.success(res, tags);
     } catch (error) {
@@ -214,7 +214,7 @@ export class EventController {
    */
   public async getAuditLogs(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const logs = await eventService.getAuditLogs(tenantId);
       ApiResponse.success(res, logs);
     } catch (error) {

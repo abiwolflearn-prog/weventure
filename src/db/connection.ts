@@ -10,7 +10,8 @@ import { News } from '../models/News';
 import { Homepage } from '../models/Homepage';
 import { Event } from '../models/Event';
 import { PricingRule } from '../models/PricingRule';
-import { EventStatus, EventVisibility } from '../types';
+import { User } from '../models/User';
+import { EventStatus, EventVisibility, UserRole } from '../types';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
 interface IMongoConnectionOptions {
@@ -983,6 +984,53 @@ export async function connectDatabase(): Promise<typeof mongoose> {
         ]);
         logger.info('🌱 Seeded active database pricing rules');
       }
+
+      // 10. Ensure default administrative and staff accounts exist in MongoDB with correct roles
+      await User.updateOne(
+        { email: 'superadmin@weventurehub.com' },
+        {
+          $set: {
+            tenantId: 'weventurehub',
+            email: 'superadmin@weventurehub.com',
+            firstName: 'Super',
+            lastName: 'Admin',
+            role: UserRole.SUPER_ADMIN,
+            isEmailVerified: true,
+          }
+        },
+        { upsert: true }
+      );
+
+      await User.updateOne(
+        { email: 'admin@weventurehub.com' },
+        {
+          $set: {
+            tenantId: 'weventurehub',
+            email: 'admin@weventurehub.com',
+            firstName: 'Admin',
+            lastName: 'Manager',
+            role: UserRole.TENANT_ADMIN,
+            isEmailVerified: true,
+          }
+        },
+        { upsert: true }
+      );
+
+      await User.updateOne(
+        { email: 'staff@weventurehub.com' },
+        {
+          $set: {
+            tenantId: 'weventurehub',
+            email: 'staff@weventurehub.com',
+            firstName: 'Staff',
+            lastName: 'Manager',
+            role: UserRole.STAFF,
+            isEmailVerified: true,
+          }
+        },
+        { upsert: true }
+      );
+      logger.info('🔑 Ensured default admin and staff accounts exist in MongoDB with correct roles');
     } catch (seedErr) {
       logger.error('⚠️ Seeding failed:', seedErr);
     }

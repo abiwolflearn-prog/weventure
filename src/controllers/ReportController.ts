@@ -12,7 +12,7 @@ export class ReportController {
    */
   public getSavedReports = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const reports = await Report.find({ tenantId: tenantId?.toLowerCase() || '' }).sort({ createdAt: -1 });
       ApiResponse.success(res, reports, 200, { message: 'Fetched saved report configurations successfully' });
     } catch (error) {
@@ -26,7 +26,7 @@ export class ReportController {
    */
   public createReport = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { name, type, description, filters, format, scheduling } = req.body;
 
       if (!name || !type) {
@@ -77,7 +77,7 @@ export class ReportController {
    */
   public deleteReport = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
 
       const report = await Report.findOneAndDelete({ _id: id, tenantId: tenantId?.toLowerCase() || '' });
@@ -98,7 +98,7 @@ export class ReportController {
    */
   public getReportHistory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const history = await ReportHistory.find({ tenantId: tenantId?.toLowerCase() || '' }).sort({ createdAt: -1 });
       ApiResponse.success(res, history, 200, { message: 'Report download records fetched successfully' });
     } catch (error) {
@@ -112,7 +112,7 @@ export class ReportController {
    */
   public generateReportData = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { type, filters } = req.body;
 
       if (!type) {
@@ -132,7 +132,7 @@ export class ReportController {
    */
   public runSavedReport = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
 
       const report = await Report.findOne({ _id: id, tenantId: tenantId?.toLowerCase() || '' });
@@ -166,7 +166,7 @@ export class ReportController {
       let mimeType = 'text/csv';
 
       if (format === ReportFormat.PDF) {
-        const result = await reportService.generateReportData(req.tenantId!, req.body.type || ReportType.FINANCIAL, req.body.filters || {});
+        const result = await reportService.generateReportData((req.tenantId || req.user?.tenantId || "weventurehub"), req.body.type || ReportType.FINANCIAL, req.body.filters || {});
         content = reportService.exportToPdf(reportTitle, columns, rows, result.summary);
         mimeType = 'text/html';
       } else if (format === ReportFormat.EXCEL) {

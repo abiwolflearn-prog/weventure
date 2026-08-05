@@ -6,7 +6,7 @@ import { IUserIdentity } from '../types';
 export class WorkspaceController {
   public async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const user = req.user as IUserIdentity;
       const workspace = await workspaceService.createWorkspace(tenantId, req.body, user);
       ApiResponse.success(res, workspace, 201, {
@@ -19,7 +19,7 @@ export class WorkspaceController {
 
   public async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const { id } = req.params;
       const workspace = await workspaceService.getWorkspaceById(id, tenantId);
       ApiResponse.success(res, workspace, 200);
@@ -30,7 +30,7 @@ export class WorkspaceController {
 
   public async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const { id } = req.params;
       const user = req.user as IUserIdentity;
       const workspace = await workspaceService.updateWorkspace(id, tenantId, req.body, user);
@@ -44,7 +44,7 @@ export class WorkspaceController {
 
   public async delete(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const { id } = req.params;
       const user = req.user as IUserIdentity;
       await workspaceService.deleteWorkspace(id, tenantId, user);
@@ -58,7 +58,7 @@ export class WorkspaceController {
 
   public async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 100;
 
@@ -92,7 +92,7 @@ export class WorkspaceController {
 
   public async updateStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const { status } = req.body;
       const user = req.user as IUserIdentity;
@@ -107,7 +107,7 @@ export class WorkspaceController {
 
   public async toggleFeature(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const { featured } = req.body;
       const user = req.user as IUserIdentity;
@@ -122,7 +122,7 @@ export class WorkspaceController {
 
   public async updateOrder(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const { displayOrder } = req.body;
       const user = req.user as IUserIdentity;
@@ -137,7 +137,7 @@ export class WorkspaceController {
 
   public async duplicate(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const user = req.user as IUserIdentity;
       const workspace = await workspaceService.duplicateWorkspace(id, tenantId, user);

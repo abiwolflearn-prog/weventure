@@ -6,7 +6,7 @@ import { IUserIdentity } from '../types';
 export class BookingController {
   public async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const user = req.user as IUserIdentity;
       const booking = await bookingService.createBooking(tenantId, req.body, user);
       ApiResponse.success(res, booking, 201, {
@@ -19,7 +19,7 @@ export class BookingController {
 
   public async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const booking = await bookingService.getBookingById(id, tenantId);
       ApiResponse.success(res, booking, 200);
@@ -30,7 +30,7 @@ export class BookingController {
 
   public async cancel(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const user = req.user as IUserIdentity;
       const booking = await bookingService.cancelBooking(id, tenantId, user);
@@ -44,7 +44,7 @@ export class BookingController {
 
   public async approve(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const user = req.user as IUserIdentity;
       const booking = await bookingService.approveBooking(id, tenantId, user);
@@ -58,7 +58,7 @@ export class BookingController {
 
   public async reject(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const user = req.user as IUserIdentity;
       const booking = await bookingService.rejectBooking(id, tenantId, user);
@@ -72,7 +72,7 @@ export class BookingController {
 
   public async renew(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const user = req.user as IUserIdentity;
       const booking = await bookingService.renewBooking(id, tenantId, req.body, user);
@@ -86,7 +86,7 @@ export class BookingController {
 
   public async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const user = req.user as IUserIdentity;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 100;
@@ -117,7 +117,7 @@ export class BookingController {
 
   public async generateAgreement(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params; // bookingId
       const user = req.user as IUserIdentity;
       const agreement = await bookingService.generateAgreement(id, tenantId, req.body, user);
@@ -131,7 +131,7 @@ export class BookingController {
 
   public async signAgreement(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params; // bookingId
       const { customerName } = req.body;
       const ipAddress = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1') as string;
@@ -146,7 +146,7 @@ export class BookingController {
 
   public async generateInvoice(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params; // bookingId
       const user = req.user as IUserIdentity;
       const invoice = await bookingService.generateBookingInvoice(id, tenantId, user);
@@ -160,7 +160,7 @@ export class BookingController {
 
   public async getAgreement(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params; // bookingId
       const { Agreement } = require('../models/Agreement');
       const agreement = await Agreement.findOne({ bookingId: id, tenantId }).exec();

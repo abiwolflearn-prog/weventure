@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import WeVentureLogo from '../components/WeVentureLogo';
+import { axiosInstance } from '../lib/axiosInstance';
+import { loginSuccess, logout } from '../store/authSlice';
 import { 
   Building, 
   LayoutDashboard, 
@@ -28,7 +30,6 @@ import {
   DollarSign
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store';
-import { logout } from '../store/authSlice';
 import { toggleSidebar, toggleTheme } from '../store/uiSlice';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -97,6 +98,21 @@ export default function DashboardLayout() {
   const { sidebarExpanded, theme } = useAppSelector((state) => state.ui);
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('weventure_jwt_token');
+    if (token) {
+      axiosInstance
+        .get('/auth/me')
+        .then((res) => {
+          const currentUser = res.data?.data?.user;
+          if (currentUser) {
+            dispatch(loginSuccess(currentUser));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [dispatch]);
 
   const sidebarItems: SidebarItem[] = [
     { name: 'Overview', path: '/dashboard', icon: LayoutDashboard },

@@ -19,7 +19,7 @@ export class AnalyticsController {
    */
   public getSummary = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { range, startDate, endDate } = this.getQueryParams(req);
 
       const summary = await analyticsService.getDashboardSummary(
@@ -44,7 +44,7 @@ export class AnalyticsController {
    */
   public getEvents = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { range, startDate, endDate } = this.getQueryParams(req);
 
       const metrics = await analyticsService.getEventMetrics(
@@ -66,7 +66,7 @@ export class AnalyticsController {
    */
   public getBookings = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { range, startDate, endDate } = this.getQueryParams(req);
 
       const metrics = await analyticsService.getBookingMetrics(
@@ -88,7 +88,7 @@ export class AnalyticsController {
    */
   public getRevenue = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { range, startDate, endDate } = this.getQueryParams(req);
 
       const metrics = await analyticsService.getRevenueMetrics(
@@ -110,7 +110,7 @@ export class AnalyticsController {
    */
   public getUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { range, startDate, endDate } = this.getQueryParams(req);
 
       const metrics = await analyticsService.getUserMetrics(
@@ -132,7 +132,7 @@ export class AnalyticsController {
    */
   public getWorkspaces = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { range, startDate, endDate } = this.getQueryParams(req);
 
       const metrics = await analyticsService.getWorkspaceMetrics(

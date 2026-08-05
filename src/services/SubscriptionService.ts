@@ -172,11 +172,12 @@ export class SubscriptionService {
    * Get or initialize real-time usage metrics for a specific tenant
    */
   public async getTenantUsage(tenantId: string): Promise<ITenantUsageDocument> {
-    let usage = await TenantUsage.findOne({ tenantId }).exec();
+    const tid = tenantId || 'weventurehub';
+    let usage = await TenantUsage.findOne({ tenantId: tid }).exec();
     if (!usage) {
       // Lazy init of tenant usage
       usage = new TenantUsage({
-        tenantId,
+        tenantId: tid,
         workspacesCount: 0,
         eventsCount: 0,
         usersCount: 0,
@@ -192,13 +193,14 @@ export class SubscriptionService {
    * Synchronize usage statistics directly from active MongoDB collections
    */
   public async syncUsageCounts(tenantId: string): Promise<ITenantUsageDocument> {
-    const usage = await this.getTenantUsage(tenantId);
+    const tid = tenantId || 'weventurehub';
+    const usage = await this.getTenantUsage(tid);
 
     // 1. Count workspaces
-    const workspacesCount = await Workspace.countDocuments({ tenantId }).exec();
+    const workspacesCount = await Workspace.countDocuments({ tenantId: tid }).exec();
 
     // 2. Count events
-    const eventsCount = await Event.countDocuments({ tenantId }).exec();
+    const eventsCount = await Event.countDocuments({ tenantId: tid }).exec();
 
     // 3. Count user list
     // Note: If you don't have a global User model, we'll try to find a safe count or stick with mongoose counts
@@ -206,7 +208,7 @@ export class SubscriptionService {
     try {
       const User = mongoose.model('User');
       if (User) {
-        usersCount = await User.countDocuments({ tenantId }).exec();
+        usersCount = await User.countDocuments({ tenantId: tid }).exec();
       }
     } catch {
       // User model might not be registered yet or not found
@@ -223,7 +225,8 @@ export class SubscriptionService {
    * Increment specific usage metrics safely
    */
   public async incrementUsage(tenantId: string, metric: keyof ITenantUsageDocument, amount: number = 1): Promise<ITenantUsageDocument> {
-    const usage = await this.getTenantUsage(tenantId);
+    const tid = tenantId || 'weventurehub';
+    const usage = await this.getTenantUsage(tid);
     if (typeof usage[metric] === 'number') {
       (usage[metric] as number) += amount;
     }

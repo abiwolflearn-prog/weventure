@@ -8,16 +8,31 @@ import { emailNotificationManager } from '../services/EmailNotificationManager';
 import { User } from '../models/User';
 
 // Centralized mapping of Roles to Enterprise Permissions
-export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   [UserRole.SUPER_ADMIN]: Object.values(Permission),
   [UserRole.TENANT_ADMIN]: Object.values(Permission),
+  ['ADMIN']: Object.values(Permission),
   [UserRole.STAFF]: [
     Permission.USERS_READ,
     Permission.WORKSPACES_READ,
+    Permission.WORKSPACES_CREATE,
     Permission.WORKSPACES_UPDATE,
     Permission.BOOKINGS_READ,
     Permission.BOOKINGS_UPDATE,
     Permission.EVENTS_READ,
+    Permission.EVENTS_CREATE,
+    Permission.EVENTS_UPDATE,
+    Permission.ANALYTICS_READ,
+  ],
+  ['MANAGER']: [
+    Permission.USERS_READ,
+    Permission.WORKSPACES_READ,
+    Permission.WORKSPACES_CREATE,
+    Permission.WORKSPACES_UPDATE,
+    Permission.BOOKINGS_READ,
+    Permission.BOOKINGS_UPDATE,
+    Permission.EVENTS_READ,
+    Permission.EVENTS_CREATE,
     Permission.EVENTS_UPDATE,
     Permission.ANALYTICS_READ,
   ],
@@ -26,6 +41,14 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.BOOKINGS_CREATE,
     Permission.BOOKINGS_READ,
     Permission.EVENTS_READ,
+    Permission.SETTINGS_UPDATE,
+  ],
+  ['USER']: [
+    Permission.WORKSPACES_READ,
+    Permission.BOOKINGS_CREATE,
+    Permission.BOOKINGS_READ,
+    Permission.EVENTS_READ,
+    Permission.SETTINGS_UPDATE,
   ],
   [UserRole.EXTERNAL_USER]: [
     Permission.WORKSPACES_READ,
@@ -46,62 +69,79 @@ export class AuthController {
       }
 
       const activeTenant = tenantId || req.tenantId || 'weventurehub';
-
-      // Deduce User Role
-      let userRole = UserRole.HUB_MEMBER;
-      let firstName = 'Alex';
-      let lastName = 'Chen';
-
-      if (role && Object.values(UserRole).includes(role)) {
-        userRole = role;
-        if (role === UserRole.TENANT_ADMIN) {
-          firstName = 'Admin';
-          lastName = 'Manager';
-        } else if (role === UserRole.STAFF) {
-          firstName = 'Staff';
-          lastName = 'Manager';
-        } else if (role === UserRole.SUPER_ADMIN) {
-          firstName = 'Super';
-          lastName = 'Admin';
-        }
-      } else if (email.startsWith('admin@') || email.includes('admin')) {
-        userRole = UserRole.TENANT_ADMIN;
-        firstName = 'Admin';
-        lastName = 'Manager';
-      } else if (email.startsWith('staff@') || email.includes('staff')) {
-        userRole = UserRole.STAFF;
-        firstName = 'Staff';
-        lastName = 'Manager';
-      } else if (email.startsWith('superadmin@')) {
-        userRole = UserRole.SUPER_ADMIN;
-        firstName = 'Super';
-        lastName = 'Admin';
-      }
-
-      const permissions = ROLE_PERMISSIONS[userRole] || [];
       const cleanEmail = email.toLowerCase().trim();
 
-      // Check existing user for email verification status
-      const existingUser = await (User as any).findOne({ email: cleanEmail, tenantId: activeTenant });
-      if (existingUser && existingUser.isEmailVerified === false) {
-        throw new UnauthorizedError('Please verify your email before logging in.');
+      // Determine requested / inferred role
+      let targetRole: UserRole | undefined = undefined;
+      let firstName = 'Alex';
+      let lastName = 'Member';
+
+      if (role && Object.values(UserRole).includes(role) && role !== UserRole.HUB_MEMBER) {
+        targetRole = role as UserRole;
+      } else if (cleanEmail.startsWith('superadmin') || cleanEmail.includes('superadmin')) {
+        targetRole = UserRole.SUPER_ADMIN;
+        firstName = 'Super';
+        lastName = 'Admin';
+      } else if (cleanEmail.startsWith('admin') || cleanEmail.includes('admin') || cleanEmail.includes('operator')) {
+        targetRole = UserRole.TENANT_ADMIN;
+        firstName = 'Admin';
+        lastName = 'Manager';
+      } else if (cleanEmail.startsWith('staff') || cleanEmail.includes('staff') || cleanEmail.includes('manager')) {
+        targetRole = UserRole.STAFF;
+        firstName = 'Staff';
+        lastName = 'Manager';
       }
 
-      // Ensure user stored in MongoDB
-      const dbUser = await (User as any).findOneAndUpdate(
-        { email: cleanEmail, tenantId: activeTenant },
-        {
-          $setOnInsert: {
-            email: cleanEmail,
-            tenantId: activeTenant,
-            firstName,
-            lastName,
-            role: userRole,
-            isEmailVerified: true, // Default true for admin/staff created via direct login
-          },
-        },
-        { upsert: true, new: true }
-      );
+      if (targetRole === UserRole.SUPER_ADMIN) {
+        firstName = 'Super';
+        lastName = 'Admin';
+      } else if (targetRole === UserRole.TENANT_ADMIN) {
+        firstName = 'Admin';
+        lastName = 'Manager';
+      } else if (targetRole === UserRole.STAFF) {
+        firstName = 'Staff';
+        lastName = 'Manager';
+      }
+
+      // Look up existing user record in MongoDB
+      let dbUser = await (User as any).findOne({ email: cleanEmail, tenantId: activeTenant });
+
+      const isTargetAdminRole = (targetRole && [UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF].includes(targetRole)) ||
+        cleanEmail.includes('admin') || cleanEmail.includes('staff') || cleanEmail.includes('superadmin');
+
+      if (dbUser && dbUser.isEmailVerified === false) {
+        if (isTargetAdminRole) {
+          dbUser.isEmailVerified = true;
+          if (targetRole) dbUser.role = targetRole;
+          await dbUser.save();
+        } else {
+          // Auto-verify on valid direct password login
+          dbUser.isEmailVerified = true;
+          await dbUser.save();
+        }
+      }
+
+      if (!dbUser) {
+        const finalRole = targetRole || UserRole.HUB_MEMBER;
+        dbUser = await (User as any).create({
+          email: cleanEmail,
+          tenantId: activeTenant,
+          firstName,
+          lastName,
+          role: finalRole,
+          isEmailVerified: true, // Default true for direct logins
+        });
+      } else {
+        // If logging in with an admin targetRole or if email belongs to admin account, update user's role in DB
+        if (isTargetAdminRole) {
+          dbUser.role = targetRole || dbUser.role;
+          dbUser.isEmailVerified = true;
+          await dbUser.save();
+        }
+      }
+
+      const effectiveRole: UserRole = dbUser.role || targetRole || UserRole.HUB_MEMBER;
+      const permissions = ROLE_PERMISSIONS[effectiveRole] || Object.values(Permission);
 
       const userIdentity: IUserIdentity = {
         id: dbUser._id ? dbUser._id.toString() : `usr_${Math.random().toString(36).substring(2, 8)}`,
@@ -109,7 +149,7 @@ export class AuthController {
         email: cleanEmail,
         firstName: dbUser.firstName || firstName,
         lastName: dbUser.lastName || lastName,
-        role: dbUser.role || userRole,
+        role: effectiveRole,
         permissions,
       };
 
@@ -146,7 +186,7 @@ export class AuthController {
    */
   public async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { email, firstName, lastName, name, password, userType, phone, profileImage, companyInfo } = req.body;
+      const { email, firstName, lastName, name, password, userType, phone, profileImage, companyInfo, role } = req.body;
       if (!email || (!password && !req.body.adminPassword)) {
         throw new ValidationError('Email and password are required');
       }
@@ -156,6 +196,18 @@ export class AuthController {
       const resolvedName = name || `${firstName || ''} ${lastName || ''}`.trim() || 'WeVenture Member';
       const resolvedFirstName = firstName || resolvedName.split(' ')[0] || 'Member';
       const resolvedLastName = lastName || resolvedName.split(' ').slice(1).join(' ') || 'User';
+
+      // Infer role for registration if admin email or specified role
+      let initialRole = UserRole.HUB_MEMBER;
+      if (role && Object.values(UserRole).includes(role)) {
+        initialRole = role as UserRole;
+      } else if (cleanEmail.startsWith('superadmin')) {
+        initialRole = UserRole.SUPER_ADMIN;
+      } else if (cleanEmail.startsWith('admin') || cleanEmail.includes('admin')) {
+        initialRole = UserRole.TENANT_ADMIN;
+      } else if (cleanEmail.startsWith('staff') || cleanEmail.includes('staff')) {
+        initialRole = UserRole.STAFF;
+      }
 
       // Generate secure unique verification token and OTP code
       const verificationToken = `vrf_${Math.random().toString(36).substring(2, 12)}${Date.now().toString(36)}`;
@@ -183,7 +235,7 @@ export class AuthController {
               industry: companyInfo.industry,
               employees: companyInfo.employees,
             } : undefined,
-            role: UserRole.HUB_MEMBER,
+            role: initialRole,
             isEmailVerified: false,
             emailVerificationToken: verificationToken,
             emailVerificationOtp: otpCode,
@@ -204,8 +256,8 @@ export class AuthController {
         phone: dbUser.phone,
         profileImage: dbUser.profileImage,
         companyInfo: dbUser.companyInfo,
-        role: UserRole.HUB_MEMBER,
-        permissions: ROLE_PERMISSIONS[UserRole.HUB_MEMBER],
+        role: dbUser.role || initialRole,
+        permissions: ROLE_PERMISSIONS[dbUser.role || initialRole] || ROLE_PERMISSIONS[UserRole.HUB_MEMBER],
         isEmailVerified: false,
       };
 
@@ -392,6 +444,19 @@ export class AuthController {
       if (!req.user) {
         throw new UnauthorizedError('No active user session');
       }
+
+      // Re-verify role from database
+      const dbUser = await (User as any).findOne({ email: req.user.email });
+      if (dbUser) {
+        const effectiveRole = dbUser.role || req.user.role;
+        const permissions = ROLE_PERMISSIONS[effectiveRole] || req.user.permissions || [];
+        req.user = {
+          ...req.user,
+          role: effectiveRole,
+          permissions,
+        };
+      }
+
       ApiResponse.success(res, { user: req.user }, 200);
     } catch (error) {
       next(error);

@@ -41,7 +41,6 @@ export default function LoginPage() {
         email: data.email,
         password: data.password,
         tenantId: 'weventurehub',
-        role: UserRole.HUB_MEMBER,
       });
 
       const { user, token } = response.data.data;

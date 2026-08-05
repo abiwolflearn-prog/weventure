@@ -14,7 +14,7 @@ export class PaymentController {
    */
   public async createPayment(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const user = req.user as IUserIdentity;
       const { amount, currency, provider, targetType, targetId, firstName, lastName, billingDetails, promoCode } = req.body;
 
@@ -51,7 +51,7 @@ export class PaymentController {
    */
   public async verifyPayment(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { txRef } = req.params;
 
       if (!txRef) {
@@ -70,7 +70,7 @@ export class PaymentController {
    */
   public async getTransactions(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const user = req.user as IUserIdentity;
       
       const filter: any = {};
@@ -91,7 +91,7 @@ export class PaymentController {
    */
   public async getInvoices(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const user = req.user as IUserIdentity;
 
       const filter: any = { ...req.query };
@@ -113,7 +113,7 @@ export class PaymentController {
    */
   public async getInvoiceStats(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const user = req.user as IUserIdentity;
 
       const filter: any = {};
@@ -135,7 +135,7 @@ export class PaymentController {
    */
   public async createInvoice(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const user = req.user as IUserIdentity;
       const created = await paymentService.createInvoice(tenantId, req.body, user);
       ApiResponse.success(res, created, 201, { message: 'Invoice created successfully' });
@@ -149,7 +149,7 @@ export class PaymentController {
    */
   public async deleteInvoice(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const user = req.user as IUserIdentity;
       const { id } = req.params;
       await paymentService.deleteInvoice(tenantId, id, user);
@@ -164,7 +164,7 @@ export class PaymentController {
    */
   public async emailInvoice(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const { id } = req.params;
       const { recipient, emailType, message } = req.body;
       const result = await paymentService.emailInvoice(tenantId, id, recipient, emailType, message);
@@ -179,7 +179,7 @@ export class PaymentController {
    */
   public async recordPayment(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const user = req.user as IUserIdentity;
       const { id } = req.params;
       const updated = await paymentService.recordPayment(tenantId, id, req.body, user);
@@ -194,7 +194,7 @@ export class PaymentController {
    */
   public async updateInvoiceStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const user = req.user as IUserIdentity;
       const { id } = req.params;
       const { status } = req.body;
@@ -215,7 +215,7 @@ export class PaymentController {
    */
   public async getInvoiceById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const { id } = req.params;
       const user = req.user as IUserIdentity;
 
@@ -247,7 +247,7 @@ export class PaymentController {
    */
   public async downloadInvoicePdf(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const { id } = req.params;
       const user = req.user as IUserIdentity;
 
@@ -305,7 +305,7 @@ WeVentureHub Multi-Tenant Event & Workspace Management Platform
    */
   public async requestRefund(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const user = req.user as IUserIdentity;
       const { paymentId, amount, reason } = req.body;
 
@@ -332,7 +332,7 @@ WeVentureHub Multi-Tenant Event & Workspace Management Platform
    */
   public async getRefunds(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const refunds = await paymentService.getRefunds(tenantId);
       ApiResponse.success(res, refunds, 200);
     } catch (error) {
@@ -345,7 +345,7 @@ WeVentureHub Multi-Tenant Event & Workspace Management Platform
    */
   public async approveRefund(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const user = req.user as IUserIdentity;
       const { id } = req.params;
 
@@ -361,7 +361,7 @@ WeVentureHub Multi-Tenant Event & Workspace Management Platform
    */
   public async rejectRefund(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const user = req.user as IUserIdentity;
       const { id } = req.params;
 
@@ -377,7 +377,7 @@ WeVentureHub Multi-Tenant Event & Workspace Management Platform
    */
   public async getRevenueStats(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const stats = await paymentService.getRevenueStats(tenantId);
       ApiResponse.success(res, stats, 200);
     } catch (error) {
@@ -421,7 +421,7 @@ WeVentureHub Multi-Tenant Event & Workspace Management Platform
    */
   public async validatePromoCode(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const { code, subtotal } = req.body;
 
       if (!code || !subtotal) {
@@ -447,7 +447,7 @@ WeVentureHub Multi-Tenant Event & Workspace Management Platform
    */
   public async createPromoCode(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const user = req.user as IUserIdentity;
 
       if (user.role === UserRole.EXTERNAL_USER) {
@@ -478,7 +478,7 @@ WeVentureHub Multi-Tenant Event & Workspace Management Platform
    */
   public async getPromoCodes(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const promos = await discountService.getPromoCodes(tenantId);
       ApiResponse.success(res, promos, 200);
     } catch (error) {
@@ -491,7 +491,7 @@ WeVentureHub Multi-Tenant Event & Workspace Management Platform
    */
   public async togglePromoCode(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const user = req.user as IUserIdentity;
 
       if (user.role === UserRole.EXTERNAL_USER) {

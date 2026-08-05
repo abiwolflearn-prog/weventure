@@ -11,7 +11,7 @@ export class TicketingController {
 
   public async createTicketType(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const user = req.user as IUserIdentity;
       const { eventId, name, description, price, currency, capacity, availability, settings } = req.body;
 
@@ -54,7 +54,7 @@ export class TicketingController {
 
   public async getTicketTypes(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { eventId } = req.params;
       const isAdminFlow = req.query.admin === 'true';
 
@@ -67,7 +67,7 @@ export class TicketingController {
 
   public async updateTicketType(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const user = req.user as IUserIdentity;
 
@@ -80,7 +80,7 @@ export class TicketingController {
 
   public async deleteTicketType(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const user = req.user as IUserIdentity;
 
@@ -97,7 +97,7 @@ export class TicketingController {
 
   public async createOrder(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const user = req.user as IUserIdentity;
       const { eventId, attendeeName, attendeeEmail, tickets, customAnswers, groupAttendees } = req.body;
 
@@ -129,7 +129,7 @@ export class TicketingController {
 
   public async getOrderById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const user = req.user as IUserIdentity;
 
@@ -151,7 +151,7 @@ export class TicketingController {
 
   public async getMyOrders(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const user = req.user as IUserIdentity;
 
       const orders = await ticketingService.getUserOrders(user.id, tenantId);
@@ -163,7 +163,7 @@ export class TicketingController {
 
   public async getEventOrders(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { eventId } = req.params;
 
       const orders = await ticketingService.getEventOrders(eventId, tenantId);
@@ -175,7 +175,7 @@ export class TicketingController {
 
   public async getAllOrders(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const page = Number(req.query.page) || 1;
       const limit = Number(req.query.limit) || 20;
 
@@ -198,7 +198,7 @@ export class TicketingController {
 
   public async getMyRegistrations(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const user = req.user as IUserIdentity;
 
       const registrations = await ticketingService.getUserRegistrations(user.id, tenantId);
@@ -210,7 +210,7 @@ export class TicketingController {
 
   public async getEventRegistrations(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { eventId } = req.params;
       const { status, checkedIn, search } = req.query;
 
@@ -227,7 +227,7 @@ export class TicketingController {
 
   public async getAllRegistrations(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const page = Number(req.query.page) || 1;
       const limit = Number(req.query.limit) || 20;
 
@@ -246,7 +246,7 @@ export class TicketingController {
 
   public async cancelRegistration(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const user = req.user as IUserIdentity;
 
@@ -259,7 +259,7 @@ export class TicketingController {
 
   public async approveRegistration(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const user = req.user as IUserIdentity;
 
@@ -272,7 +272,7 @@ export class TicketingController {
 
   public async rejectRegistration(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const user = req.user as IUserIdentity;
 
@@ -289,7 +289,7 @@ export class TicketingController {
 
   public async inviteAttendee(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { eventId } = req.params;
       const { name, email } = req.body;
       const user = req.user as IUserIdentity;
@@ -307,7 +307,7 @@ export class TicketingController {
 
   public async getEventInvitations(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { eventId } = req.params;
 
       const invitations = await ticketingService.getEventInvitations(eventId, tenantId);
@@ -319,7 +319,7 @@ export class TicketingController {
 
   public async revokeInvitation(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const user = req.user as IUserIdentity;
 
@@ -336,7 +336,7 @@ export class TicketingController {
 
   public async joinWaitlist(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const user = req.user as IUserIdentity;
       const { eventId, ticketTypeId, name } = req.body;
 
@@ -364,7 +364,7 @@ export class TicketingController {
 
   public async getEventWaitlist(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { eventId } = req.params;
 
       const waitlist = await ticketingService.getWaitlistForEvent(eventId, tenantId);
@@ -376,7 +376,7 @@ export class TicketingController {
 
   public async getMyWaitlistPosition(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { eventId } = req.params;
       const user = req.user as IUserIdentity;
 
@@ -389,7 +389,7 @@ export class TicketingController {
 
   public async leaveWaitlist(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const user = req.user as IUserIdentity;
 
@@ -402,7 +402,7 @@ export class TicketingController {
 
   public async promoteWaitlistEntry(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { id } = req.params;
       const user = req.user as IUserIdentity;
 
@@ -419,7 +419,7 @@ export class TicketingController {
 
   public async validateQrCode(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { qrCode } = req.body;
       const user = req.user as IUserIdentity;
 
@@ -438,7 +438,7 @@ export class TicketingController {
 
   public async importAttendees(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const tenantId = req.tenantId!;
+      const tenantId = (req.tenantId || req.user?.tenantId || "weventurehub");
       const { eventId } = req.params;
       const { attendees } = req.body;
       const user = req.user as IUserIdentity;
