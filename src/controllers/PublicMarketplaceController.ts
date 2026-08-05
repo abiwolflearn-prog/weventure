@@ -948,6 +948,22 @@ export class PublicMarketplaceController {
 
       const savedReg = await registration.save();
 
+      // Add to Analytics/CRM Activity
+      const { Activity } = await import('../models/Activity');
+      await Activity.create({
+        tenantId: event.tenantId || 'weventurehub',
+        userId: 'guest_rsvp',
+        userEmail: email,
+        userName: name,
+        action: 'RSVP_SUBMITTED',
+        resourceType: 'EVENT',
+        resourceId: event._id.toString(),
+        details: {
+          description: `User ${name} registered for event ${event.title}`,
+          registrationId: savedReg._id
+        }
+      });
+
       // Update active registrations on the event
       if (event.capacity) {
         event.capacity.activeRegistrations = currentCount + guestNum;

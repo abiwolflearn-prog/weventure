@@ -203,33 +203,42 @@ export default function AnalyticsDashboard() {
       payload = bookingData?.bookingsBySpaceType || [];
     }
 
-    if (format === 'json') {
-      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute('href', dataStr);
-      downloadAnchor.setAttribute('download', `${filename}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      document.body.removeChild(downloadAnchor);
-    } else {
-      // CSV parser
-      if (payload.length === 0) {
-        alert('No data is currently loaded to export.');
-        return;
+    if (payload.length === 0) {
+      alert('No data is currently loaded to export.');
+      return;
+    }
+
+    try {
+      if (format === 'json') {
+        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute('href', dataStr);
+        downloadAnchor.setAttribute('download', `${filename}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        document.body.removeChild(downloadAnchor);
+      } else {
+        // CSV parser
+        const headers = Object.keys(payload[0]).join(',');
+        const rows = payload.map((item) =>
+          Object.values(item)
+            .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+            .join(',')
+        );
+        const csvStr = 'data:text/csv;charset=utf-8,' + encodeURIComponent([headers, ...rows].join('\n'));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute('href', csvStr);
+        downloadAnchor.setAttribute('download', `${filename}.csv`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        document.body.removeChild(downloadAnchor);
       }
-      const headers = Object.keys(payload[0]).join(',');
-      const rows = payload.map((item) =>
-        Object.values(item)
-          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-          .join(',')
-      );
-      const csvStr = 'data:text/csv;charset=utf-8,' + encodeURIComponent([headers, ...rows].join('\n'));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute('href', csvStr);
-      downloadAnchor.setAttribute('download', `${filename}.csv`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      document.body.removeChild(downloadAnchor);
+      
+      // Success feedback
+      alert(`Successfully exported ${payload.length} records to ${format.toUpperCase()}.`);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('An error occurred during export. Please try again.');
     }
   };
 
@@ -281,7 +290,7 @@ export default function AnalyticsDashboard() {
       {
         key: 'system-tenants',
         title: 'Active Core Tenants',
-        value: '1 Tenant Pool',
+        value: '0 Pools',
         change: 0,
         trend: 'neutral',
         description: 'Secure sandbox isolation',
@@ -291,14 +300,7 @@ export default function AnalyticsDashboard() {
     ];
   };
 
-  const simulatedTenants = [
-    { id: 't1', name: 'WeVentureHub Addis Ababa HQ', status: 'ACTIVE', users: 340, usageRate: 94, database: 'weventure_hq' },
-    { id: 't2', name: 'WeVentureHub Bole Chapter', status: 'ACTIVE', users: 210, usageRate: 88, database: 'weventure_bole' },
-    { id: 't3', name: 'WeVentureHub Kazanchis Incubator', status: 'ACTIVE', users: 185, usageRate: 72, database: 'weventure_kazanchis' },
-    { id: 't4', name: 'WeVentureHub Hawassa Outpost', status: 'PROVISIONING', users: 0, usageRate: 0, database: 'weventure_hawassa' },
-  ];
-
-  const superAdminTableColumns: ITableColumn<(typeof simulatedTenants)[0]>[] = [
+  const superAdminTableColumns: ITableColumn<any>[] = [
     {
       key: 'name',
       header: 'Hub Chapter / Branch',
@@ -849,11 +851,7 @@ export default function AnalyticsDashboard() {
                 </div>
                 <div>
                   <DistributionPieChart
-                    data={[
-                      { name: 'WeVenture London', value: 34 },
-                      { name: 'WeVenture SF', value: 48 },
-                      { name: 'WeVenture Berlin', value: 18 },
-                    ]}
+                    data={[]}
                     title="Tenant Spatial Distribution"
                     description="Platform load allocated per regional node database sharding."
                     centerLabel="3 Node Pools"
@@ -863,7 +861,7 @@ export default function AnalyticsDashboard() {
               </div>
 
               <PerformanceTable
-                data={simulatedTenants}
+                data={[]}
                 columns={superAdminTableColumns}
                 title="Regional Hub Chapters & Datastores"
                 subtitle="High-availability local branch databases running on WeVentureHub enterprise clusters."

@@ -547,8 +547,13 @@ export default function EventDetailsPage() {
               </div>
 
               <div className="space-y-4">
-                {event.tickets && event.tickets.length > 0 ? (
-                  event.tickets.map((ticket: any) => (
+                  {event.tickets && event.tickets.length > 0 ? (
+                  event.tickets.map((ticket: any) => {
+                    const isClosed = event.registrationSettings?.registrationCloseDate && new Date(event.registrationSettings.registrationCloseDate) < new Date();
+                    const isFull = !event.capacity.isUnlimited && event.capacity.activeRegistrations >= event.capacity.maxCapacity && event.rsvpSettings?.autoCloseWhenFull;
+                    const registrationClosed = isClosed || isFull;
+
+                    return (
                     <div key={ticket.id} className="p-4 border border-neutral-800 rounded-2xl space-y-3 bg-neutral-900">
                       <div className="flex items-center justify-between">
                         <span className="font-extrabold text-white text-xs">{ticket.name}</span>
@@ -567,40 +572,64 @@ export default function EventDetailsPage() {
                         </span>
                       </div>
 
-                      <Button
-                        onClick={() => {
-                          const targetUrl = `/booking?type=event&id=${event.id || slug}`;
-                          if (!isAuthenticated) {
-                            navigate(`/login?redirect=${encodeURIComponent(targetUrl)}`);
-                          } else {
-                            navigate(targetUrl);
-                          }
-                        }}
-                        variant="success"
-                        className="w-full text-xs font-bold py-2"
-                      >
-                        Register for Event
-                      </Button>
+                      {registrationClosed ? (
+                        <Button
+                          disabled
+                          className="w-full text-xs font-bold py-2 bg-neutral-800 text-neutral-500 cursor-not-allowed"
+                        >
+                          Registration Closed
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => {
+                            if (ticket.price === 0) {
+                              navigate(`/events/${event.slug}/rsvp`);
+                            } else {
+                              const targetUrl = `/booking?type=event&id=${event.id || slug}`;
+                              if (!isAuthenticated) {
+                                navigate(`/login?redirect=${encodeURIComponent(targetUrl)}`);
+                              } else {
+                                navigate(targetUrl);
+                              }
+                            }
+                          }}
+                          variant="success"
+                          className="w-full text-xs font-bold py-2"
+                        >
+                          Register for Event
+                        </Button>
+                      )}
                     </div>
-                  ))
+                    )
+                  })
                 ) : (
                   <div className="p-4 border border-dashed border-neutral-800 rounded-2xl text-center space-y-2 bg-neutral-900/30">
                     <span className="text-brand-accent font-bold uppercase text-xs tracking-wider">Free Direct Entrance</span>
                     <p className="text-[10px] text-neutral-slate-400">This experience does not require specific tickets. Simply join us on schedule!</p>
-                    <Button
-                      onClick={() => {
-                        const targetUrl = `/booking?type=event&id=${event.id || slug}`;
-                        if (!isAuthenticated) {
-                          navigate(`/login?redirect=${encodeURIComponent(targetUrl)}`);
-                        } else {
-                          navigate(targetUrl);
-                        }
-                      }}
-                      variant="success"
-                      className="w-full text-xs font-bold mt-2"
-                    >
-                      Register for Event
-                    </Button>
+                    {(() => {
+                      const isClosed = event.registrationSettings?.registrationCloseDate && new Date(event.registrationSettings.registrationCloseDate) < new Date();
+                      const isFull = !event.capacity.isUnlimited && event.capacity.activeRegistrations >= event.capacity.maxCapacity && event.rsvpSettings?.autoCloseWhenFull;
+                      const registrationClosed = isClosed || isFull;
+                      
+                      return registrationClosed ? (
+                        <Button
+                          disabled
+                          className="w-full text-xs font-bold mt-2 bg-neutral-800 text-neutral-500 cursor-not-allowed"
+                        >
+                          Registration Closed
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => {
+                            navigate(`/events/${event.slug}/rsvp`);
+                          }}
+                          variant="success"
+                          className="w-full text-xs font-bold mt-2"
+                        >
+                          Register for Event
+                        </Button>
+                      );
+                    })()}
                   </div>
                 )}
               </div>

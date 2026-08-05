@@ -37,7 +37,7 @@ export default function PublicRsvpPage() {
 
   const fetchEvent = async () => {
     try {
-      const response = await axiosInstance.get(`/api/v1/public/events/${slug}`);
+      const response = await axiosInstance.get(`/public/events/slug/${slug}`);
       setEvent(response.data.data);
     } catch (err) {
       setError('Event not found or registration is closed.');
@@ -60,7 +60,7 @@ export default function PublicRsvpPage() {
         answers: formData
       };
 
-      const response = await axiosInstance.post(`/api/v1/public/events/${event.id}/rsvp`, payload);
+      const response = await axiosInstance.post(`/public/events/${event.id}/rsvp`, payload);
       setRegistration(response.data.data);
       setIsSubmitted(true);
       window.scrollTo(0, 0);

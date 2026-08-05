@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { 
   ClipboardList, 
   Settings, 
@@ -161,6 +162,7 @@ export const RegistrationConfig: React.FC<RegistrationConfigProps> = ({
   
   const [configVersions, setConfigVersions] = useState<any[]>([]);
   const [publishedVersion, setPublishedVersion] = useState(0);
+  const [publicUrl, setPublicUrl] = useState('');
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [isLoadingConfig, setIsLoadingConfig] = useState(true);
 
@@ -224,7 +226,7 @@ export const RegistrationConfig: React.FC<RegistrationConfigProps> = ({
   const fetchConfig = async () => {
     setIsLoadingConfig(true);
     try {
-      const response = await axiosInstance.get(`/api/v1/events/${event.id}/rsvp-configuration`);
+      const response = await axiosInstance.get(`/events/${event.id}/rsvp-configuration`);
       const config = response.data?.data;
       if (config) {
         
@@ -240,6 +242,7 @@ export const RegistrationConfig: React.FC<RegistrationConfigProps> = ({
         
         setConfigVersions(config.versions || []);
         setPublishedVersion(config.publishedVersion || 0);
+        setPublicUrl(`${window.location.origin}/#/events/${event.slug}/rsvp`);
         setLastSaved(config.draft?.updatedAt);
       }
     } catch (error) {
@@ -268,7 +271,7 @@ export const RegistrationConfig: React.FC<RegistrationConfigProps> = ({
   const fetchRegistrations = async () => {
     setIsLoadingRegs(true);
     try {
-      const response = await axiosInstance.get(`/api/v1/ticketing/registrations/event/${event.id}`);
+      const response = await axiosInstance.get(`/ticketing/registrations/event/${event.id}`);
       setRegistrations(response.data.data || []);
     } catch (error) {
       console.error('Failed to fetch registrations:', error);
@@ -309,25 +312,19 @@ export const RegistrationConfig: React.FC<RegistrationConfigProps> = ({
         ticketSettings
       };
       
-      const response = await axiosInstance.put(`/api/v1/events/${event.id}/rsvp-configuration/draft`, draftData);
+      const response = await axiosInstance.put(`/events/${event.id}/rsvp-configuration/draft`, draftData);
       setLastSaved(response.data.data.draft.updatedAt);
       
       if (isPublish) {
-        const pubResponse = await axiosInstance.post(`/api/v1/events/${event.id}/rsvp-configuration/publish`);
+        const pubResponse = await axiosInstance.post(`/events/${event.id}/rsvp-configuration/publish`);
         setConfigVersions(pubResponse.data.data.versions);
         setPublishedVersion(pubResponse.data.data.publishedVersion);
+        setPublicUrl(`${window.location.origin}/#/events/${event.slug}/rsvp`);
       }
       
-      // Keep event object in sync for dashboard
-      await onUpdate({
-        rsvpFormFields: fields,
-        rsvpFormAppearance: appearance,
-        rsvpEmailSettings: emailSettings,
-        rsvpTicketSettings: ticketSettings,
-      });
-      
       setSaveStatus('saved');
-    } catch (error) {
+    } catch (error: any) {
+      console.error('RSVP Configuration Save Error:', error.response?.data || error.message);
       setSaveStatus('error');
     }
   };
@@ -336,7 +333,7 @@ export const RegistrationConfig: React.FC<RegistrationConfigProps> = ({
     if (!confirm(`Are you sure you want to restore Version ${version}? Unsaved changes will be lost.`)) return;
     
     try {
-      const response = await axiosInstance.post(`/api/v1/events/${event.id}/rsvp-configuration/restore/${version}`);
+      const response = await axiosInstance.post(`/events/${event.id}/rsvp-configuration/restore/${version}`);
       const config = response.data.data;
       if (config) {
         if (config.draft?.fields) setFields(config.draft.fields);
@@ -405,8 +402,6 @@ export const RegistrationConfig: React.FC<RegistrationConfigProps> = ({
   };
 
   const selectedField = fields.find(f => f.id === selectedFieldId);
-
-  const publicUrl = `${window.location.origin}/#/events/${event.slug}/rsvp`;
 
   return (
     <div className="flex h-full min-h-screen bg-white overflow-hidden">
@@ -585,6 +580,39 @@ export const RegistrationConfig: React.FC<RegistrationConfigProps> = ({
             <div className="h-full overflow-y-auto p-8">
               {activeTab === 'general' && (
           <div className="space-y-6 max-w-2xl">
+              <div className="bg-neutral-900 rounded-2xl p-6 text-white space-y-4">
+                  <div className="flex items-center justify-between">
+                     <h3 className="text-sm font-black uppercase tracking-widest">RSVP Status: {publishedVersion > 0 ? 'PUBLISHED' : 'DRAFT'}</h3>
+                     {publishedVersion > 0 && <CheckCircle className="w-5 h-5 text-brand-primary" />}
+                  </div>
+                  {publishedVersion > 0 && (
+                    <div className="space-y-4 pt-4 border-t border-white/10">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-neutral-400 uppercase">Public URL</p>
+                          <div className="flex items-center space-x-2 bg-neutral-800 p-3 rounded-lg">
+                            <code className="text-xs font-mono text-neutral-300 truncate">{publicUrl}</code>
+                            <Button size="sm" variant="secondary" onClick={() => navigator.clipboard.writeText(publicUrl)}>Copy</Button>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                           <Button size="sm" variant="primary" onClick={() => window.open(publicUrl, '_blank')}>Open RSVP Page</Button>
+                           <Button size="sm" variant="secondary" onClick={() => {
+                              const canvas = document.querySelector('#rsvp-qr-code-canvas') as HTMLCanvasElement;
+                              if (canvas) {
+                                const url = canvas.toDataURL("image/png");
+                                const link = document.createElement("a");
+                                link.download = `rsvp-qr-${event.slug}.png`;
+                                link.href = url;
+                                link.click();
+                              }
+                            }}>Download QR Code</Button>
+                            <div className="hidden">
+                                <QRCodeCanvas id="rsvp-qr-code-canvas" value={publicUrl} size={512} />
+                            </div>
+                        </div>
+                    </div>
+                  )}
+              </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <h3 className="text-sm font-bold text-neutral-900">Registration Status</h3>
@@ -766,7 +794,7 @@ export const RegistrationConfig: React.FC<RegistrationConfigProps> = ({
                             </>
                           )}
                        </div>
-                       <Button size="sm" variant="primary" className="h-9 px-4 text-[10px] font-black uppercase">Publish Form</Button>
+                       <Button type="button" size="sm" variant="primary" className="h-9 px-4 text-[10px] font-black uppercase" onClick={() => handleSave(true)}>Publish Form</Button>
                     </div>
                  </div>
 
@@ -1620,7 +1648,7 @@ export const RegistrationConfig: React.FC<RegistrationConfigProps> = ({
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-black text-neutral-900">Event Registrations</h3>
               <div className="flex space-x-2">
-                 <Button variant="secondary" size="sm" className="text-xs font-bold px-4" onClick={fetchRegistrations}>
+                 <Button type="button" variant="secondary" size="sm" className="text-xs font-bold px-4" onClick={fetchRegistrations}>
                     Refresh Data
                  </Button>
                  <Button variant="primary" size="sm" className="text-xs font-bold px-4">
