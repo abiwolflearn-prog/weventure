@@ -76,9 +76,12 @@ import {
   IRsvpFormAppearance, 
   IRsvpEmailSettings, 
   IRsvpTicketSettings,
-  RegistrationStatus
+  RegistrationStatus,
+  UserRole
 } from '../../types';
 import { axiosInstance } from '../../lib/axiosInstance';
+import { useAppSelector } from '../../store';
+import { ImportRegistrationsModal } from './ImportRegistrationsModal';
 import { format } from 'date-fns';
 
 import { 
@@ -159,6 +162,8 @@ export const RegistrationConfig: React.FC<RegistrationConfigProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'general' | 'builder' | 'design' | 'email' | 'ticket' | 'access' | 'registrations' | 'performance' | 'versions'>('general');
   const [isPreview, setIsPreview] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const { user } = useAppSelector((state) => state.auth);
   
   const [configVersions, setConfigVersions] = useState<any[]>([]);
   const [publishedVersion, setPublishedVersion] = useState(0);
@@ -1690,6 +1695,11 @@ export const RegistrationConfig: React.FC<RegistrationConfigProps> = ({
                  <Button type="button" variant="secondary" size="sm" className="text-xs font-bold px-4" onClick={fetchRegistrations}>
                     Refresh Data
                  </Button>
+                 {(user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.TENANT_ADMIN) && (
+                   <Button type="button" variant="secondary" size="sm" className="text-xs font-bold px-4" onClick={() => setShowImportModal(true)}>
+                      Import Registrations
+                   </Button>
+                 )}
                  <Button variant="primary" size="sm" className="text-xs font-bold px-4" onClick={handleExportCSV}>
                     Export CSV
                  </Button>
@@ -1762,6 +1772,18 @@ export const RegistrationConfig: React.FC<RegistrationConfigProps> = ({
                   </tbody>
                 </table>
               </div>
+            )}
+
+            {showImportModal && (
+              <ImportRegistrationsModal 
+                eventId={event.id}
+                eventTitle={event.title}
+                registrations={registrations}
+                onClose={() => setShowImportModal(false)}
+                onSuccess={() => {
+                  fetchRegistrations();
+                }}
+              />
             )}
           </div>
         )}
