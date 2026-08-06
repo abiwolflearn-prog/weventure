@@ -280,6 +280,45 @@ export const RegistrationConfig: React.FC<RegistrationConfigProps> = ({
     }
   };
 
+  const handleExportCSV = () => {
+    if (registrations.length === 0) {
+      alert('No registration records to export.');
+      return;
+    }
+
+    const headers = [
+      'Attendee Name',
+      'Attendee Email',
+      'Ticket Number',
+      'Status',
+      'Registration Date',
+      'Checked-In (Attended)'
+    ];
+
+    const rows = registrations.map((reg) => [
+      reg.attendeeName || '',
+      reg.attendeeEmail || '',
+      reg.ticketNumber || '',
+      reg.status || '',
+      reg.registrationDate ? new Date(reg.registrationDate).toLocaleString() : '',
+      reg.checkedIn ? 'Yes' : 'No'
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `weventurehub_event_registrations_${event.slug || event.id || 'export'}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const addToHistory = (newFields: IRsvpFormField[]) => {
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push(newFields);
@@ -1651,7 +1690,7 @@ export const RegistrationConfig: React.FC<RegistrationConfigProps> = ({
                  <Button type="button" variant="secondary" size="sm" className="text-xs font-bold px-4" onClick={fetchRegistrations}>
                     Refresh Data
                  </Button>
-                 <Button variant="primary" size="sm" className="text-xs font-bold px-4">
+                 <Button variant="primary" size="sm" className="text-xs font-bold px-4" onClick={handleExportCSV}>
                     Export CSV
                  </Button>
               </div>

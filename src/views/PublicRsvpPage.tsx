@@ -255,7 +255,7 @@ export default function PublicRsvpPage() {
                </p>
 
                {/* Digital Ticket Preview */}
-               <div className="bg-neutral-900 rounded-3xl p-6 text-white text-left shadow-2xl relative overflow-hidden mb-8">
+               <div id="printable-ticket" className="bg-neutral-900 rounded-3xl p-6 text-white text-left shadow-2xl relative overflow-hidden mb-8">
                   <div className="flex justify-between items-start mb-8 relative z-10">
                     <div>
                       <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Entry Pass</p>
@@ -291,7 +291,11 @@ export default function PublicRsvpPage() {
                </div>
 
                <div className="grid grid-cols-2 gap-3">
-                  <Button variant="primary" className="w-full h-12 font-black text-xs space-x-2">
+                  <Button 
+                    variant="primary" 
+                    className="w-full h-12 font-black text-xs space-x-2"
+                    onClick={() => window.print()}
+                  >
                     <Download className="w-4 h-4" />
                     <span>Download PDF</span>
                   </Button>

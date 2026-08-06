@@ -1,4 +1,6 @@
+import mongoose from 'mongoose';
 import { Expense, IExpenseDocument } from '../models/Expense';
+import { User } from '../models/User';
 
 export interface IExpenseFilters {
   category?: string;
@@ -34,8 +36,30 @@ export class ExpenseRepository {
       .skip((page - 1) * limit)
       .limit(limit)
       .exec();
+
+    const userIds = Array.from(new Set(docs.map(d => d.createdBy).filter(Boolean)));
+    const validUserIds = userIds.filter(id => mongoose.Types.ObjectId.isValid(id));
+    const users = await User.find({ _id: { $in: validUserIds } }).select('firstName lastName email').exec();
+    const userMap = new Map(users.map(u => [u._id.toString(), u]));
+
+    const populatedDocs = docs.map(doc => {
+      const docObj = doc.toJSON() as any;
+      const user = userMap.get(doc.createdBy);
+      if (user) {
+        docObj.createdByDetails = {
+          name: `${user.firstName} ${user.lastName}`,
+          email: user.email
+        };
+      } else {
+        docObj.createdByDetails = {
+          name: doc.createdBy || 'Unknown User',
+          email: ''
+        };
+      }
+      return docObj;
+    });
       
-    return { docs, total };
+    return { docs: populatedDocs, total };
   }
 
   public async findById(id: string): Promise<IExpenseDocument | null> {

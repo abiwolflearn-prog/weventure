@@ -94,6 +94,15 @@
     print-color-adjust: exact !important;
   }
 
+  body * {
+    visibility: hidden !important;
+  }
+
+  #printable-invoice, #printable-invoice *,
+  #printable-ticket, #printable-ticket * {
+    visibility: visible !important;
+  }
+
   .no-print {
     display: none !important;
   }
@@ -107,6 +116,25 @@
     margin: 0 !important;
     border-radius: 0 !important;
     page-break-inside: avoid;
+  }
+
+  #printable-ticket {
+    position: fixed !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 15cm !important;
+    height: 9.5cm !important;
+    padding: 24px !important;
+    border-radius: 20px !important;
+    background: #111827 !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    page-break-inside: avoid !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
   }
 
   @page {

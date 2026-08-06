@@ -1124,8 +1124,8 @@ export default function InvoicesPage() {
 
  {/* Invoice Details & Official Printable Modal */}
  {isDetailModalOpen && selectedInvoice && (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in no-print">
- <div className="bg-white border border-[#E5E7EB] rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-6 p-6 md:p-8">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in print:bg-white print:p-0 print:static print:z-0 print:inset-auto">
+ <div className="bg-white border border-[#E5E7EB] rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-6 p-6 md:p-8 print:p-0 print:border-none print:shadow-none print:max-h-none print:overflow-visible">
  {/* Modal Header Controls */}
  <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-4 no-print">
  <div className="flex items-center gap-2">

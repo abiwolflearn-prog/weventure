@@ -17,6 +17,10 @@ export interface IExpenseDocument extends Document {
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
+  createdByDetails?: {
+    name: string;
+    email: string;
+  };
 }
 
 const ExpenseSchema = new Schema<IExpenseDocument>(

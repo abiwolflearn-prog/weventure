@@ -267,11 +267,11 @@ export class PaymentController {
         }
       }
 
-      // Dynamic import to support ES Module runtime perfectly
+      // Dynamic import to support ES Module & CommonJS runtimes perfectly
       const PDFDocumentModule = await import('pdfkit');
-      const PDFDocument = PDFDocumentModule.default;
+      const PDFDocument = PDFDocumentModule.default || (PDFDocumentModule as any);
       const QRCodeModule = await import('qrcode');
-      const QRCode = QRCodeModule.default;
+      const QRCode = QRCodeModule.default || (QRCodeModule as any);
 
       // Create PDF Document on standard A4 paper size (595.28 x 841.89 pt) with precise, conservative margins
       const doc = new PDFDocument({ size: 'A4', margin: 35 });
@@ -375,9 +375,9 @@ export class PaymentController {
       let currentY = tableTop + 18;
       items.forEach((item: any) => {
         doc.fillColor(darkColor).font('Helvetica').fontSize(8);
-        doc.text(item.description, 45, currentY + 5, { width: 190 });
+        doc.text(item.description || `Workspace Rental Charge - ${invoice.workspaceName || 'Suite'}`, 45, currentY + 5, { width: 190 });
         doc.text(invoice.durationType || 'Hourly', 240, currentY + 5, { width: 90, align: 'center' });
-        doc.text(String(item.quantity), 340, currentY + 5, { width: 30, align: 'center' });
+        doc.text(String(item.quantity || 1), 340, currentY + 5, { width: 30, align: 'center' });
         doc.text(`${(item.unitPrice || 0).toLocaleString()} ${invoice.currency || 'ETB'}`, 380, currentY + 5, { width: 80, align: 'right' });
         doc.text(`${(item.amount || 0).toLocaleString()} ${invoice.currency || 'ETB'}`, 470, currentY + 5, { width: 80, align: 'right' });
 
