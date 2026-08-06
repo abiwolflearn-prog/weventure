@@ -197,6 +197,8 @@ export class StartupController {
         briefDescription,
         currentChallenges,
         fundingStatus,
+        uploadedFileName,
+        uploadedFileData,
       } = req.body;
 
       if (!startupName || !founderName || !email || !phone || !briefDescription) {
@@ -220,6 +222,8 @@ export class StartupController {
         briefDescription,
         currentChallenges: currentChallenges || '',
         fundingStatus: fundingStatus || 'Bootstrapped',
+        uploadedFileName: uploadedFileName || '',
+        uploadedFileData: uploadedFileData || '',
         status: 'pending',
       });
 

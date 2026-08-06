@@ -28,6 +28,8 @@ const envSchema = z.object({
   COMPANY_EMAIL: z.string().default('abiwolflearn@gmail.com'),
   FRONTEND_URL: z.string().default('http://localhost:3000'),
   APP_NAME: z.string().default('WeVentureHub'),
+  EMAIL_TEST_MODE: z.preprocess((val) => val === 'true' || val === true, z.boolean()).default(false),
+  EMAIL_TEST_RECIPIENT: z.string().default('abiwolflearn@gmail.com'),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

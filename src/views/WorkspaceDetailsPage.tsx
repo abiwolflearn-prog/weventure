@@ -452,18 +452,29 @@ export default function WorkspaceDetailsPage() {
                       : 'Request submitted! Redirecting to payment checkout...'}
                   </p>
                 </div>
+              ) : !isAuthenticated ? (
+                <div className="space-y-4 pt-2">
+                  <p className="text-[13px] text-neutral-slate-300 leading-relaxed text-center">
+                    Please sign in to select your booking dates, duration, and reserve this workspace.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="success"
+                    className="w-full flex items-center justify-center gap-2 font-bold text-[13px] py-3 rounded-[10px] shadow-sm transition-colors"
+                    onClick={() => {
+                      const targetBookingUrl = `/booking?type=workspace&id=${id}`;
+                      navigate(`/login?redirect=${encodeURIComponent(targetBookingUrl)}`);
+                    }}
+                  >
+                    <span>Sign In to Reserve</span>
+                  </Button>
+                </div>
               ) : (
                 <form onSubmit={handleBookingSubmit} className="space-y-4">
                   {formError && (
                     <div className="p-3.5 bg-rose-950/80 text-rose-400 rounded-[10px] text-[12px] font-bold flex items-center gap-2 border border-rose-900">
                       <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
                       <span>{formError}</span>
-                    </div>
-                  )}
-
-                  {!isAuthenticated && (
-                    <div className="p-3.5 bg-amber-950/80 text-amber-400 rounded-[10px] text-[12.5px] font-semibold border border-amber-900">
-                      You must be signed in to submit this booking. Proceeding will prompt login.
                     </div>
                   )}
 
@@ -579,15 +590,15 @@ export default function WorkspaceDetailsPage() {
                     </div>
 
                     {estimate.appliedRules.length > 0 && (
-                      <div className="border-t border-dashed border-neutral-800 pt-3 space-y-1.5">
-                        <p className="text-[10px] text-neutral-slate-400 font-bold uppercase tracking-wider">Applied Pricing Tiers</p>
-                        {estimate.appliedRules.map((rule) => (
-                          <div key={rule} className="flex justify-between text-brand-accent text-[11px] font-bold">
-                            <span>{rule}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                        <div className="border-t border-dashed border-neutral-800 pt-3 space-y-1.5">
+                          <p className="text-[10px] text-neutral-slate-400 font-bold uppercase tracking-wider">Applied Pricing Tiers</p>
+                          {estimate.appliedRules.map((rule) => (
+                            <div key={rule} className="flex justify-between text-brand-accent text-[11px] font-bold">
+                              <span>{rule}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
 
                     <div className="border-t border-dashed border-neutral-800 pt-3 flex justify-between items-center">
                       <span className="font-bold text-neutral-slate-300">Estimated Price:</span>

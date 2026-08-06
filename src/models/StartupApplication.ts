@@ -17,6 +17,8 @@ export interface IStartupApplicationDocument extends Document {
   briefDescription: string;
   currentChallenges?: string;
   fundingStatus?: string;
+  uploadedFileName?: string;
+  uploadedFileData?: string;
   status: 'pending' | 'under_review' | 'interview_scheduled' | 'approved' | 'rejected';
   reviewNotes?: string;
   createdAt: Date;
@@ -40,6 +42,8 @@ const StartupApplicationSchema = new Schema<IStartupApplicationDocument>(
     briefDescription: { type: String, required: true },
     currentChallenges: { type: String, default: '' },
     fundingStatus: { type: String, default: 'Bootstrapped' },
+    uploadedFileName: { type: String, default: '' },
+    uploadedFileData: { type: String, default: '' },
     status: {
       type: String,
       enum: ['pending', 'under_review', 'interview_scheduled', 'approved', 'rejected'],

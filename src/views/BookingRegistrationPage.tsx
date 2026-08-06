@@ -491,7 +491,7 @@ export default function BookingRegistrationPage() {
           {/* CONFIRMATION TYPE SPECIFIC CONTENT */}
           {isWorkspace ? (
             /* WORKSPACE CONFIRMATION - INVOICE & RESERVATION DETAILS */
-            <div className="bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden shadow-xl">
+            <div id="printable-invoice" className="bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden shadow-xl">
               <div className="bg-neutral-950 p-6 border-b border-neutral-800 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center space-x-3">
                   <div className="p-3 bg-brand-primary/20 rounded-2xl text-brand-primary">
@@ -504,7 +504,7 @@ export default function BookingRegistrationPage() {
                 </div>
                 <button 
                   onClick={() => window.print()}
-                  className="inline-flex items-center space-x-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl text-xs font-bold transition-colors"
+                  className="inline-flex items-center space-x-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl text-xs font-bold transition-colors no-print"
                 >
                   <Printer className="w-4 h-4" />
                   <span>Print Invoice</span>

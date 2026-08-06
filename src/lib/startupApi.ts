@@ -33,6 +33,8 @@ export interface StartupApplicationItem {
   briefDescription: string;
   currentChallenges?: string;
   fundingStatus?: string;
+  uploadedFileName?: string;
+  uploadedFileData?: string;
   status: 'pending' | 'under_review' | 'interview_scheduled' | 'approved' | 'rejected';
   reviewNotes?: string;
   createdAt: string;
@@ -62,6 +64,8 @@ export const startupApi = {
     briefDescription: string;
     currentChallenges?: string;
     fundingStatus?: string;
+    uploadedFileName?: string;
+    uploadedFileData?: string;
   }) {
     const { data } = await axiosInstance.post<{ success: boolean; data: { application: StartupApplicationItem }; message?: string }>(
       '/startups/apply',

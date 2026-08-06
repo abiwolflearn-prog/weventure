@@ -27,6 +27,8 @@ import {
   Compass,
   FileText,
   PieChart,
+  Upload,
+  Paperclip,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { startupApi, StartupProgramItem } from '../lib/startupApi';
@@ -56,6 +58,7 @@ export default function StartupPage() {
   const [isConsultModalOpen, setIsConsultModalOpen] = useState(false);
   const [activeFaqIdx, setActiveFaqIdx] = useState<number | null>(0);
   const [formSuccessMessage, setFormSuccessMessage] = useState<string | null>(null);
+  const [isDragActive, setIsDragActive] = useState(false);
 
   // Application form fields
   const [appForm, setAppForm] = useState({
@@ -73,6 +76,8 @@ export default function StartupPage() {
     briefDescription: '',
     currentChallenges: '',
     fundingStatus: 'Bootstrapped',
+    uploadedFileName: '',
+    uploadedFileData: '',
   });
 
   // Consultation form fields
@@ -113,6 +118,8 @@ export default function StartupPage() {
         briefDescription: '',
         currentChallenges: '',
         fundingStatus: 'Bootstrapped',
+        uploadedFileName: '',
+        uploadedFileData: '',
       });
       queryClient.invalidateQueries({ queryKey: ['startupApplications'] });
     },
@@ -143,6 +150,59 @@ export default function StartupPage() {
   const handleAppSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     submitAppMutation.mutate(appForm);
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setIsDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setIsDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      processFile(file);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      processFile(file);
+    }
+  };
+
+  const processFile = (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size exceeds the 5MB limit. Please upload a smaller file.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAppForm((prev) => ({
+        ...prev,
+        uploadedFileName: file.name,
+        uploadedFileData: reader.result as string,
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveFile = () => {
+    setAppForm((prev) => ({
+      ...prev,
+      uploadedFileName: '',
+      uploadedFileData: '',
+    }));
   };
 
   const handleConsultSubmit = (e: React.FormEvent) => {
@@ -779,6 +839,80 @@ export default function StartupPage() {
                       <option value="Seed Stage">Seed Stage Raised</option>
                       <option value="Series A+">Series A or Beyond</option>
                     </select>
+                  </div>
+                </div>
+
+                {/* Startup Pitch Deck / Documents Upload Option */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-neutral-300">
+                    Pitch Deck or Supporting Documents <span className="text-neutral-500 font-normal">(Optional)</span>
+                  </label>
+                  <p className="text-[11px] text-neutral-slate-400 font-medium leading-normal mb-3">
+                    Upload your pitch deck, company presentation, or business registration document to support your application. (PDF, DOCX, PNG, JPG - Max 5MB)
+                  </p>
+                  
+                  <div
+                    onDragEnter={handleDrag}
+                    onDragOver={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDrop={handleDrop}
+                    className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all duration-200 ${
+                      isDragActive
+                        ? 'border-brand-accent bg-brand-accent/5 scale-[0.99]'
+                        : appForm.uploadedFileName
+                        ? 'border-emerald-500/50 bg-emerald-500/5'
+                        : 'border-neutral-800 hover:border-neutral-700 bg-neutral-900/50 hover:bg-neutral-900'
+                    }`}
+                  >
+                    {appForm.uploadedFileName ? (
+                      <div className="flex flex-col items-center justify-center space-y-3">
+                        <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400">
+                          <FileText className="w-8 h-8" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xs font-bold text-white max-w-xs truncate mx-auto">
+                            {appForm.uploadedFileName}
+                          </p>
+                          <p className="text-[10px] text-emerald-400 font-bold mt-1">
+                            Document loaded successfully
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRemoveFile}
+                          className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-rose-950/40 border border-neutral-700 hover:border-rose-900/50 text-neutral-300 hover:text-rose-400 rounded-lg text-[10px] font-bold transition-all"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>Remove Document</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center space-y-3">
+                        <input
+                          id="startup-doc-upload"
+                          type="file"
+                          accept=".pdf,.docx,.doc,.png,.jpg,.jpeg"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor="startup-doc-upload"
+                          className="cursor-pointer group flex flex-col items-center space-y-3"
+                        >
+                          <div className="p-3 bg-neutral-900 border border-neutral-800 group-hover:border-neutral-700 rounded-xl text-neutral-400 group-hover:text-brand-accent transition-colors">
+                            <Upload className="w-6 h-6" />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xs font-bold text-white">
+                              Click to upload <span className="text-brand-accent font-extrabold group-hover:underline">or drag & drop</span>
+                            </p>
+                            <p className="text-[10px] text-neutral-slate-400 font-medium mt-1">
+                              PDF, DOCX, PNG or JPG up to 5MB
+                            </p>
+                          </div>
+                        </label>
+                      </div>
+                    )}
                   </div>
                 </div>
 

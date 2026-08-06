@@ -215,9 +215,16 @@ class EmailService {
           throw new Error('SMTP Transport offline');
         }
 
+        let smtpTo = payload.to;
+        if (env.EMAIL_TEST_MODE) {
+          smtpTo = env.EMAIL_TEST_RECIPIENT;
+          logger.info(`[EMAIL TEST MODE]\nOriginal recipient: ${payload.to}\nRedirected recipient: ${env.EMAIL_TEST_RECIPIENT}`);
+          logger.info(`Email redirected from ${payload.to} to test recipient ${env.EMAIL_TEST_RECIPIENT}`);
+        }
+
         const info = await this.transporter.sendMail({
           from: fromAddress,
-          to: payload.to,
+          to: smtpTo,
           subject: payload.subject,
           html: payload.html,
           text: payload.text || 'View this email in an HTML-compatible email reader',
@@ -225,7 +232,7 @@ class EmailService {
         });
 
         messageId = info.messageId;
-        logger.info(`📧 [EMAIL DELIVERED] ID: ${messageId} | Target: ${payload.to} | Subject: "${payload.subject}"`);
+        logger.info(`📧 [EMAIL DELIVERED] ID: ${messageId} | Target: ${smtpTo} | Subject: "${payload.subject}"`);
 
         // Log successful delivery
         await (EmailLog as any).create({

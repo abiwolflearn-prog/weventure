@@ -519,28 +519,69 @@ export class PublicApiController {
   public async getAbout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { AboutPage } = await import('../models/AboutPage');
-      let about = await (AboutPage as any).findOne({ tenantId: 'weventurehub' }).lean();
+      let about = await (AboutPage as any).findOne({ tenantId: 'weventurehub' }).exec();
+      const defaultCompanyDescription = 'WeVentureHub is an Entrepreneurship Support Organization (ESO), innovation hub, coworking space, and aspiring startup investment firm based in Addis Ababa, Ethiopia. We empower entrepreneurs, startups, and innovators through incubation, acceleration, mentorship, investment readiness, coworking spaces, training programs, networking events, and strategic partnerships. Since our establishment in 2023, we have been committed to helping Ethiopian startups grow, scale, and compete locally and globally.';
+      const defaultMission = 'To create an enabling and inclusive ecosystem where homegrown breakthrough ideas and technology-enabled startups are tested, nurtured, and scaled.';
+      const defaultVision = 'To mobilize a generation of breakthrough thinkers and innovators in Ethiopia and across Africa.';
+      const defaultHistory = 'Established in 2023, WeVentureHub was founded to create an enabling and inclusive ecosystem in Addis Ababa, Ethiopia. We have since committed to helping Ethiopian startups grow, scale, and compete locally and globally.';
+      const defaultCoreValues = [
+        { title: 'Curiosity', description: 'Nurturing a deep-seated desire to explore, learn, and question, driving continuous learning and discovery in every endeavor.' },
+        { title: 'Openness', description: 'Promoting transparent communication, sharing ideas freely, and welcoming diverse perspectives to build strong, collaborative relationships.' },
+        { title: 'Respect', description: 'Valuing and treating every individual with dignity, embracing inclusivity, and fostering a supportive and safe environment for all.' },
+        { title: 'Integrity', description: 'Maintaining high ethical standards, honesty, and consistency in our actions, decisions, and relationships, building long-term trust.' }
+      ];
+
       if (!about) {
-        about = {
-          mission: 'To foster high-impact entrepreneurship across East Africa by uniting founders, workspace resources, and capital.',
-          vision: 'To build Africa\'s premier interconnected ecosystem for technological innovation and collaborative workspaces.',
-          companyDescription: 'WeVentureHub is an elite innovation & coworking space located in the heart of Addis Ababa.',
-          history: 'Founded in 2024, WeVentureHub has scaled from a single coworking floor into a full-scale accelerator and event hub.',
-          coreValues: [
-            { title: 'Integrity & Trust', description: 'Excellence in service and transparent operations.' },
-            { title: 'Community First', description: 'Collaborative growth over isolated hustle.' },
-            { title: 'Innovation Driven', description: 'Leveraging cutting-edge tech and automation.' }
-          ],
+        about = await (AboutPage as any).create({
+          tenantId: 'weventurehub',
+          mission: defaultMission,
+          vision: defaultVision,
+          companyDescription: defaultCompanyDescription,
+          history: defaultHistory,
+          coreValues: defaultCoreValues,
           teamMembers: [
             { name: 'Dr. Yonas Alemu', role: 'Chief Executive Officer', bio: 'Tech visionary with 15+ years experience in African venture building.' },
             { name: 'Bethlehem Tadesse', role: 'Head of Operations', bio: 'Community architect dedicated to startup growth.' }
           ],
           timeline: [
+            { year: '2023', title: 'WeVentureHub Established', description: 'Established with a focus on empowering Ethiopian startups.' },
             { year: '2024', title: 'Hub Launched', description: 'Opened Bole Silicon Center floor.' },
             { year: '2025', title: 'Accelerator Cohort 1', description: 'Graduated 12 high-growth startups.' },
             { year: '2026', title: 'Enterprise Expansion', description: 'Integrated dynamic workspace booking engine.' }
           ]
-        };
+        });
+      } else {
+        let needsUpdate = false;
+        if (!about.companyDescription || about.companyDescription.includes('elite innovation') || about.companyDescription.includes('co-working coordination')) {
+          about.companyDescription = defaultCompanyDescription;
+          needsUpdate = true;
+        }
+        if (!about.mission || about.mission.includes('To foster high-impact')) {
+          about.mission = defaultMission;
+          needsUpdate = true;
+        }
+        if (!about.vision || about.vision.includes('To build Africa\'s premier')) {
+          about.vision = defaultVision;
+          needsUpdate = true;
+        }
+        if (!about.history || about.history.includes('Founded in 2024')) {
+          about.history = defaultHistory;
+          needsUpdate = true;
+        }
+        if (!about.coreValues || about.coreValues.length === 3 || (about.coreValues[0] && about.coreValues[0].title === 'Integrity & Trust')) {
+          about.coreValues = defaultCoreValues;
+          needsUpdate = true;
+        }
+        if (about.timeline && about.timeline.length > 0 && !about.timeline.some((item: any) => item.year === '2023')) {
+          about.timeline = [
+            { year: '2023', title: 'WeVentureHub Established', description: 'Established with a focus on empowering Ethiopian startups.' },
+            ...about.timeline
+          ];
+          needsUpdate = true;
+        }
+        if (needsUpdate) {
+          await about.save();
+        }
       }
       ApiResponse.success(res, about);
     } catch (error) {

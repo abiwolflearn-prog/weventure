@@ -148,13 +148,21 @@ export class ResendEmailService {
     const senderEmail = from || defaultFrom;
     const resend = getResendClient();
 
+    let finalRecipients = [...cleanRecipients];
+    if (env.EMAIL_TEST_MODE) {
+      const originalRecipientsStr = cleanRecipients.join(', ');
+      finalRecipients = [env.EMAIL_TEST_RECIPIENT];
+      logger.info(`[EMAIL TEST MODE]\nOriginal recipient: ${originalRecipientsStr}\nRedirected recipient: ${env.EMAIL_TEST_RECIPIENT}`);
+      logger.info(`Email redirected from ${originalRecipientsStr} to test recipient ${env.EMAIL_TEST_RECIPIENT}`);
+    }
+
     if (resend) {
       try {
-        logger.info(`📧 Sending email via Resend to ${cleanRecipients.join(', ')} | Subject: "${subject}" | From: ${senderEmail}`);
+        logger.info(`📧 Sending email via Resend to ${finalRecipients.join(', ')} | Subject: "${subject}" | From: ${senderEmail}`);
 
         const data = await resend.emails.send({
           from: senderEmail,
-          to: cleanRecipients,
+          to: finalRecipients,
           subject,
           html,
           text: text || html.replace(/<[^>]*>?/gm, ''),
@@ -187,7 +195,7 @@ export class ResendEmailService {
     }
 
     // Fallback mode when RESEND_API_KEY is not configured
-    logger.info(`ℹ️ [Resend Not Configured] Simulating email delivery to ${cleanRecipients.join(', ')} | Subject: "${subject}"`);
+    logger.info(`ℹ️ [Resend Not Configured] Simulating email delivery to ${finalRecipients.join(', ')} | Subject: "${subject}"`);
     return {
       success: true,
       messageId: `sim_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,

@@ -513,6 +513,40 @@ export default function StartupManagementPage() {
                     </p>
                   </div>
                 )}
+
+                {/* Uploaded Pitch Deck / Documents */}
+                <div>
+                  <h4 className="text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-1.5">Pitch Deck / Application Documents</h4>
+                  {selectedApp.uploadedFileName && selectedApp.uploadedFileData ? (
+                    <div className="flex items-center justify-between p-3.5 bg-[#F8FAFC] border border-gray-200 rounded-xl">
+                      <div className="flex items-center space-x-2.5 min-w-0">
+                        <div className="p-2 bg-blue-50 border border-blue-100 rounded-lg text-brand-primary">
+                          <FileText className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-[#111827] truncate">
+                            {selectedApp.uploadedFileName}
+                          </p>
+                          <p className="text-[10px] text-gray-500 font-medium">
+                            Pitch Deck / Supporting Document
+                          </p>
+                        </div>
+                      </div>
+                      <a
+                        href={selectedApp.uploadedFileData}
+                        download={selectedApp.uploadedFileName}
+                        className="inline-flex items-center space-x-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold shadow-sm transition-colors shrink-0"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download</span>
+                      </a>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-500 italic bg-[#F8FAFC] p-3.5 border border-gray-200 border-dashed rounded-xl font-medium">
+                      No supporting document uploaded with this application.
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Review & Status Section */}

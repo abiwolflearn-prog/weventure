@@ -85,37 +85,100 @@
 
 /* Printable Document & A4 Layout Optimizations */
 @media print {
-  body {
+  html, body {
     background-color: white !important;
     color: black !important;
     margin: 0 !important;
     padding: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
+  /* Hide everything on the page by default */
   body * {
     visibility: hidden !important;
   }
 
-  #printable-invoice, #printable-invoice *,
-  #printable-ticket, #printable-ticket * {
+  /* Force the printable containers and all of their descendants to be visible */
+  #printable-invoice,
+  #printable-invoice *,
+  #printable-ticket,
+  #printable-ticket * {
     visibility: visible !important;
   }
 
-  .no-print {
+  /* Guarantee all parent elements of #printable-invoice are visible and styled cleanly */
+  div:has(#printable-invoice),
+  main:has(#printable-invoice),
+  section:has(#printable-invoice) {
+    visibility: visible !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    position: static !important;
+  }
+
+  /* Guarantee all parent elements of #printable-ticket are visible and styled cleanly */
+  div:has(#printable-ticket),
+  main:has(#printable-ticket),
+  section:has(#printable-ticket) {
+    visibility: visible !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    position: static !important;
+  }
+
+  /* Hide any element explicitly marked as no-print */
+  .no-print,
+  .print\:hidden {
     display: none !important;
   }
 
+  /* Style the invoice for clean, ink-friendly, high-contrast, edge-to-edge printing */
   #printable-invoice {
+    visibility: visible !important;
+    display: block !important;
+    position: relative !important;
     border: none !important;
     box-shadow: none !important;
     padding: 1.5cm !important;
     width: 100% !important;
     max-width: 100% !important;
-    margin: 0 !important;
+    margin: 0 auto !important;
     border-radius: 0 !important;
-    page-break-inside: avoid;
+    background: white !important;
+    color: black !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Ensure all nested text is completely legible (black on white) when printing */
+  #printable-invoice p,
+  #printable-invoice span,
+  #printable-invoice td,
+  #printable-invoice th,
+  #printable-invoice div,
+  #printable-invoice h1,
+  #printable-invoice h2,
+  #printable-invoice h3,
+  #printable-invoice h4 {
+    color: #000000 !important;
+    background-color: transparent !important;
+    border-color: #E5E7EB !important;
   }
 
   #printable-ticket {
