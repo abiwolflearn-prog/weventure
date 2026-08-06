@@ -346,24 +346,48 @@ export default function InvoicesPage() {
  {/* Printable Invoice Container (visible during window.print()) */}
  <style>{`
  @media print {
- body * {
- visibility: hidden;
- }
- #printable-invoice, #printable-invoice * {
- visibility: visible;
- }
- #printable-invoice {
- position: absolute;
- left: 0;
- top: 0;
- width: 100%;
- background: white !important;
- color: black !important;
- padding: 20px;
- }
- .no-print {
- display: none !important;
- }
+   @page {
+     size: A4 portrait;
+     margin: 10mm;
+   }
+   html, body {
+     margin: 0 !important;
+     padding: 0 !important;
+     height: 100% !important;
+     overflow: hidden !important;
+     background: #ffffff !important;
+     -webkit-print-color-adjust: exact !important;
+     print-color-adjust: exact !important;
+   }
+   body * {
+     visibility: hidden !important;
+   }
+   #printable-invoice, #printable-invoice * {
+     visibility: visible !important;
+   }
+   #printable-invoice {
+     position: fixed !important;
+     left: 0 !important;
+     top: 0 !important;
+     width: 100% !important;
+     height: 100% !important;
+     max-height: 100% !important;
+     padding: 10mm !important;
+     margin: 0 !important;
+     border: none !important;
+     box-shadow: none !important;
+     background: #ffffff !important;
+     box-sizing: border-box !important;
+     display: flex !important;
+     flex-direction: column !important;
+     justify-content: space-between !important;
+     page-break-after: avoid !important;
+     page-break-before: avoid !important;
+     page-break-inside: avoid !important;
+   }
+   .no-print {
+     display: none !important;
+   }
  }
  `}</style>
 

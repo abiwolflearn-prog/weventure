@@ -243,7 +243,7 @@ export class PaymentController {
   }
 
   /**
-   * Mock / structured Invoice PDF binary download
+   * PDF Invoice binary download
    */
   public async downloadInvoicePdf(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -267,34 +267,181 @@ export class PaymentController {
         }
       }
 
-      // Generate a structured printable text format representing an invoice PDF
-      const formattedInvoiceText = `
-============================================================
-                     WEVENTUREHUB INVOICE
-============================================================
-Invoice Number: ${invoice.invoiceNumber}
-Date Generated: ${new Date(invoice.createdAt).toLocaleDateString()}
-Payment Status: ${invoice.status.toUpperCase()}
-------------------------------------------------------------
-CUSTOMER DETAILS:
-Name: ${invoice.billingDetails.name}
-Email: ${invoice.billingDetails.email}
-Phone: ${invoice.billingDetails.phone || 'N/A'}
-Company: ${invoice.billingDetails.company || 'N/A'}
-Address: ${invoice.billingDetails.address || 'N/A'}
-------------------------------------------------------------
-LINE ITEMS:
-${invoice.lineItems.map((item: any) => `- ${item.description}\n  Qty: ${item.quantity} | Unit Price: ${item.unitPrice} ${invoice.currency}\n  Total: ${item.amount} ${invoice.currency}`).join('\n')}
-------------------------------------------------------------
-GRAND TOTAL: ${invoice.amount} ${invoice.currency}
-============================================================
-Thank you for your business!
-WeVentureHub Multi-Tenant Event & Workspace Management Platform
-      `;
+      // Dynamic import to support ES Module runtime perfectly
+      const PDFDocumentModule = await import('pdfkit');
+      const PDFDocument = PDFDocumentModule.default;
+      const QRCodeModule = await import('qrcode');
+      const QRCode = QRCodeModule.default;
 
-      res.setHeader('Content-Type', 'text/plain');
-      res.setHeader('Content-Disposition', `attachment; filename=invoice-${invoice.invoiceNumber}.txt`);
-      res.status(200).send(formattedInvoiceText.trim());
+      // Create PDF Document on standard A4 paper size (595.28 x 841.89 pt) with precise, conservative margins
+      const doc = new PDFDocument({ size: 'A4', margin: 35 });
+
+      // Set headers for official PDF binary stream response
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=invoice-${invoice.invoiceNumber}.pdf`);
+      doc.pipe(res);
+
+      // --- COLOR PALETTE & STYLES ---
+      // WeVentureHub Brand Scheme: Success Green (#65A30D) and Dark Charcoal neutrals
+      const primaryColor = '#65A30D';
+      const darkColor = '#111827';
+      const textGray = '#4B5563';
+      const lightGray = '#F9FAFB';
+      const borderGray = '#E5E7EB';
+
+      // 1. TOP BRANDING HEADER
+      // Top accent banner bar
+      doc.rect(35, 35, 525, 4).fill(primaryColor);
+
+      // Left-side Identity
+      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(16).text('WEVENTUREHUB', 35, 48);
+      doc.fillColor(textGray).font('Helvetica').fontSize(8.5).text('Event & Workspace Management Platform', 35, 66);
+      doc.fontSize(8).text('Bole Road, Mega Building 4th Floor, Addis Ababa, Ethiopia', 35, 76);
+      doc.text('Email: billing@weventurehub.com | Tel: +251 11 600 8899', 35, 86);
+
+      // Right-side Meta Header
+      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(9).text('OFFICIAL INVOICE', 350, 48, { align: 'right', width: 210 });
+      doc.fontSize(14).text(invoice.invoiceNumber, 350, 60, { align: 'right', width: 210 });
+      doc.font('Helvetica').fontSize(8.5).fillColor(textGray).text(`Booking ID: ${invoice.bookingId || 'N/A'}`, 350, 76, { align: 'right', width: 210 });
+
+      // Dynamic Status Badge
+      const statusStr = String(invoice.status || '').toLowerCase();
+      const isPaid = statusStr === 'paid';
+      const statusLabel = isPaid ? 'PAID' : 'PENDING PAYMENT';
+      const badgeBg = isPaid ? '#ECFDF5' : '#FEF3C7';
+      const badgeText = isPaid ? '#047857' : '#D97706';
+
+      doc.save();
+      doc.roundedRect(460, 88, 100, 16, 4).fill(badgeBg);
+      doc.fillColor(badgeText).font('Helvetica-Bold').fontSize(7.5).text(statusLabel, 460, 92, { align: 'center', width: 100 });
+      doc.restore();
+
+      // Horizontal subtle line divider
+      doc.strokeColor(borderGray).lineWidth(1).moveTo(35, 112).lineTo(560, 112).stroke();
+
+      // 2. BILLED TO & METADATA GRID BOX
+      doc.save();
+      doc.roundedRect(35, 122, 525, 90, 6).fillAndStroke(lightGray, borderGray);
+      doc.restore();
+
+      // Left column: Billed To
+      doc.fillColor(textGray).font('Helvetica-Bold').fontSize(7.5).text('BILLED TO:', 45, 130);
+      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(9.5).text(invoice.billingDetails?.name || 'N/A', 45, 142);
+      if (invoice.billingDetails?.company) {
+        doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(8.5).text(invoice.billingDetails.company, 45, 154);
+      }
+      doc.fillColor(textGray).font('Helvetica').fontSize(8).text(invoice.billingDetails?.email || invoice.userEmail || 'N/A', 45, 165);
+      if (invoice.billingDetails?.phone) {
+        doc.text(invoice.billingDetails.phone, 45, 175);
+      }
+      doc.fontSize(7).font('Helvetica-Bold').text(`CUSTOMER TYPE: ${(invoice.customerType || 'Individual').toUpperCase()}`, 45, 188);
+
+      // Right column: Dates & Workspace Information
+      doc.fillColor(textGray).font('Helvetica-Bold').fontSize(7.5).text('INVOICE DATES & SPACE INFO:', 300, 130);
+      
+      doc.font('Helvetica').fontSize(8);
+      doc.text('Date Issued:', 300, 142);
+      doc.font('Helvetica-Bold').text(invoice.createdAt ? new Date(invoice.createdAt).toLocaleDateString() : 'N/A', 420, 142, { align: 'right', width: 130 });
+
+      doc.font('Helvetica').text('Due Date:', 300, 154);
+      doc.font('Helvetica-Bold').fillColor('#BE123C').text(invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'Immediate', 420, 154, { align: 'right', width: 130 });
+
+      doc.fillColor(textGray).font('Helvetica').text('Workspace Name:', 300, 166);
+      doc.font('Helvetica-Bold').fillColor(darkColor).text(invoice.workspaceName || 'Executive Workspace', 420, 166, { align: 'right', width: 130 });
+
+      doc.fillColor(textGray).font('Helvetica').text('Billing Period:', 300, 178);
+      doc.font('Helvetica-Bold').text(invoice.billingPeriod || 'Current Cycle', 420, 178, { align: 'right', width: 130 });
+
+      // 3. TABLE OF LINE ITEMS (Compact heights to guarantee single-page fit)
+      const tableTop = 225;
+      doc.save().rect(35, tableTop, 525, 18).fill(darkColor);
+
+      doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(7.5);
+      doc.text('Description', 45, tableTop + 5);
+      doc.text('Duration / Plan', 240, tableTop + 5, { width: 90, align: 'center' });
+      doc.text('Qty', 340, tableTop + 5, { width: 30, align: 'center' });
+      doc.text('Unit Price', 380, tableTop + 5, { width: 80, align: 'right' });
+      doc.text('Total Amount', 470, tableTop + 5, { width: 80, align: 'right' });
+      doc.restore();
+
+      // Populate row items
+      const items = invoice.lineItems && invoice.lineItems.length > 0 ? invoice.lineItems : [{
+        description: `Tenancy Workspace Rental Charge - ${invoice.workspaceName || 'Executive Suite'}`,
+        quantity: invoice.durationQuantity || 1,
+        unitPrice: invoice.unitPrice || invoice.amount || 0,
+        amount: invoice.amount || 0
+      }];
+
+      let currentY = tableTop + 18;
+      items.forEach((item: any) => {
+        doc.fillColor(darkColor).font('Helvetica').fontSize(8);
+        doc.text(item.description, 45, currentY + 5, { width: 190 });
+        doc.text(invoice.durationType || 'Hourly', 240, currentY + 5, { width: 90, align: 'center' });
+        doc.text(String(item.quantity), 340, currentY + 5, { width: 30, align: 'center' });
+        doc.text(`${(item.unitPrice || 0).toLocaleString()} ${invoice.currency || 'ETB'}`, 380, currentY + 5, { width: 80, align: 'right' });
+        doc.text(`${(item.amount || 0).toLocaleString()} ${invoice.currency || 'ETB'}`, 470, currentY + 5, { width: 80, align: 'right' });
+
+        currentY += 20;
+        doc.strokeColor(borderGray).lineWidth(0.5).moveTo(35, currentY).lineTo(560, currentY).stroke();
+      });
+
+      // 4. LOWER SECTION: PAYMENTS, QR CODE & GRAND TOTALS
+      const totalsY = currentY + 12;
+
+      // Draw QR Code
+      try {
+        const qrContent = `Invoice: ${invoice.invoiceNumber}\nAmount: ${invoice.grandTotal || invoice.amount} ${invoice.currency}\nStatus: ${invoice.status}`;
+        const qrDataUrl = await QRCode.toDataURL(qrContent, { margin: 1, width: 110 });
+        const qrBuffer = Buffer.from(qrDataUrl.split(',')[1], 'base64');
+        doc.image(qrBuffer, 35, totalsY, { width: 75, height: 75 });
+      } catch (qrErr) {
+        console.error('Failed to embed QR code in PDF:', qrErr);
+      }
+
+      // Payment Terms info block
+      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(7.5).text('Payment Terms & Instructions:', 125, totalsY);
+      doc.fillColor(textGray).font('Helvetica').fontSize(7);
+      doc.text('Please process your invoice payments via our integrated payment portal (supporting ArifPay, Telebirr, CBE, or Chapa). All workspace tenancy invoices include standard 15% VAT compliance tax.', 125, totalsY + 10, { width: 210, lineGap: 1.5 });
+
+      // Right Column Financial breakdown
+      doc.fillColor(textGray).font('Helvetica').fontSize(8);
+      doc.text('Subtotal Amount:', 350, totalsY);
+      doc.text(`${(invoice.amount || 0).toLocaleString()} ${invoice.currency || 'ETB'}`, 470, totalsY, { align: 'right', width: 80 });
+
+      doc.text('VAT (15% Tax):', 350, totalsY + 12);
+      doc.text(`${(invoice.vat || 0).toLocaleString()} ${invoice.currency || 'ETB'}`, 470, totalsY + 12, { align: 'right', width: 80 });
+
+      let financialY = totalsY + 24;
+      if (invoice.discount > 0) {
+        doc.fillColor(primaryColor);
+        doc.text('Discount Applied:', 350, financialY);
+        doc.text(`-${(invoice.discount || 0).toLocaleString()} ${invoice.currency || 'ETB'}`, 470, financialY, { align: 'right', width: 80 });
+        financialY += 12;
+      }
+
+      // Thin divider
+      doc.strokeColor('#D1D5DB').lineWidth(0.75).moveTo(350, financialY).lineTo(560, financialY).stroke();
+
+      // Grand Total display
+      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(10);
+      doc.text('Grand Total:', 350, financialY + 6);
+      doc.fillColor(primaryColor).text(`${(invoice.grandTotal || invoice.amount || 0).toLocaleString()} ${invoice.currency || 'ETB'}`, 470, financialY + 6, { align: 'right', width: 80 });
+
+      // 5. STABLE SINGLE-PAGE FOOTER SIGNATURES (Anchored to exact bottom range of standard A4)
+      const footerY = 745;
+      doc.strokeColor(borderGray).lineWidth(1).moveTo(35, footerY - 8).lineTo(560, footerY - 8).stroke();
+
+      doc.fillColor(textGray).font('Helvetica').fontSize(7.5);
+      doc.text('WeVentureHub Finance Department', 35, footerY);
+      doc.text('Thank you for choosing WeVentureHub Workspace Solutions!', 35, footerY + 10);
+
+      // Authorized signature line
+      doc.strokeColor('#9CA3AF').lineWidth(0.75).moveTo(380, footerY + 10).lineTo(540, footerY + 10).stroke();
+      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(7.5);
+      doc.text('Authorized Stamp & Signature', 380, footerY + 14, { width: 160, align: 'center' });
+
+      doc.end();
+
     } catch (error) {
       next(error);
     }

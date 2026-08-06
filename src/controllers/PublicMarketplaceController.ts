@@ -948,113 +948,124 @@ export class PublicMarketplaceController {
 
       const savedReg = await registration.save();
 
-      // Add to Analytics/CRM Activity
-      const { Activity } = await import('../models/Activity');
-      await Activity.create({
-        tenantId: event.tenantId || 'weventurehub',
-        userId: 'guest_rsvp',
-        userEmail: email,
-        userName: name,
-        action: 'RSVP_SUBMITTED',
-        resourceType: 'EVENT',
-        resourceId: event._id.toString(),
-        details: {
-          description: `User ${name} registered for event ${event.title}`,
-          registrationId: savedReg._id
+      // Update active registrations on the event using lightweight atomic update
+      if (event.capacity) {
+        await Event.updateOne(
+          { _id: event._id },
+          { $inc: { 'capacity.activeRegistrations': guestNum } }
+        );
+      } else {
+        await Event.updateOne(
+          { _id: event._id },
+          { $set: { capacity: { maxCapacity: 0, activeRegistrations: guestNum, isUnlimited: true } } }
+        );
+      }
+
+      // Send HTTP response immediately so the user experiences zero delay
+      ApiResponse.success(res, savedReg, 201, { message: 'RSVP submitted successfully! Your digital ticket is on its way.' });
+
+      // Perform background tasks (Analytics Activity log and Email dispatch) asynchronously without blocking response
+      setImmediate(async () => {
+        try {
+          const { Activity } = await import('../models/Activity');
+          await Activity.create({
+            tenantId: event.tenantId || 'weventurehub',
+            userId: 'guest_rsvp',
+            userEmail: email,
+            userName: name,
+            action: 'RSVP_SUBMITTED',
+            resourceType: 'EVENT',
+            resourceId: event._id.toString(),
+            details: {
+              description: `User ${name} registered for event ${event.title}`,
+              registrationId: savedReg._id
+            }
+          });
+        } catch (actErr) {
+          console.error('[RSVP Background Task] Failed to record activity:', actErr);
+        }
+
+        try {
+          const emailSettings = event.rsvpEmailSettings?.confirmationEmail;
+          const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${ticketNumber}`;
+          const eventDate = event.schedule?.startDate ? new Date(event.schedule.startDate).toLocaleString() : 'TBD';
+          
+          let emailHtml = '';
+          let subject = `RSVP Confirmed: ${event.title}`;
+          
+          if (emailSettings && emailSettings.enabled) {
+            subject = emailSettings.subject.replace('{name}', name).replace('{event_title}', event.title).replace('{event_date}', eventDate);
+            emailHtml = `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 12px; background-color: #FFFFFF;">
+                <div style="white-space: pre-wrap; color: #4B5563; font-size: 14px; line-height: 1.6; margin-bottom: 25px;">
+                  ${emailSettings.body.replace('{name}', name).replace('{event_title}', event.title).replace('{event_date}', eventDate)}
+                </div>
+                
+                ${emailSettings.attachTicket || emailSettings.attachQrCode ? `
+                  <div style="text-align: center; border: 1px dashed #84CC16; border-radius: 12px; padding: 25px; background-color: #FDFDFD;">
+                    <span style="font-size: 12px; font-weight: bold; color: #84CC16; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 10px;">Digital Admission Pass</span>
+                    <div style="margin-bottom: 15px;">
+                      <img src="${qrCodeUrl}" alt="Ticket QR Code" style="border: 4px solid #111827; border-radius: 8px; width: 150px; height: 150px;" />
+                    </div>
+                    <div style="font-family: monospace; font-size: 18px; font-weight: bold; color: #111827; margin-bottom: 5px;">
+                      Ticket ID: ${ticketNumber}
+                    </div>
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          } else {
+            emailHtml = `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 12px; background-color: #FFFFFF;">
+                <div style="text-align: center; border-bottom: 2px solid #84CC16; padding-bottom: 15px; margin-bottom: 20px;">
+                  <h1 style="color: #111827; font-size: 24px; margin: 0;">WeVentureHub RSVP Confirmed</h1>
+                  <p style="color: #4B5563; font-size: 14px; margin: 5px 0 0 0;">Your spot is reserved!</p>
+                </div>
+                
+                <div style="margin-bottom: 25px;">
+                  <p style="font-size: 16px; color: #111827;">Hello <strong>${name}</strong>,</p>
+                  <p style="font-size: 14px; color: #4B5563; line-height: 1.6;">
+                    Thank you for RSVPing for <strong>${event.title}</strong>. We are thrilled to host you! Below are your event registration and digital ticket details.
+                  </p>
+                </div>
+
+                <div style="background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; padding: 15px; margin-bottom: 25px;">
+                  <h3 style="margin-top: 0; color: #111827; font-size: 16px; border-bottom: 1px solid #E5E7EB; padding-bottom: 8px;">Event Details</h3>
+                  <table style="width: 100%; font-size: 14px; color: #4B5563;">
+                    <tr>
+                      <td style="padding: 4px 0; font-weight: bold; width: 120px;">Event Name:</td>
+                      <td style="padding: 4px 0; color: #111827;">${event.title}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 4px 0; font-weight: bold;">Date & Time:</td>
+                      <td style="padding: 4px 0; color: #111827;">${eventDate}</td>
+                    </tr>
+                  </table>
+                </div>
+
+                <div style="text-align: center; border: 1px dashed #84CC16; border-radius: 12px; padding: 25px; background-color: #FDFDFD;">
+                  <span style="font-size: 12px; font-weight: bold; color: #84CC16; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 10px;">Digital Admission Pass</span>
+                  <div style="margin-bottom: 15px;">
+                    <img src="${qrCodeUrl}" alt="Ticket QR Code" style="border: 4px solid #111827; border-radius: 8px; width: 150px; height: 150px;" />
+                  </div>
+                  <div style="font-family: monospace; font-size: 18px; font-weight: bold; color: #111827; margin-bottom: 5px;">
+                    Ticket ID: ${ticketNumber}
+                  </div>
+                </div>
+              </div>
+            `;
+          }
+
+          await emailNotificationManager.sendCustomRsvpEmail({
+            to: email.toLowerCase(),
+            recipientName: name,
+            subject: subject,
+            html: emailHtml
+          });
+        } catch (emailErr) {
+          console.error('[RSVP Background Task] Failed to send confirmation email:', emailErr);
         }
       });
-
-      // Update active registrations on the event
-      if (event.capacity) {
-        event.capacity.activeRegistrations = currentCount + guestNum;
-      } else {
-        event.capacity = {
-          maxCapacity: 0,
-          activeRegistrations: guestNum,
-          isUnlimited: true
-        };
-      }
-      await event.save();
-
-      // Send Confirmation Email using custom settings if available
-      const emailSettings = event.rsvpEmailSettings?.confirmationEmail;
-      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${ticketNumber}`;
-      const eventDate = event.schedule?.startDate ? new Date(event.schedule.startDate).toLocaleString() : 'TBD';
-      
-      let emailHtml = '';
-      let subject = `RSVP Confirmed: ${event.title}`;
-      
-      if (emailSettings && emailSettings.enabled) {
-        subject = emailSettings.subject.replace('{name}', name).replace('{event_title}', event.title).replace('{event_date}', eventDate);
-        emailHtml = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 12px; background-color: #FFFFFF;">
-            <div style="white-space: pre-wrap; color: #4B5563; font-size: 14px; line-height: 1.6; margin-bottom: 25px;">
-              ${emailSettings.body.replace('{name}', name).replace('{event_title}', event.title).replace('{event_date}', eventDate)}
-            </div>
-            
-            ${emailSettings.attachTicket || emailSettings.attachQrCode ? `
-              <div style="text-align: center; border: 1px dashed #84CC16; border-radius: 12px; padding: 25px; background-color: #FDFDFD;">
-                <span style="font-size: 12px; font-weight: bold; color: #84CC16; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 10px;">Digital Admission Pass</span>
-                <div style="margin-bottom: 15px;">
-                  <img src="${qrCodeUrl}" alt="Ticket QR Code" style="border: 4px solid #111827; border-radius: 8px; width: 150px; height: 150px;" />
-                </div>
-                <div style="font-family: monospace; font-size: 18px; font-weight: bold; color: #111827; margin-bottom: 5px;">
-                  Ticket ID: ${ticketNumber}
-                </div>
-              </div>
-            ` : ''}
-          </div>
-        `;
-      } else {
-        emailHtml = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 12px; background-color: #FFFFFF;">
-            <div style="text-align: center; border-bottom: 2px solid #84CC16; padding-bottom: 15px; margin-bottom: 20px;">
-              <h1 style="color: #111827; font-size: 24px; margin: 0;">WeVentureHub RSVP Confirmed</h1>
-              <p style="color: #4B5563; font-size: 14px; margin: 5px 0 0 0;">Your spot is reserved!</p>
-            </div>
-            
-            <div style="margin-bottom: 25px;">
-              <p style="font-size: 16px; color: #111827;">Hello <strong>${name}</strong>,</p>
-              <p style="font-size: 14px; color: #4B5563; line-height: 1.6;">
-                Thank you for RSVPing for <strong>${event.title}</strong>. We are thrilled to host you! Below are your event registration and digital ticket details.
-              </p>
-            </div>
-
-            <div style="background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; padding: 15px; margin-bottom: 25px;">
-              <h3 style="margin-top: 0; color: #111827; font-size: 16px; border-bottom: 1px solid #E5E7EB; padding-bottom: 8px;">Event Details</h3>
-              <table style="width: 100%; font-size: 14px; color: #4B5563;">
-                <tr>
-                  <td style="padding: 4px 0; font-weight: bold; width: 120px;">Event Name:</td>
-                  <td style="padding: 4px 0; color: #111827;">${event.title}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 4px 0; font-weight: bold;">Date & Time:</td>
-                  <td style="padding: 4px 0; color: #111827;">${eventDate}</td>
-                </tr>
-              </table>
-            </div>
-
-            <div style="text-align: center; border: 1px dashed #84CC16; border-radius: 12px; padding: 25px; background-color: #FDFDFD;">
-              <span style="font-size: 12px; font-weight: bold; color: #84CC16; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 10px;">Digital Admission Pass</span>
-              <div style="margin-bottom: 15px;">
-                <img src="${qrCodeUrl}" alt="Ticket QR Code" style="border: 4px solid #111827; border-radius: 8px; width: 150px; height: 150px;" />
-              </div>
-              <div style="font-family: monospace; font-size: 18px; font-weight: bold; color: #111827; margin-bottom: 5px;">
-                Ticket ID: ${ticketNumber}
-              </div>
-            </div>
-          </div>
-        `;
-      }
-
-      await emailNotificationManager.sendCustomRsvpEmail({
-        to: email.toLowerCase(),
-        recipientName: name,
-        subject: subject,
-        html: emailHtml
-      });
-
-      ApiResponse.success(res, savedReg, 201, { message: 'RSVP submitted successfully! Your digital ticket is on its way.' });
     } catch (error) {
       next(error);
     }

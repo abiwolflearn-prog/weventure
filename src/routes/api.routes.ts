@@ -26,6 +26,9 @@ import expenseRouter from './expense.routes';
 
 const apiRouter = Router();
 
+// Apply tenantContext middleware to set req.tenantId across all routes
+apiRouter.use(tenantContext);
+
 
 // Mount public marketplace module
 apiRouter.use('/public', publicRouter);
