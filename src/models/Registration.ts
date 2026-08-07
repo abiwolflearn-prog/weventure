@@ -11,6 +11,7 @@ export interface IRegistrationDocument extends Document {
   ticketTypeId?: string;
   ticketNumber: string;
   qrCode: string;
+  verificationToken?: string;
   attendeeName: string;
   attendeeEmail: string;
   status: RegistrationStatus;
@@ -32,6 +33,7 @@ const RegistrationSchema = new Schema<IRegistrationDocument>(
     ticketTypeId: { type: String },
     ticketNumber: { type: String, required: true, unique: true, index: true },
     qrCode: { type: String, required: true },
+    verificationToken: { type: String, unique: true, sparse: true, index: true },
     attendeeName: { type: String, required: true, trim: true },
     attendeeEmail: { type: String, required: true, index: true, trim: true },
     status: {

@@ -10,6 +10,7 @@ import { Testimonial } from '../models/Testimonial';
 import { Payment, PaymentStatus } from '../models/Payment';
 import { Invoice, InvoiceStatus } from '../models/Invoice';
 import { notificationService } from '../services/NotificationService';
+import { emailNotificationManager } from '../services/EmailNotificationManager';
 import { Tenant } from '../models/Tenant';
 import { ApiResponse } from '../utils/response';
 import { EventStatus, EventVisibility } from '../types';
@@ -715,7 +716,15 @@ export class PublicApiController {
 
       await newContact.save();
 
-      ApiResponse.success(res, { success: true, message: 'Inquiry saved successfully.' });
+      // Send Email Notification (both admin and customer)
+      await emailNotificationManager.sendContactFormNotification({
+        customerName: name,
+        customerEmail: email.toLowerCase(),
+        subject: 'Inquiry regarding WeVentureHub Workspaces/Events',
+        message,
+      });
+
+      ApiResponse.success(res, { success: true, message: 'Inquiry saved successfully. Notification email sent.' });
     } catch (error) {
       next(error);
     }

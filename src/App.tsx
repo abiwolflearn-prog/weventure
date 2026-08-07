@@ -53,6 +53,7 @@ import CreateWorkspacePage from './views/CreateWorkspacePage';
 import CreateEventPage from './views/CreateEventPage';
 import PricingRulesPage from './views/PricingRulesPage';
 import PublicRsvpPage from './views/PublicRsvpPage';
+import PublicTicketPage from './views/PublicTicketPage';
 
 /**
  * Access Guard to restrict access to authenticated members/admins
@@ -125,6 +126,9 @@ export default function App() {
                 <Route path="/get-started" element={<GetStartedPage />} />
                 <Route path="/booking" element={<BookingRegistrationPage />} />
               </Route>
+
+              {/* Standalone Secure Ticket View */}
+              <Route path="/tickets/:id" element={<PublicTicketPage />} />
 
               {/* Authentication Layer - Separate Portals */}
               <Route element={<AuthLayout />}>

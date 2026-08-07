@@ -8,6 +8,8 @@ import { Registration } from '../models/Registration';
 import { ApiResponse } from '../utils/response';
 import { EventStatus, EventVisibility, TicketStatus, TenantStatus } from '../types';
 import { emailNotificationManager } from '../services/EmailNotificationManager';
+import crypto from 'crypto';
+import QRCode from 'qrcode';
 
 export class PublicMarketplaceController {
   /**
@@ -911,8 +913,9 @@ export class PublicMarketplaceController {
         return;
       }
 
-      // Generate Ticket Number
+      // Generate Ticket Number and Secure Verification Token
       const ticketNumber = 'RSVP-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+      const secureToken = crypto.randomBytes(24).toString('hex');
 
       // Ensure we have activeRegistrations tracked
       const currentCount = event.capacity?.activeRegistrations || 0;
@@ -925,14 +928,15 @@ export class PublicMarketplaceController {
         }
       }
 
-      // Save Registration
+      // Pre-instantiate Registration to access its automatic ObjectId (_id)
       const registration = new Registration({
         tenantId: event.tenantId || 'weventurehub',
         userId: 'guest_rsvp',
         userEmail: email.toLowerCase(),
         eventId: event._id.toString(),
         ticketNumber: ticketNumber,
-        qrCode: ticketNumber,
+        verificationToken: secureToken,
+        qrCode: ticketNumber, // will be replaced with high-quality QR base64 code below
         attendeeName: name,
         attendeeEmail: email.toLowerCase(),
         status: 'CONFIRMED',
@@ -945,6 +949,24 @@ export class PublicMarketplaceController {
           ...answers
         }
       });
+
+      // Generate secure verification URL and branded high-quality QR Code
+      const frontendUrl = process.env.FRONTEND_URL || process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+      const verificationUrl = `${frontendUrl}/#/tickets/${registration._id}?token=${secureToken}`;
+
+      try {
+        const qrCodeDataUrl = await QRCode.toDataURL(verificationUrl, {
+          color: {
+            dark: '#0f172a', // Brand Dark Slate
+            light: '#ffffff' // High-contrast White background
+          },
+          width: 400,
+          margin: 2
+        });
+        registration.qrCode = qrCodeDataUrl;
+      } catch (qrErr) {
+        console.error('Failed to pre-generate QR code base64 Data URL:', qrErr);
+      }
 
       const savedReg = await registration.save();
 
@@ -961,7 +983,7 @@ export class PublicMarketplaceController {
         );
       }
 
-      // Send HTTP response immediately so the user experiences zero delay
+      // Send HTTP response immediately with the full ticket detail so the user has it instantly
       ApiResponse.success(res, savedReg, 201, { message: 'RSVP submitted successfully! Your digital ticket is on its way.' });
 
       // Perform background tasks (Analytics Activity log and Email dispatch) asynchronously without blocking response
@@ -987,70 +1009,149 @@ export class PublicMarketplaceController {
 
         try {
           const emailSettings = event.rsvpEmailSettings?.confirmationEmail;
-          const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${ticketNumber}`;
-          const eventDate = event.schedule?.startDate ? new Date(event.schedule.startDate).toLocaleString() : 'TBD';
+          const eventDate = event.schedule?.startDate ? new Date(event.schedule.startDate).toLocaleString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }) : 'TBD';
           
           let emailHtml = '';
           let subject = `RSVP Confirmed: ${event.title}`;
-          
+          const qrCodeUrlToRender = savedReg.qrCode || `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}`;
+
           if (emailSettings && emailSettings.enabled) {
             subject = emailSettings.subject.replace('{name}', name).replace('{event_title}', event.title).replace('{event_date}', eventDate);
+            const customBody = emailSettings.body.replace('{name}', name).replace('{event_title}', event.title).replace('{event_date}', eventDate);
+            
+            // Render beautiful custom body enclosed in our brand container
             emailHtml = `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 12px; background-color: #FFFFFF;">
-                <div style="white-space: pre-wrap; color: #4B5563; font-size: 14px; line-height: 1.6; margin-bottom: 25px;">
-                  ${emailSettings.body.replace('{name}', name).replace('{event_title}', event.title).replace('{event_date}', eventDate)}
+              <div style="background-color: #0F172A; text-align: center; padding: 25px 20px; border-top-left-radius: 16px; border-top-right-radius: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                <span style="font-size: 24px; font-weight: 900; color: #FFFFFF; letter-spacing: -0.5px;">
+                  We<span style="color: #A3E635;">Venture</span>Hub
+                </span>
+                <p style="color: #CBD5E1; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; margin: 4px 0 0 0; font-weight: 700;">Event &amp; Workspace Management Platform</p>
+              </div>
+              <div style="height: 3px; background: linear-gradient(90deg, #A3E635 0%, #22D3EE 100%);"></div>
+              
+              <div style="background-color: #0F172A; padding: 30px 25px; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                <div style="white-space: pre-wrap; color: #CBD5E1; font-size: 14px; line-height: 1.6; margin-bottom: 25px;">
+                  ${customBody}
                 </div>
                 
                 ${emailSettings.attachTicket || emailSettings.attachQrCode ? `
-                  <div style="text-align: center; border: 1px dashed #84CC16; border-radius: 12px; padding: 25px; background-color: #FDFDFD;">
-                    <span style="font-size: 12px; font-weight: bold; color: #84CC16; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 10px;">Digital Admission Pass</span>
-                    <div style="margin-bottom: 15px;">
-                      <img src="${qrCodeUrl}" alt="Ticket QR Code" style="border: 4px solid #111827; border-radius: 8px; width: 150px; height: 150px;" />
+                  <div style="background-color: #1E293B; border: 2px dashed #A3E635; border-radius: 16px; padding: 30px 20px; text-align: center; margin-bottom: 30px;">
+                    <span style="font-size: 11px; font-weight: 900; color: #A3E635; text-transform: uppercase; letter-spacing: 2px; display: block; margin-bottom: 15px;">Digital Admission Ticket</span>
+                    <div style="margin-bottom: 20px;">
+                      <img src="${qrCodeUrlToRender}" alt="Admission QR Code" style="border: 6px solid #FFFFFF; border-radius: 12px; width: 180px; height: 180px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);" />
                     </div>
-                    <div style="font-family: monospace; font-size: 18px; font-weight: bold; color: #111827; margin-bottom: 5px;">
-                      Ticket ID: ${ticketNumber}
+                    <div style="font-family: monospace; font-size: 18px; font-weight: bold; color: #FFFFFF; margin-bottom: 5px;">
+                      ID: ${savedReg._id}
+                    </div>
+                    <div style="font-family: monospace; font-size: 14px; color: #CBD5E1; margin-bottom: 10px;">
+                      Ticket No: ${ticketNumber}
+                    </div>
+                    <div style="display: inline-block; background-color: #22C55E; color: #FFFFFF; font-size: 11px; font-weight: 900; padding: 5px 12px; border-radius: 8px; text-transform: uppercase; letter-spacing: 1px;">
+                      CONFIRMED
                     </div>
                   </div>
                 ` : ''}
+
+                <div style="text-align: center; margin-bottom: 30px;">
+                  <a href="${verificationUrl}" style="display: inline-block; background: linear-gradient(90deg, #A3E635 0%, #22D3EE 100%); color: #0F172A; font-weight: 900; font-size: 14px; text-decoration: none; padding: 14px 28px; border-radius: 12px; box-shadow: 0 4px 12px rgba(163,230,53,0.3); margin-right: 10px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    View Digital Ticket
+                  </a>
+                  <a href="${verificationUrl}&download=true" style="display: inline-block; background-color: #1E293B; border: 1px solid rgba(255,255,255,0.15); color: #FFFFFF; font-weight: 700; font-size: 14px; text-decoration: none; padding: 14px 28px; border-radius: 12px; margin-bottom: 10px;">
+                    Download PDF
+                  </a>
+                </div>
+
+                <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 20px; font-size: 12px; color: #CBD5E1; text-align: center; line-height: 1.6;">
+                  <p style="margin: 0 0 8px 0; font-weight: 700; color: #FFFFFF;">Organized by WeVentureHub Community Team</p>
+                  <p style="margin: 0 0 15px 0;">If you have any questions, reply directly to this email or contact support.</p>
+                  <p style="margin: 0; font-size: 10px; color: #64748B; text-transform: uppercase; letter-spacing: 1px;">&copy; 2026 WeVentureHub. All Rights Reserved.</p>
+                </div>
               </div>
             `;
           } else {
             emailHtml = `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 12px; background-color: #FFFFFF;">
-                <div style="text-align: center; border-bottom: 2px solid #84CC16; padding-bottom: 15px; margin-bottom: 20px;">
-                  <h1 style="color: #111827; font-size: 24px; margin: 0;">WeVentureHub RSVP Confirmed</h1>
-                  <p style="color: #4B5563; font-size: 14px; margin: 5px 0 0 0;">Your spot is reserved!</p>
-                </div>
-                
-                <div style="margin-bottom: 25px;">
-                  <p style="font-size: 16px; color: #111827;">Hello <strong>${name}</strong>,</p>
-                  <p style="font-size: 14px; color: #4B5563; line-height: 1.6;">
-                    Thank you for RSVPing for <strong>${event.title}</strong>. We are thrilled to host you! Below are your event registration and digital ticket details.
-                  </p>
-                </div>
+              <div style="background-color: #0F172A; text-align: center; padding: 25px 20px; border-top-left-radius: 16px; border-top-right-radius: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                <span style="font-size: 24px; font-weight: 900; color: #FFFFFF; letter-spacing: -0.5px;">
+                  We<span style="color: #A3E635;">Venture</span>Hub
+                </span>
+                <p style="color: #CBD5E1; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; margin: 4px 0 0 0; font-weight: 700;">Event &amp; Workspace Management Platform</p>
+              </div>
+              <div style="height: 3px; background: linear-gradient(90deg, #A3E635 0%, #22D3EE 100%);"></div>
+              
+              <div style="background-color: #0F172A; padding: 30px 25px; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                <h1 style="font-size: 26px; font-weight: 800; text-align: center; margin-bottom: 20px; background: linear-gradient(90deg, #A3E635 0%, #22D3EE 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; color: #A3E635;">
+                  RSVP Successfully Confirmed
+                </h1>
 
-                <div style="background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; padding: 15px; margin-bottom: 25px;">
-                  <h3 style="margin-top: 0; color: #111827; font-size: 16px; border-bottom: 1px solid #E5E7EB; padding-bottom: 8px;">Event Details</h3>
-                  <table style="width: 100%; font-size: 14px; color: #4B5563;">
+                <p style="font-size: 15px; line-height: 1.6; color: #CBD5E1; margin-bottom: 25px; text-align: center;">
+                  Hello <strong>${name}</strong>, your spot has been secured! We are thrilled to host you at WeVentureHub. Below is your professional digital admission pass.
+                </p>
+
+                <div style="background-color: #1E293B; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; margin-bottom: 30px;">
+                  <h3 style="color: #A3E635; margin-top: 0; font-size: 16px; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px; margin-bottom: 15px;">
+                    Event Details
+                  </h3>
+                  <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
                     <tr>
-                      <td style="padding: 4px 0; font-weight: bold; width: 120px;">Event Name:</td>
-                      <td style="padding: 4px 0; color: #111827;">${event.title}</td>
+                      <td style="padding: 6px 0; font-weight: 700; color: #CBD5E1; width: 120px; vertical-align: top;">Event Name:</td>
+                      <td style="padding: 6px 0; color: #FFFFFF; font-weight: 800;">${event.title}</td>
                     </tr>
                     <tr>
-                      <td style="padding: 4px 0; font-weight: bold;">Date & Time:</td>
-                      <td style="padding: 4px 0; color: #111827;">${eventDate}</td>
+                      <td style="padding: 6px 0; font-weight: 700; color: #CBD5E1; vertical-align: top;">Date &amp; Time:</td>
+                      <td style="padding: 6px 0; color: #FFFFFF;">${eventDate}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 6px 0; font-weight: 700; color: #CBD5E1; vertical-align: top;">Venue:</td>
+                      <td style="padding: 6px 0; color: #FFFFFF;">WeVentureHub Suite &amp; Hall</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 6px 0; font-weight: 700; color: #CBD5E1; vertical-align: top;">Attendee:</td>
+                      <td style="padding: 6px 0; color: #FFFFFF;">${name}</td>
                     </tr>
                   </table>
                 </div>
 
-                <div style="text-align: center; border: 1px dashed #84CC16; border-radius: 12px; padding: 25px; background-color: #FDFDFD;">
-                  <span style="font-size: 12px; font-weight: bold; color: #84CC16; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 10px;">Digital Admission Pass</span>
-                  <div style="margin-bottom: 15px;">
-                    <img src="${qrCodeUrl}" alt="Ticket QR Code" style="border: 4px solid #111827; border-radius: 8px; width: 150px; height: 150px;" />
+                <div style="background-color: #1E293B; border: 2px dashed #A3E635; border-radius: 16px; padding: 30px 20px; text-align: center; margin-bottom: 30px;">
+                  <span style="font-size: 11px; font-weight: 900; color: #A3E635; text-transform: uppercase; letter-spacing: 2px; display: block; margin-bottom: 15px;">
+                    Digital Admission Ticket
+                  </span>
+                  
+                  <div style="margin-bottom: 20px;">
+                    <img src="${qrCodeUrlToRender}" alt="Admission QR Code" style="border: 6px solid #FFFFFF; border-radius: 12px; width: 180px; height: 180px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);" />
                   </div>
-                  <div style="font-family: monospace; font-size: 18px; font-weight: bold; color: #111827; margin-bottom: 5px;">
-                    Ticket ID: ${ticketNumber}
+
+                  <div style="font-family: monospace; font-size: 18px; font-weight: bold; color: #FFFFFF; margin-bottom: 5px;">
+                    ID: ${savedReg._id}
                   </div>
+                  <div style="font-family: monospace; font-size: 14px; color: #CBD5E1; margin-bottom: 10px;">
+                    Ticket No: ${ticketNumber}
+                  </div>
+                  
+                  <div style="display: inline-block; background-color: #22C55E; color: #FFFFFF; font-size: 11px; font-weight: 900; padding: 5px 12px; border-radius: 8px; text-transform: uppercase; letter-spacing: 1px;">
+                    CONFIRMED
+                  </div>
+                </div>
+
+                <div style="text-align: center; margin-bottom: 30px;">
+                  <a href="${verificationUrl}" style="display: inline-block; background: linear-gradient(90deg, #A3E635 0%, #22D3EE 100%); color: #0F172A; font-weight: 900; font-size: 14px; text-decoration: none; padding: 14px 28px; border-radius: 12px; box-shadow: 0 4px 12px rgba(163,230,53,0.3); margin-right: 10px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    View Digital Ticket
+                  </a>
+                  <a href="${verificationUrl}&download=true" style="display: inline-block; background-color: #1E293B; border: 1px solid rgba(255,255,255,0.15); color: #FFFFFF; font-weight: 700; font-size: 14px; text-decoration: none; padding: 14px 28px; border-radius: 12px; margin-bottom: 10px;">
+                    Download PDF
+                  </a>
+                </div>
+
+                <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 20px; font-size: 12px; color: #CBD5E1; text-align: center; line-height: 1.6;">
+                  <p style="margin: 0 0 8px 0; font-weight: 700; color: #FFFFFF;">Organized by WeVentureHub Community Team</p>
+                  <p style="margin: 0 0 15px 0;">If you have any questions, reply directly to this email or visit our website.</p>
+                  <p style="margin: 0; font-size: 10px; color: #64748B; text-transform: uppercase; letter-spacing: 1px;">&copy; 2026 WeVentureHub. All Rights Reserved.</p>
                 </div>
               </div>
             `;
@@ -1065,6 +1166,103 @@ export class PublicMarketplaceController {
         } catch (emailErr) {
           console.error('[RSVP Background Task] Failed to send confirmation email:', emailErr);
         }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get public ticket details securely using a verification token
+   */
+  public async getTicketByToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { token } = req.query;
+
+      if (!token) {
+        res.status(400).json({ success: false, message: 'Verification token is required' });
+        return;
+      }
+
+      const registration = await Registration.findById(id).exec();
+      if (!registration) {
+        res.status(404).json({ success: false, message: 'Ticket registration not found' });
+        return;
+      }
+
+      if (registration.verificationToken !== token) {
+        res.status(403).json({ success: false, message: 'Invalid or unauthorized verification token' });
+        return;
+      }
+
+      const event = await Event.findById(registration.eventId).exec();
+
+      res.status(200).json({
+        success: true,
+        data: {
+          registration,
+          event
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Check in an attendee securely via their public verification link (supporting staff check-in)
+   */
+  public async checkInTicketByToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { token } = req.body;
+
+      const actualToken = token || req.query.token;
+
+      if (!actualToken) {
+        res.status(400).json({ success: false, message: 'Verification token is required' });
+        return;
+      }
+
+      const registration = await Registration.findById(id).exec();
+      if (!registration) {
+        res.status(404).json({ success: false, message: 'Ticket registration not found' });
+        return;
+      }
+
+      if (registration.verificationToken !== actualToken) {
+        res.status(403).json({ success: false, message: 'Invalid or unauthorized verification token' });
+        return;
+      }
+
+      if (registration.status === 'CANCELLED') {
+        res.status(400).json({ success: false, message: 'This ticket registration has been CANCELLED.' });
+        return;
+      }
+
+      if (registration.status === 'WAITLISTED') {
+        res.status(400).json({ success: false, message: 'This ticket is currently WAITLISTED and not valid for entry.' });
+        return;
+      }
+
+      if (registration.checkedIn) {
+        res.status(409).json({
+          success: false,
+          message: `Already checked in at ${registration.checkedInAt ? new Date(registration.checkedInAt).toLocaleString() : 'previously'}`
+        });
+        return;
+      }
+
+      // Perform Check-in
+      registration.checkedIn = true;
+      registration.checkedInAt = new Date();
+      const updated = await registration.save();
+
+      res.status(200).json({
+        success: true,
+        message: 'Attendee successfully checked in!',
+        data: updated
       });
     } catch (error) {
       next(error);

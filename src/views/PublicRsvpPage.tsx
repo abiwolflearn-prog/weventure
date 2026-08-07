@@ -279,7 +279,16 @@ export default function PublicRsvpPage() {
 
                   <div className="flex items-center space-x-6 relative z-10 bg-white rounded-2xl p-4">
                      <div className="w-20 h-20 bg-neutral-100 rounded-lg flex items-center justify-center">
-                        <QrCode className="w-full h-full text-neutral-900" />
+                        {registration?.qrCode ? (
+                           <img 
+                             src={registration.qrCode} 
+                             alt="Branded QR Code" 
+                             className="w-full h-full object-contain"
+                             referrerPolicy="no-referrer"
+                           />
+                         ) : (
+                           <QrCode className="w-full h-full text-neutral-900" />
+                         )}
                      </div>
                      <div className="flex-1">
                         <p className="text-[10px] font-black text-neutral-900 uppercase">Scan at Entrance</p>
@@ -289,6 +298,19 @@ export default function PublicRsvpPage() {
 
                   <div className="absolute top-[-40px] right-[-40px] w-32 h-32 bg-brand-primary/20 rounded-full blur-3xl" />
                </div>
+
+               <Link 
+                 to={`/tickets/${registration?._id}?token=${registration?.verificationToken}`}
+                 className="block w-full mb-3 hover:scale-[1.01] transition-transform duration-200"
+               >
+                 <Button 
+                   variant="success" 
+                   className="w-full h-14 font-black text-xs uppercase tracking-wider flex items-center justify-center space-x-2"
+                 >
+                   <Ticket className="w-4.5 h-4.5" />
+                   <span>View Secure Digital Ticket</span>
+                 </Button>
+               </Link>
 
                <div className="grid grid-cols-2 gap-3">
                   <Button 

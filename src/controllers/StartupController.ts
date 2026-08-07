@@ -4,6 +4,7 @@ import { StartupProgram } from '../models/StartupProgram';
 import { StartupApplication } from '../models/StartupApplication';
 import { Faq } from '../models/Faq';
 import { Testimonial } from '../models/Testimonial';
+import { emailNotificationManager } from '../services/EmailNotificationManager';
 
 // Initial Seed Programs to ensure rich content out of the box
 const DEFAULT_PROGRAMS = [
@@ -225,6 +226,12 @@ export class StartupController {
         uploadedFileName: uploadedFileName || '',
         uploadedFileData: uploadedFileData || '',
         status: 'pending',
+      });
+
+      // Send startup registration confirmation email asynchronously
+      emailNotificationManager.sendStartupRegistrationConfirmation(application).catch((err) => {
+        // Safe fallback logger
+        console.error('Failed to trigger startup registration email:', err);
       });
 
       ApiResponse.success(res, { application }, 201, {

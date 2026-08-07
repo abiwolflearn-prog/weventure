@@ -83,6 +83,24 @@ publicRouter.post('/events/:eventId/reviews', publicMarketplaceController.addRev
 publicRouter.post('/events/:eventId/rsvp', publicMarketplaceController.submitRsvp);
 
 /**
+ * @route   GET /api/v1/public/tickets/:id
+ * @desc    Securely view a digital ticket using a verification token
+ * @access  Public (Token protected)
+ */
+publicRouter.get('/tickets/:id', (req, res, next) => {
+  publicMarketplaceController.getTicketByToken(req, res, next);
+});
+
+/**
+ * @route   POST /api/v1/public/tickets/:id/checkin
+ * @desc    Securely check in an attendee using verification token (staff/admin flow)
+ * @access  Public (Token protected)
+ */
+publicRouter.post('/tickets/:id/checkin', (req, res, next) => {
+  publicMarketplaceController.checkInTicketByToken(req, res, next);
+});
+
+/**
  * @route   GET /api/v1/public/workspaces
  * @desc    Fetch lists of active, public workspaces
  * @access  Public

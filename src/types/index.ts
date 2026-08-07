@@ -476,6 +476,7 @@ export interface IRegistration {
   ticketTypeId?: string;
   ticketNumber: string; // WH-EVENT_ID-XXXXX
   qrCode: string; // Mapped code representation
+  verificationToken?: string;
   attendeeName: string;
   attendeeEmail: string;
   status: RegistrationStatus;

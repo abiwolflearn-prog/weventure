@@ -5,28 +5,198 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Invoice Generated - {{appName}}</title>
   <style>
-    body { margin: 0; padding: 0; background-color: #0b0f19; font-family: 'Segoe UI', Arial, sans-serif; color: #f8fafc; }
-    .wrapper { width: 100%; background-color: #0b0f19; padding: 40px 15px; box-sizing: border-box; }
-    .card { max-width: 600px; margin: 0 auto; background-color: #0f172a; border-radius: 16px; border: 1px solid #1e293b; overflow: hidden; box-shadow: 0 10px 30px rgba(0,255,102,0.05); }
-    .header { background-color: #0f172a; padding: 32px; text-align: center; border-bottom: 2px solid #00FF66; }
-    .logo { font-size: 26px; font-weight: 800; color: #ffffff; text-decoration: none; letter-spacing: -0.5px; }
-    .logo span { color: #00FF66; }
-    .subtitle { color: #06b6d4; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-top: 6px; }
-    .content { padding: 36px 32px; line-height: 1.6; font-size: 15px; color: #cbd5e1; }
-    h1 { color: #ffffff; font-size: 22px; font-weight: 700; margin-top: 0; }
-    .table-container { background-color: #1e293b; border-radius: 10px; padding: 20px; margin: 24px 0; }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    td { padding: 10px 0; border-bottom: 1px solid #334155; }
-    tr:last-child td { border-bottom: none; }
-    .label { color: #94a3b8; font-weight: 500; }
-    .value { color: #f8fafc; font-weight: 600; text-align: right; }
-    .due-text { color: #eab308; font-weight: 700; }
-    .btn-container { text-align: center; margin: 32px 0; }
-    .btn { display: inline-block; background-color: #00FF66; color: #0f172a !important; font-weight: 700; font-size: 15px; padding: 14px 32px; border-radius: 10px; text-decoration: none; box-shadow: 0 4px 14px rgba(0,255,102,0.3); }
-    .footer { background-color: #0b0f19; padding: 24px 32px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #1e293b; }
-    .social-links { margin: 16px 0; }
-    .social-links a { color: #06b6d4; text-decoration: none; margin: 0 10px; font-weight: 600; }
-  </style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0f172a;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      color: #ffffff;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrapper {
+      width: 100%;
+      background-color: #0f172a;
+      padding: 40px 12px;
+      box-sizing: border-box;
+    }
+    .card {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #1e293b;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+    }
+    .header {
+      background-color: #1e293b;
+      padding: 32px 32px 16px 32px;
+      text-align: center;
+    }
+    .logo {
+      font-size: 26px;
+      font-weight: 800;
+      color: #ffffff;
+      text-decoration: none;
+      letter-spacing: -0.5px;
+      display: inline-block;
+      font-family: sans-serif;
+    }
+    .logo span {
+      color: #A3E635;
+    }
+    .subtitle {
+      color: #cbd5e1;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+    .header-gradient-line {
+      height: 3px;
+      background: linear-gradient(90deg, #A3E635 0%, #06B6D4 100%);
+      margin-top: 18px;
+      border-radius: 2px;
+    }
+    .content {
+      padding: 36px 32px;
+      line-height: 1.65;
+      font-size: 15px;
+      color: #cbd5e1;
+    }
+    h1 {
+      color: #A3E635;
+      background: linear-gradient(135deg, #A3E635 0%, #06B6D4 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-size: 24px;
+      font-weight: 700;
+      margin-top: 0;
+      margin-bottom: 20px;
+      font-family: sans-serif;
+    }
+    h2 {
+      color: #A3E635;
+      font-size: 20px;
+      font-weight: 700;
+      margin-top: 0;
+      margin-bottom: 16px;
+    }
+    p {
+      color: #cbd5e1;
+      margin-top: 0;
+      margin-bottom: 16px;
+    }
+    strong {
+      color: #ffffff;
+    }
+    .highlight-box, .highlight-card {
+      background-color: #0f172a;
+      border-left: 4px solid #A3E635;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 24px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      border-right: 1px solid rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .otp-box {
+      background-color: #0f172a;
+      border: 2px dashed #A3E635;
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      margin: 24px 0;
+    }
+    .otp-code {
+      font-size: 36px;
+      font-weight: 800;
+      color: #A3E635;
+      letter-spacing: 8px;
+    }
+    .table-container {
+      background-color: #0f172a;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 24px 0;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    .label {
+      color: #94a3b8;
+      font-weight: 500;
+    }
+    .value {
+      color: #ffffff;
+      font-weight: 600;
+      text-align: right;
+    }
+    .btn-container {
+      text-align: center;
+      margin: 32px 0;
+    }
+    .btn {
+      display: inline-block;
+      background-color: #A3E635;
+      color: #0f172a !important;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 14px 28px;
+      border-radius: 8px;
+      text-decoration: none;
+      box-shadow: 0 4px 14px rgba(163, 230, 53, 0.2);
+      transition: all 0.2s ease;
+    }
+    .btn-secondary {
+      display: inline-block;
+      background-color: transparent;
+      color: #ffffff !important;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 15px;
+      padding: 13px 26px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+    .footer {
+      background-color: #0f172a;
+      padding: 32px;
+      text-align: center;
+      font-size: 12px;
+      color: #cbd5e1;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      line-height: 1.6;
+    }
+    .social-links {
+      margin: 16px 0;
+    }
+    .social-links a {
+      color: #A3E635;
+      text-decoration: none;
+      margin: 0 10px;
+      font-weight: 600;
+    }
+    @media only screen and (max-width: 600px) {
+      .content { padding: 24px 16px; }
+      .header { padding: 24px 16px 12px 16px; }
+      .footer { padding: 24px 16px; }
+      .btn { width: 100%; box-sizing: border-box; margin-bottom: 10px; }
+      .btn-secondary { width: 100%; box-sizing: border-box; }
+    }
+</style>
 </head>
 <body>
   <div class="wrapper">
@@ -34,6 +204,7 @@
       <div class="header">
         <a href="{{frontendUrl}}" class="logo">WeVenture<span>Hub</span></a>
         <div class="subtitle">Workspace Reservation & Event Management Platform</div>
+        <div class="header-gradient-line"></div>
       </div>
       <div class="content">
         <h1>New Invoice Statement Generated</h1>
@@ -45,7 +216,7 @@
             <tr><td class="label">Invoice Number</td><td class="value">#{{invoiceNumber}}</td></tr>
             <tr><td class="label">Billing Period</td><td class="value">{{billingPeriod}}</td></tr>
             <tr><td class="label">Due Date</td><td class="value due-text">{{dueDate}}</td></tr>
-            <tr><td class="label">Total Amount</td><td class="value" style="color: #00FF66;">{{amount}} {{currency}}</td></tr>
+            <tr><td class="label">Total Amount</td><td class="value" style="color: #A3E635;">{{amount}} {{currency}}</td></tr>
           </table>
         </div>
 
@@ -53,18 +224,18 @@
 
         <div class="btn-container">
           <a href="{{paymentUrl}}" class="btn">Pay Invoice Online</a>
-        </div>
       </div>
       <div class="footer">
+        <p style="margin: 0 0 8px 0; color: #ffffff;"><strong>WeVentureHub</strong></p>
         <div class="social-links">
           <a href="https://www.linkedin.com/company/weventurehub">LinkedIn</a> • 
-          <a href="https://twitter.com/weventurehub">X (Twitter)</a> • 
+          <a href="https://t.me/weventurehub">Telegram</a> • 
           <a href="https://instagram.com/weventurehub">Instagram</a>
         </div>
-        <p style="margin: 6px 0;"><strong>WeVentureHub</strong></p>
-        <p style="margin: 4px 0;">Workspace Reservation & Event Management Platform</p>
-        <p style="margin: 4px 0;"><a href="mailto:{{companyEmail}}" style="color: #00FF66; text-decoration: none;">{{companyEmail}}</a> | <a href="https://www.weventurehub.com" style="color: #06b6d4; text-decoration: none;">www.weventurehub.com</a></p>
-        <p style="margin-top: 12px; font-size: 11px; color: #475569;">&copy; {{currentYear}} WeVentureHub. All rights reserved.</p>
+        <p style="margin: 8px 0;"><a href="mailto:{{companyEmail}}" style="color: #06B6D4; text-decoration: none;">{{companyEmail}}</a> | <a href="https://www.weventurehub.com" style="color: #06B6D4; text-decoration: none;">www.weventurehub.com</a></p>
+        <div style="height: 1px; background-color: rgba(255, 255, 255, 0.08); margin: 16px 0;"></div>
+        <p style="font-size: 11px; color: #64748b; margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 0.05em; font-weight: bold;">Building Africa's Innovation Ecosystem</p>
+        <p style="margin: 0; font-size: 11px; color: #475569;">&copy; {{currentYear}} WeVentureHub. All rights reserved.</p>
       </div>
     </div>
   </div>

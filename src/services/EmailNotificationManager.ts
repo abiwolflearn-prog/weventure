@@ -430,6 +430,80 @@ class EmailNotificationManager {
     });
   }
 
+  // --- 6. STARTUPS & EXPENSES ---
+  public async sendStartupRegistrationConfirmation(application: any): Promise<void> {
+    try {
+      const ownerName = application.founderName || 'Founder';
+      const startupName = application.startupName || 'Your Startup';
+      const registrationId = application._id?.toString() || application.id || 'ST-1001';
+      const email = application.email || '';
+      const phone = application.phone || '';
+      const submissionDate = application.createdAt ? new Date(application.createdAt).toLocaleDateString() : new Date().toLocaleDateString();
+
+      await emailService.enqueueEmail({
+        templateKey: 'startup_registration_confirmation',
+        recipientEmail: email,
+        recipientName: ownerName,
+        variables: {
+          ownerName,
+          startupName,
+          registrationId,
+          email,
+          phone,
+          submissionDate,
+          viewUrl: `${this.appUrl}/#/dashboard/startups?id=${registrationId}`,
+        },
+        priority: 'high',
+      });
+      logger.info(`📧 Enqueued startup registration confirmation email to: ${email}`);
+    } catch (err: any) {
+      logger.error(`❌ Failed to enqueue startup registration email: ${err.message}`);
+    }
+  }
+
+  public async sendExpenseCreatedConfirmation(admin: any, expense: any): Promise<void> {
+    try {
+      const adminName = `${admin.firstName || ''} ${admin.lastName || ''}`.trim() || 'Admin';
+      const adminEmail = admin.email || '';
+      const expenseId = expense._id?.toString() || expense.id || 'EXP-1001';
+      const category = expense.category || 'General';
+      const expenseName = expense.name || 'Expense';
+      const amount = expense.amount || 0;
+      const currency = expense.currency || 'USD';
+      const paymentMethod = expense.paymentMethod || 'N/A';
+      const expenseDate = expense.date ? new Date(expense.date).toLocaleDateString() : new Date().toLocaleDateString();
+      const description = expense.description || 'No description provided';
+      const referenceNumber = expense.referenceNumber || 'N/A';
+      const createdAt = expense.createdAt ? new Date(expense.createdAt).toLocaleString() : new Date().toLocaleString();
+
+      await emailService.enqueueEmail({
+        templateKey: 'expense_created_confirmation',
+        recipientEmail: adminEmail,
+        recipientName: adminName,
+        variables: {
+          adminName,
+          adminEmail,
+          expenseId,
+          category,
+          expenseName,
+          amount,
+          currency,
+          paymentMethod,
+          expenseDate,
+          description,
+          referenceNumber,
+          createdAt,
+          viewExpenseUrl: `${this.appUrl}/#/admin/expenses?id=${expenseId}`,
+          dashboardUrl: `${this.appUrl}/#/admin`,
+        },
+        priority: 'normal',
+      });
+      logger.info(`📧 Enqueued expense creation notification email to admin: ${adminEmail}`);
+    } catch (err: any) {
+      logger.error(`❌ Failed to enqueue expense creation email: ${err.message}`);
+    }
+  }
+
   public async sendAiChatbotEscalation(ticket: any, userInquiry: string): Promise<void> {
     const ticketNumber = ticket.ticketNumber || ticket.id || 'TKT-3001';
     const customerName = ticket.userName || 'WeVentureHub Member';

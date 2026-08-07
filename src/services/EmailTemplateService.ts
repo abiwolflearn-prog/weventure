@@ -9,11 +9,11 @@ export interface RenderedEmail {
 
 export const DEFAULT_BRANDING: IEmailBranding = {
   logoUrl: 'https://weventurehub.com/assets/logo.png',
-  headerBgColor: '#0f172a', // Slate 900
-  primaryColor: '#3b82f6', // Brand Blue
-  buttonBgColor: '#3b82f6',
-  buttonTextColor: '#ffffff',
-  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  headerBgColor: '#1e293b', // Slate 800
+  primaryColor: '#A3E635', // Lime Green
+  buttonBgColor: '#A3E635',
+  buttonTextColor: '#0f172a',
+  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
   companyName: 'WeVentureHub',
   companyAddress: 'Airport Road, Sur Construction second floor, Addis Ababa',
   supportEmail: 'abiwolflearn@gmail.com',
@@ -30,6 +30,35 @@ class EmailTemplateService {
     const b = { ...DEFAULT_BRANDING, ...branding };
     const currentYear = new Date().getFullYear();
 
+    // Redesign headings inside content with the green-to-cyan gradient effect
+    let modifiedHtml = contentHtml;
+    modifiedHtml = modifiedHtml.replace(
+      /<h2>(.*?)<\/h2>/g,
+      `<h2 style="color: #A3E635; background: linear-gradient(135deg, #A3E635 0%, #06B6D4 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 24px; font-weight: 700; margin-top: 0; margin-bottom: 16px; font-family: sans-serif;">$1</h2>`
+    );
+    modifiedHtml = modifiedHtml.replace(
+      /<h3>(.*?)<\/h3>/g,
+      `<h3 style="color: #06B6D4; font-size: 18px; font-weight: 600; margin-top: 24px; margin-bottom: 12px; font-family: sans-serif;">$1</h3>`
+    );
+
+    // Replace light theme styles with modern dark theme equivalents dynamically
+    modifiedHtml = modifiedHtml
+      .replace(/color:\s*#0f172a/gi, 'color: #ffffff')
+      .replace(/color:\s*#334155/gi, 'color: #cbd5e1')
+      .replace(/color:\s*#111827/gi, 'color: #ffffff')
+      .replace(/color:\s*#1e293b/gi, 'color: #ffffff')
+      .replace(/background-color:\s*#f0fdf4/gi, 'background-color: #0f172a')
+      .replace(/background-color:\s*#fef2f2/gi, 'background-color: #0f172a')
+      .replace(/background-color:\s*#f1f5f9/gi, 'background-color: #0f172a')
+      .replace(/background-color:\s*#f8fafc/gi, 'background-color: #0f172a')
+      .replace(/border-left-color:\s*#10b981/gi, 'border-left-color: #22C55E')
+      .replace(/color:\s*#15803d/gi, 'color: #22C55E')
+      .replace(/color:\s*#166534/gi, 'color: #cbd5e1')
+      .replace(/color:\s*#10b981/gi, 'color: #22C55E')
+      .replace(/color:\s*#991b1b/gi, 'color: #ef4444')
+      .replace(/color:\s*#7f1d1d/gi, 'color: #cbd5e1')
+      .replace(/color:\s*#3b82f6/gi, 'color: #A3E635');
+
     return `
 <!DOCTYPE html>
 <html lang="en">
@@ -41,42 +70,42 @@ class EmailTemplateService {
     body {
       margin: 0;
       padding: 0;
-      background-color: #f8fafc;
+      background-color: #0f172a;
       font-family: ${b.fontFamily};
-      color: #1e293b;
+      color: #ffffff;
       -webkit-font-smoothing: antialiased;
     }
     .wrapper {
       width: 100%;
-      background-color: #f8fafc;
+      background-color: #0f172a;
       padding: 32px 12px;
       box-sizing: border-box;
     }
     .container {
       max-width: 620px;
       margin: 0 auto;
-      background-color: #ffffff;
-      border-radius: 16px;
+      background-color: #1e293b;
+      border-radius: 12px;
       overflow: hidden;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 10px -6px rgba(15, 23, 42, 0.01);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
     }
     .header {
-      background-color: ${b.headerBgColor};
-      padding: 28px 32px;
+      background-color: #1e293b;
+      padding: 28px 32px 16px 32px;
       text-align: center;
-      border-bottom: 3px solid ${b.primaryColor};
     }
     .logo-text {
       color: #ffffff;
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 800;
       letter-spacing: -0.03em;
       text-decoration: none;
       display: inline-block;
+      font-family: sans-serif;
     }
     .logo-badge {
-      color: ${b.primaryColor};
+      color: #A3E635;
     }
     .header-subtitle {
       color: #94a3b8;
@@ -86,94 +115,135 @@ class EmailTemplateService {
       text-transform: uppercase;
       margin-top: 6px;
     }
+    .header-gradient-line {
+      height: 3px;
+      background: linear-gradient(90deg, #A3E635 0%, #06B6D4 100%);
+      margin-top: 18px;
+      border-radius: 2px;
+    }
     .content {
       padding: 32px;
       line-height: 1.65;
       font-size: 15px;
-      color: #334155;
+      color: #cbd5e1;
     }
-    h1, h2, h3 {
-      color: #0f172a;
+    p {
+      color: #cbd5e1;
       margin-top: 0;
-      font-weight: 700;
-      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+    strong {
+      color: #ffffff;
     }
     .highlight-card {
-      background-color: #f1f5f9;
-      border-left: 4px solid ${b.primaryColor};
+      background-color: #0f172a !important;
+      border-left: 4px solid #A3E635 !important;
       border-radius: 8px;
       padding: 18px 20px;
       margin: 22px 0;
+      border: 1px solid rgba(255, 255, 255, 0.05);
     }
     .meta-table {
       width: 100%;
       border-collapse: collapse;
       margin: 20px 0;
       font-size: 14px;
+      background-color: #0f172a;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.05);
     }
     .meta-table td {
-      padding: 10px 12px;
-      border-bottom: 1px solid #e2e8f0;
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
     .meta-table tr:last-child td {
       border-bottom: none;
     }
     .meta-label {
-      color: #64748b;
+      color: #94a3b8;
       font-weight: 500;
       width: 40%;
     }
     .meta-value {
-      color: #0f172a;
+      color: #ffffff;
       font-weight: 600;
       text-align: right;
     }
     .btn-container {
       text-align: center;
-      margin: 30px 0;
+      margin: 32px 0;
     }
     .btn {
       display: inline-block;
-      background-color: ${b.buttonBgColor};
-      color: ${b.buttonTextColor} !important;
+      background-color: #A3E635;
+      color: #0f172a !important;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 14px 28px;
+      border-radius: 8px;
+      box-shadow: 0 4px 14px rgba(163, 230, 53, 0.2);
+      transition: all 0.2s ease;
+    }
+    .btn-secondary {
+      display: inline-block;
+      background-color: transparent;
+      color: #ffffff !important;
+      border: 1px solid rgba(255, 255, 255, 0.2);
       text-decoration: none;
       font-weight: 600;
       font-size: 15px;
-      padding: 14px 28px;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+      padding: 13px 26px;
+      border-radius: 8px;
       transition: all 0.2s ease;
     }
     .footer {
-      background-color: #f8fafc;
-      padding: 24px 32px;
-      border-top: 1px solid #e2e8f0;
+      background-color: #0f172a;
+      padding: 32px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
       text-align: center;
       font-size: 12px;
-      color: #64748b;
+      color: #94a3b8;
       line-height: 1.6;
     }
+    .footer-links {
+      margin-top: 12px;
+    }
     .footer-links a {
-      color: ${b.primaryColor};
+      color: #06b6d4;
       text-decoration: none;
-      margin: 0 8px;
+      margin: 0 10px;
+      font-weight: 600;
+    }
+    .social-links {
+      margin: 16px 0;
+    }
+    .social-links a {
+      color: #A3E635;
+      text-decoration: none;
+      margin: 0 12px;
+      font-weight: 600;
     }
     .divider {
       height: 1px;
-      background-color: #e2e8f0;
+      background-color: rgba(255, 255, 255, 0.08);
       margin: 24px 0;
     }
     .signature {
-      margin-top: 24px;
+      margin-top: 28px;
       font-style: normal;
-      color: #475569;
+      color: #94a3b8;
       font-weight: 500;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 16px;
     }
     @media only screen and (max-width: 600px) {
-      .content { padding: 20px 16px; }
-      .header { padding: 20px 16px; }
-      .footer { padding: 20px 16px; }
-      .btn { width: 100%; box-sizing: border-box; }
+      .content { padding: 24px 16px; }
+      .header { padding: 24px 16px 12px 16px; }
+      .footer { padding: 24px 16px; }
+      .btn { width: 100%; box-sizing: border-box; margin-bottom: 10px; }
+      .btn-secondary { width: 100%; box-sizing: border-box; }
     }
   </style>
 </head>
@@ -186,11 +256,12 @@ class EmailTemplateService {
           WeVenture<span class="logo-badge">Hub</span>
         </a>
         <div class="header-subtitle">Innovation & Co-Working Community</div>
+        <div class="header-gradient-line"></div>
       </div>
 
       <!-- Main Body Content -->
       <div class="content">
-        ${contentHtml}
+        ${modifiedHtml}
         
         <div class="signature">
           ${(b.signatureText || DEFAULT_BRANDING.signatureText!).replace(/\n/g, '<br>')}
@@ -200,14 +271,22 @@ class EmailTemplateService {
       <!-- Footer -->
       <div class="footer">
         <p style="margin-bottom: 8px;"><strong>${b.companyName}</strong> • ${b.companyAddress}</p>
-        <p style="margin-bottom: 12px;">Need help? Contact <a href="mailto:${b.supportEmail}" style="color:${b.primaryColor};">${b.supportEmail}</a> or call ${b.supportPhone}</p>
+        <p style="margin-bottom: 12px;">Need help? Contact <a href="mailto:${b.supportEmail}" style="color:#A3E635; text-decoration: none;">${b.supportEmail}</a> or call ${b.supportPhone}</p>
+        <div class="social-links">
+          <a href="https://www.linkedin.com/company/weventurehub">LinkedIn</a> • 
+          <a href="https://t.me/weventurehub">Telegram</a> • 
+          <a href="https://instagram.com/weventurehub">Instagram</a>
+        </div>
         <p class="footer-links">
           <a href="https://weventurehub.com/dashboard">My Dashboard</a> • 
           <a href="https://weventurehub.com/workspaces">Book Workspaces</a> • 
           <a href="https://weventurehub.com/events">Events</a>
         </p>
         <div class="divider"></div>
-        <p style="font-size: 11px; color: #94a3b8; margin: 0;">
+        <p style="font-size: 11px; color: #64748b; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; font-weight: bold; margin-bottom: 6px;">
+          Building Africa's Innovation Ecosystem
+        </p>
+        <p style="font-size: 11px; color: #475569; margin: 0;">
           ${b.footerText}<br>
           &copy; ${currentYear} ${b.companyName}. All rights reserved.
         </p>
@@ -723,6 +802,72 @@ export const BUILT_IN_TEMPLATES: Record<string, { name: string; category: any; s
       </div>
       <div class="btn-container">
         <a href="{{adminUrl}}" class="btn">Open Admin Console</a>
+      </div>
+    `,
+  },
+  startup_registration_confirmation: {
+    name: 'Startup Registration Confirmation',
+    category: 'support',
+    subject: 'Startup Registration Received – WeVentureHub',
+    bodyHtml: `
+      <h2>Startup Application Received! 🚀</h2>
+      <p>Hello <strong>{{ownerName}}</strong>,</p>
+      <p>Thank you for registering your startup, <strong>{{startupName}}</strong>, for the WeVentureHub program. We have successfully received your application, and our investment and operations team will review it shortly.</p>
+      
+      <div class="highlight-card" style="border-left-color: #10b981; background-color: #f0fdf4; padding: 16px;">
+        <strong style="color: #15803d; font-size: 16px;">✓ Registration Confirmed</strong>
+        <p style="margin: 4px 0 0 0; font-size: 14px; color: #166534;">Your application for WeVentureHub programs has been successfully submitted and logged in our system.</p>
+      </div>
+
+      <table class="meta-table">
+        <tr><td class="meta-label">Registration ID</td><td class="meta-value">#{{registrationId}}</td></tr>
+        <tr><td class="meta-label">Startup Name</td><td class="meta-value">{{startupName}}</td></tr>
+        <tr><td class="meta-label">Owner / Founder</td><td class="meta-value">{{ownerName}}</td></tr>
+        <tr><td class="meta-label">Email Address</td><td class="meta-value">{{email}}</td></tr>
+        <tr><td class="meta-label">Phone Number</td><td class="meta-value">{{phone}}</td></tr>
+        <tr><td class="meta-label">Submission Date</td><td class="meta-value">{{submissionDate}}</td></tr>
+        <tr><td class="meta-label">Current Status</td><td class="meta-value" style="color: #d97706; font-weight: bold;">Pending Review</td></tr>
+      </table>
+
+      <h3>What's Next?</h3>
+      <p>Our team will review your application materials and details within the next 48 business hours. You will receive another notification email once your application has been approved, rejected, or scheduled for an initial interview.</p>
+
+      <div class="btn-container">
+        <a href="{{viewUrl}}" class="btn">View Registration Details</a>
+      </div>
+    `,
+  },
+  expense_created_confirmation: {
+    name: 'Expense Created Successfully',
+    category: 'admin',
+    subject: 'Expense Successfully Recorded – WeVentureHub',
+    bodyHtml: `
+      <h2>Expense Successfully Recorded! 🧾</h2>
+      <p>Hello <strong>{{adminName}}</strong>,</p>
+      <p>An expense has been successfully recorded in the WeVentureHub finance ledger. Below are the details of the newly created expense entry.</p>
+
+      <div class="highlight-card" style="border-left-color: #10b981; background-color: #f0fdf4; padding: 16px;">
+        <strong style="color: #15803d; font-size: 16px;">✓ Expense Entry Logged</strong>
+        <p style="margin: 4px 0 0 0; font-size: 14px; color: #166534;">The finance log has been updated. This transaction is permanently recorded.</p>
+      </div>
+
+      <table class="meta-table">
+        <tr><td class="meta-label">Expense ID</td><td class="meta-value">#{{expenseId}}</td></tr>
+        <tr><td class="meta-label">Expense Name / Title</td><td class="meta-value">{{expenseName}}</td></tr>
+        <tr><td class="meta-label">Category</td><td class="meta-value">{{category}}</td></tr>
+        <tr><td class="meta-label">Amount</td><td class="meta-value" style="font-weight: bold; color: #0f172a;">{{amount}} {{currency}}</td></tr>
+        <tr><td class="meta-label">Payment Method</td><td class="meta-value">{{paymentMethod}}</td></tr>
+        <tr><td class="meta-label">Expense Date</td><td class="meta-value">{{expenseDate}}</td></tr>
+        <tr><td class="meta-label">Reference Number</td><td class="meta-value">{{referenceNumber}}</td></tr>
+        <tr><td class="meta-label">Description</td><td class="meta-value">{{description}}</td></tr>
+        <tr><td class="meta-label">Created By</td><td class="meta-value">{{adminName}} ({{adminEmail}})</td></tr>
+        <tr><td class="meta-label">Status</td><td class="meta-value" style="color: #10b981; font-weight: bold;">Recorded Successfully</td></tr>
+        <tr><td class="meta-label">Created At</td><td class="meta-value">{{createdAt}}</td></tr>
+      </table>
+
+      <div class="btn-container" style="margin-top: 30px;">
+        <a href="{{viewExpenseUrl}}" class="btn" style="margin-right: 10px; display: inline-block;">View Expense Entry</a>
+        <a href="{{dashboardUrl}}" class="btn" style="background-color: #64748b; color: #ffffff !important; display: inline-block;">Go to Dashboard</a>
       </div>
     `,
   },
