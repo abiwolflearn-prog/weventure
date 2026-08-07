@@ -2665,7 +2665,7 @@ export default function CrmDashboard() {
  <span className="text-xl font-black text-[#111827] tracking-tight">WEVENTUREHUB</span>
  </div>
  <p className="text-xs text-[#6B7280] font-medium mt-1">WeVentureHub Business Center PLC</p>
- <p className="text-[11px] text-[#6B7280]">Bole Road, Mega Building 4th Floor, Addis Ababa, Ethiopia</p>
+                                    <p className="text-[11px] text-[#6B7280]">Bole Road, Sur Construction Building, 2nd Floor, Addis Ababa, Ethiopia</p>
  <p className="text-[11px] text-[#6B7280]">TIN: 0098412894 | Tel: +251 911 223 344 | Web: www.weventurehub.com</p>
  </div>
 

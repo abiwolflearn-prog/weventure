@@ -20,6 +20,7 @@ export function isValidEmail(email: string): boolean {
 export interface EmailPayload {
   to: string;
   from?: string;
+  replyTo?: string;
   recipientName?: string;
   subject: string;
   html: string;
@@ -43,8 +44,8 @@ class EmailService {
   }
 
   public async getSystemEmailSettings(tenantId = 'weventurehub'): Promise<ISystemEmailSettings> {
-    const defaultFrom = env.EMAIL_FROM || 'WeVentureHub <onboarding@resend.dev>';
-    const adminEmail = env.ADMIN_EMAIL || 'abiwolflearn@gmail.com';
+    const defaultFrom = env.EMAIL_FROM || 'WeVentureHub <info@weventurehub.com>';
+    const adminEmail = env.ADMIN_EMAIL || 'info@weventurehub.com';
 
     try {
       const settings = await (SystemEmailSettings as any).findOne({ tenantId }).lean();
@@ -165,7 +166,7 @@ class EmailService {
     }
 
     // Determine sender address
-    const defaultFrom = env.EMAIL_FROM || 'WeVentureHub <onboarding@resend.dev>';
+    const defaultFrom = env.EMAIL_FROM || 'WeVentureHub <info@weventurehub.com>';
     let fromAddress = payload.from || defaultFrom;
 
     // Check user preferences
@@ -184,6 +185,7 @@ class EmailService {
           html: payload.html,
           text: payload.text,
           from: fromAddress,
+          replyTo: payload.replyTo || 'info@weventurehub.com',
           attachments: payload.attachments,
         });
 
@@ -225,6 +227,7 @@ class EmailService {
         const info = await this.transporter.sendMail({
           from: fromAddress,
           to: smtpTo,
+          replyTo: payload.replyTo || 'info@weventurehub.com',
           subject: payload.subject,
           html: payload.html,
           text: payload.text || 'View this email in an HTML-compatible email reader',

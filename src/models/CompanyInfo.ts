@@ -37,7 +37,7 @@ const CompanyInfoSchema = new Schema<ICompanyInfoDocument>(
     description: { type: String, default: 'WeVentureHub empowers African startups, founders, and enterprises with world-class workspaces and event acceleration.' },
     phoneNumbers: [{ type: String, default: '091 124 3503' }],
     emailAddresses: [{ type: String, default: 'info@weventurehub.com' }],
-    officeAddress: { type: String, default: 'Airport Road, Sur Construction second floor, Addis Ababa' },
+    officeAddress: { type: String, default: 'Bole Road, Sur Construction Building, 2nd Floor, Addis Ababa, Ethiopia' },
     city: { type: String, default: 'Addis Ababa' },
     country: { type: String, default: 'Ethiopia' },
     workingHours: { type: String, default: 'Mon - Sat: 8:00 AM - 10:00 PM | Sun: Closed' },

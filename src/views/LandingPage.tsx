@@ -847,7 +847,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex items-center space-x-3 text-neutral-600 dark:text-neutral-slate-300 font-medium">
                   <MapPin className="w-5 h-5 text-brand-accent" />
-                  <span className="text-sm">Airport Road, Sur Construction second floor, Addis Ababa</span>
+                  <span className="text-sm">Bole Road, Sur Construction Building, 2nd Floor, Addis Ababa, Ethiopia</span>
                 </div>
               </div>
             </div>

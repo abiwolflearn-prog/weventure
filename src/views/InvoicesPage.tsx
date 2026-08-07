@@ -1136,10 +1136,10 @@ export default function InvoicesPage() {
  Event & Workspace Management Platform
  </p>
  <p className="text-[11px] text-neutral-400 mt-0.5">
- Bole Road, Mega Building 4th Floor, Addis Ababa, Ethiopia
+ Bole Road, Sur Construction Building, 2nd Floor, Addis Ababa, Ethiopia
  </p>
  <p className="text-[11px] text-neutral-400">
- Email: billing@weventurehub.com | Tel: +251 11 600 8899
+ Email: info@weventurehub.com | Tel: +251 11 600 8899
  </p>
  </div>
 

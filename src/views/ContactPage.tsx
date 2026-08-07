@@ -73,7 +73,7 @@ export default function ContactPage() {
  <div className="space-y-4 text-[13px] text-neutral-600 dark:text-neutral-slate-300">
  <div className="flex items-start space-x-3.5">
  <MapPin className="w-5 h-5 text-brand-accent shrink-0 mt-0.5" />
- <span>{companyInfo?.officeAddress || 'Airport Road, Sur Construction second floor, Addis Ababa'}</span>
+ <span>{companyInfo?.officeAddress || 'Bole Road, Sur Construction Building, 2nd Floor, Addis Ababa, Ethiopia'}</span>
  </div>
  <div className="flex items-center space-x-3.5">
  <Phone className="w-5 h-5 text-brand-accent shrink-0" />

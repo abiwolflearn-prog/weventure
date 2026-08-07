@@ -296,8 +296,8 @@ export class PaymentController {
       // Left-side Identity
       doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(16).text('WEVENTUREHUB', 35, 48);
       doc.fillColor(textGray).font('Helvetica').fontSize(8.5).text('Event & Workspace Management Platform', 35, 66);
-      doc.fontSize(8).text('Bole Road, Mega Building 4th Floor, Addis Ababa, Ethiopia', 35, 76);
-      doc.text('Email: billing@weventurehub.com | Tel: +251 11 600 8899', 35, 86);
+      doc.fontSize(8).text('Bole Road, Sur Construction Building, 2nd Floor, Addis Ababa, Ethiopia', 35, 76);
+      doc.text('Email: info@weventurehub.com | Tel: +251 11 600 8899', 35, 86);
 
       // Right-side Meta Header
       doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(9).text('OFFICIAL INVOICE', 350, 48, { align: 'right', width: 210 });

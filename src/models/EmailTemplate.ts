@@ -52,7 +52,7 @@ const EmailTemplateSchema = new Schema<IEmailTemplateDocument>(
       buttonTextColor: { type: String, default: '#ffffff' },
       fontFamily: { type: String, default: "'Inter', system-ui, sans-serif" },
       companyName: { type: String, default: 'WeVentureHub' },
-      companyAddress: { type: String, default: 'Airport Road, Sur Construction second floor, Addis Ababa' },
+      companyAddress: { type: String, default: 'Bole Road, Sur Construction Building, 2nd Floor, Addis Ababa, Ethiopia' },
       supportEmail: { type: String, default: 'info@weventurehub.com' },
       supportPhone: { type: String, default: '091 124 3503' },
       footerText: { type: String, default: 'You are receiving this automated email as a valued member or guest of WeVentureHub.' },

@@ -21,15 +21,16 @@ const envSchema = z.object({
   SMTP_PORT: z.coerce.number().default(587),
   SMTP_USER: z.string().default(''),
   SMTP_PASS: z.string().default(''),
-  SMTP_FROM: z.string().default('WeVentureHub <onboarding@resend.dev>'),
-  EMAIL_FROM: z.string().default('WeVentureHub <onboarding@resend.dev>'),
-  ADMIN_EMAIL: z.string().default('abiwolflearn@gmail.com'),
+  SMTP_FROM: z.string().default('WeVentureHub <info@weventurehub.com>'),
+  EMAIL_FROM: z.string().default('WeVentureHub <info@weventurehub.com>'),
+  ADMIN_EMAIL: z.string().default('info@weventurehub.com'),
   RESEND_API_KEY: z.string().optional(),
-  COMPANY_EMAIL: z.string().default('abiwolflearn@gmail.com'),
+  RESEND_DOMAIN_VERIFIED: z.preprocess((val) => val === 'true' || val === true, z.boolean()).default(false),
+  COMPANY_EMAIL: z.string().default('info@weventurehub.com'),
   FRONTEND_URL: z.string().default('http://localhost:3000'),
   APP_NAME: z.string().default('WeVentureHub'),
   EMAIL_TEST_MODE: z.preprocess((val) => val === 'true' || val === true, z.boolean()).default(false),
-  EMAIL_TEST_RECIPIENT: z.string().default('abiwolflearn@gmail.com'),
+  EMAIL_TEST_RECIPIENT: z.string().default('info@weventurehub.com'),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
@@ -41,3 +42,8 @@ if (!parsedEnv.success) {
 }
 
 export const env = parsedEnv.data;
+
+if (!env.RESEND_DOMAIN_VERIFIED) {
+  env.EMAIL_FROM = 'WeVentureHub <onboarding@resend.dev>';
+  env.SMTP_FROM = 'WeVentureHub <onboarding@resend.dev>';
+}

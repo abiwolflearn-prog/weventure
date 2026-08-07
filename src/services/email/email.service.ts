@@ -71,7 +71,7 @@ export class ResendEmailService {
 
     const frontendUrl = env.FRONTEND_URL || env.APP_URL || 'http://localhost:3000';
     const appName = env.APP_NAME || 'WeVentureHub';
-    const companyEmail = env.COMPANY_EMAIL || env.ADMIN_EMAIL || 'abiwolflearn@gmail.com';
+    const companyEmail = env.COMPANY_EMAIL || env.ADMIN_EMAIL || 'info@weventurehub.com';
 
     const mergedData: Record<string, any> = {
       frontendUrl,
@@ -144,7 +144,7 @@ export class ResendEmailService {
       return { success: true, messageId: 'dedup-skipped', provider: 'resend' };
     }
 
-    const defaultFrom = env.EMAIL_FROM || 'WeVentureHub <onboarding@resend.dev>';
+    const defaultFrom = env.EMAIL_FROM || 'WeVentureHub <info@weventurehub.com>';
     const senderEmail = from || defaultFrom;
     const resend = getResendClient();
 
@@ -166,7 +166,7 @@ export class ResendEmailService {
           subject,
           html,
           text: text || html.replace(/<[^>]*>?/gm, ''),
-          replyTo: replyTo || env.ADMIN_EMAIL || 'abiwolflearn@gmail.com',
+          replyTo: replyTo || env.ADMIN_EMAIL || 'info@weventurehub.com',
         });
 
         if (data.error) {
@@ -311,7 +311,7 @@ export class ResendEmailService {
       submittedTime,
     });
 
-    const adminEmail = env.ADMIN_EMAIL || 'abiwolflearn@gmail.com';
+    const adminEmail = env.ADMIN_EMAIL || 'info@weventurehub.com';
 
     return this.sendEmail({
       to: adminEmail,

@@ -301,7 +301,7 @@ export default function SettingsPage() {
           setOrgBorderRadius(org.branding.typography?.borderRadius || 'lg');
 
           // Support & Email Template parameters
-          setOrgSupportEmail(org.branding.emailBranding.supportEmail || 'abiwolflearn@gmail.com');
+          setOrgSupportEmail(org.branding.emailBranding.supportEmail || 'info@weventurehub.com');
           setOrgEmailHeaderLogo(org.branding.emailBranding.headerLogoUrl || '');
           setOrgEmailHeaderColor(org.branding.emailBranding.headerColor || '#0284c7');
           setOrgEmailHeaderAlign(org.branding.emailBranding.headerAlignment || 'center');

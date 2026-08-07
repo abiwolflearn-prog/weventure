@@ -43,7 +43,7 @@ export class AiAssistantService {
     const context: any = {
       weventureInfo: {
         name: 'WeVentureHub Event & Workspace Management Platform',
-        address: 'Airport Road, Sur Construction second floor, Addis Ababa',
+        address: 'Bole Road, Sur Construction Building, 2nd Floor, Addis Ababa, Ethiopia',
         email: 'info@weventurehub.com',
         phone: '091 124 3503',
         workingHours: 'Mon - Sat: 8:00 AM - 10:00 PM | Sun: Closed',

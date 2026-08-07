@@ -617,7 +617,7 @@ export class PublicApiController {
           description: 'WeVentureHub empowers African startups, founders, and enterprises with world-class workspaces and event acceleration.',
           phoneNumbers: ['091 124 3503'],
           emailAddresses: ['info@weventurehub.com'],
-          officeAddress: 'Airport Road, Sur Construction second floor, Addis Ababa',
+          officeAddress: 'Bole Road, Sur Construction Building, 2nd Floor, Addis Ababa, Ethiopia',
           city: 'Addis Ababa',
           country: 'Ethiopia',
           workingHours: 'Mon - Sat: 8:00 AM - 10:00 PM | Sun: Closed',

@@ -426,7 +426,7 @@ export default function DashboardLayout() {
               <span>•</span>
               <a href="#/dashboard/settings" className="hover:text-brand-primary transition-colors">Workspace Rules</a>
               <span>•</span>
-              <a href="mailto:abiwolflearn@gmail.com" className="hover:text-brand-primary transition-colors">Contact Operator</a>
+              <a href="mailto:info@weventurehub.com" className="hover:text-brand-primary transition-colors">Contact Operator</a>
             </div>
           </footer>
         </main>

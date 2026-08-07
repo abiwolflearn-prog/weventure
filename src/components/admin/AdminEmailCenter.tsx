@@ -57,17 +57,17 @@ export const AdminEmailCenter: React.FC = () => {
     };
   }>({
     adminEmails: {
-      primaryAdminEmail: 'abiwolflearn@gmail.com',
-      secondaryAdminEmail: 'abiwolflearn@gmail.com',
-      billingEmail: 'abiwolflearn@gmail.com',
-      supportEmail: 'abiwolflearn@gmail.com',
-      contactEmail: 'abiwolflearn@gmail.com',
+      primaryAdminEmail: 'info@weventurehub.com',
+      secondaryAdminEmail: 'info@weventurehub.com',
+      billingEmail: 'info@weventurehub.com',
+      supportEmail: 'info@weventurehub.com',
+      contactEmail: 'info@weventurehub.com',
     },
     senders: {
-      defaultSender: 'WeVentureHub <onboarding@resend.dev>',
-      supportSender: 'WeVentureHub <onboarding@resend.dev>',
-      billingSender: 'WeVentureHub <onboarding@resend.dev>',
-      notificationsSender: 'WeVentureHub <onboarding@resend.dev>',
+      defaultSender: 'WeVentureHub <info@weventurehub.com>',
+      supportSender: 'WeVentureHub <info@weventurehub.com>',
+      billingSender: 'WeVentureHub <info@weventurehub.com>',
+      notificationsSender: 'WeVentureHub <info@weventurehub.com>',
     },
   });
   const [isSavingSettings, setIsSavingSettings] = useState<boolean>(false);
@@ -624,7 +624,7 @@ export const AdminEmailCenter: React.FC = () => {
                         adminEmails: { ...settingsData.adminEmails, primaryAdminEmail: e.target.value },
                       })
                     }
-                    placeholder="abiwolflearn@gmail.com"
+                    placeholder="info@weventurehub.com"
                     className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary"
                   />
                   <span className="text-[10px] text-slate-500 mt-0.5 block font-medium">Receives user registrations, bookings, and agreement alerts.</span>
@@ -641,7 +641,7 @@ export const AdminEmailCenter: React.FC = () => {
                         adminEmails: { ...settingsData.adminEmails, secondaryAdminEmail: e.target.value },
                       })
                     }
-                    placeholder="abiwolflearn@gmail.com"
+                    placeholder="info@weventurehub.com"
                     className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary"
                   />
                 </div>
@@ -657,7 +657,7 @@ export const AdminEmailCenter: React.FC = () => {
                         adminEmails: { ...settingsData.adminEmails, billingEmail: e.target.value },
                       })
                     }
-                    placeholder="abiwolflearn@gmail.com"
+                    placeholder="info@weventurehub.com"
                     className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary"
                   />
                   <span className="text-[10px] text-slate-500 mt-0.5 block font-medium">Receives payment receipts, failed payments, and overdue invoice alerts.</span>
@@ -674,7 +674,7 @@ export const AdminEmailCenter: React.FC = () => {
                         adminEmails: { ...settingsData.adminEmails, supportEmail: e.target.value },
                       })
                     }
-                    placeholder="abiwolflearn@gmail.com"
+                    placeholder="info@weventurehub.com"
                     className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary"
                   />
                   <span className="text-[10px] text-slate-500 mt-0.5 block font-medium">Receives AI chatbot escalation requests and support tickets.</span>
@@ -691,7 +691,7 @@ export const AdminEmailCenter: React.FC = () => {
                         adminEmails: { ...settingsData.adminEmails, contactEmail: e.target.value },
                       })
                     }
-                    placeholder="abiwolflearn@gmail.com"
+                    placeholder="info@weventurehub.com"
                     className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary"
                   />
                   <span className="text-[10px] text-slate-500 mt-0.5 block font-medium">Receives public website contact form submissions.</span>
@@ -719,7 +719,7 @@ export const AdminEmailCenter: React.FC = () => {
                         senders: { ...settingsData.senders, defaultSender: e.target.value },
                       })
                     }
-                    placeholder="WeVentureHub <onboarding@resend.dev>"
+                    placeholder="WeVentureHub <info@weventurehub.com>"
                     className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary font-mono"
                   />
                   <span className="text-[10px] text-slate-500 mt-0.5 block font-medium">Used for standard system notifications and workspace bookings.</span>
@@ -736,7 +736,7 @@ export const AdminEmailCenter: React.FC = () => {
                         senders: { ...settingsData.senders, supportSender: e.target.value },
                       })
                     }
-                    placeholder="WeVentureHub <onboarding@resend.dev>"
+                    placeholder="WeVentureHub <info@weventurehub.com>"
                     className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary font-mono"
                   />
                   <span className="text-[10px] text-slate-500 mt-0.5 block font-medium">Used for support ticket notifications and customer inquiries.</span>
@@ -753,7 +753,7 @@ export const AdminEmailCenter: React.FC = () => {
                         senders: { ...settingsData.senders, billingSender: e.target.value },
                       })
                     }
-                    placeholder="WeVentureHub <onboarding@resend.dev>"
+                    placeholder="WeVentureHub <info@weventurehub.com>"
                     className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary font-mono"
                   />
                   <span className="text-[10px] text-slate-500 mt-0.5 block font-medium">Used for invoices, payment reminders, and payment receipts.</span>
@@ -770,7 +770,7 @@ export const AdminEmailCenter: React.FC = () => {
                         senders: { ...settingsData.senders, notificationsSender: e.target.value },
                       })
                     }
-                    placeholder="WeVentureHub <onboarding@resend.dev>"
+                    placeholder="WeVentureHub <info@weventurehub.com>"
                     className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary font-mono"
                   />
                   <span className="text-[10px] text-slate-500 mt-0.5 block font-medium">Used for welcome emails, password resets, and verification codes.</span>
@@ -800,7 +800,7 @@ export const AdminEmailCenter: React.FC = () => {
               </div>
               <div className="flex justify-between py-2 border-b border-slate-200">
                 <span className="text-slate-500">From Address:</span>
-                <span className="font-mono text-slate-900 font-bold">{smtpConfig?.from || 'WeVentureHub <onboarding@resend.dev>'}</span>
+                <span className="font-mono text-slate-900 font-bold">{smtpConfig?.from || 'WeVentureHub <info@weventurehub.com>'}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-slate-200">
                 <span className="text-slate-500">SMTP User Configured:</span>
@@ -818,7 +818,7 @@ export const AdminEmailCenter: React.FC = () => {
                 type="email"
                 value={testEmailInput}
                 onChange={(e) => setTestEmailInput(e.target.value)}
-                placeholder="Enter email address (e.g. abiwolflearn@gmail.com)"
+                placeholder="Enter email address (e.g. info@weventurehub.com)"
                 className="flex-1 bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary"
               />
               <button
