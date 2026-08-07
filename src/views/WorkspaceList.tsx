@@ -67,6 +67,8 @@ export default function WorkspaceList() {
   const [bookingStart, setBookingStart] = useState('14:00');
   const [bookingEnd, setBookingEnd] = useState('16:00');
   const [bookingPurpose, setBookingPurpose] = useState('Workspace Utilization');
+  const [bookingReservationType, setBookingReservationType] = useState<'Workspace' | 'Meeting' | 'Event' | 'Internal Work Schedule' | 'Resource'>('Workspace');
+  const [bookingReservationTitle, setBookingReservationTitle] = useState('');
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
 
@@ -378,6 +380,8 @@ export default function WorkspaceList() {
       startTime: startIso,
       endTime: endIso,
       purpose: bookingPurpose,
+      reservationTitle: bookingReservationTitle || bookingPurpose || 'Workspace Utilization',
+      reservationType: bookingReservationType,
     };
 
     if (selectedPlanObj) {
@@ -600,7 +604,7 @@ export default function WorkspaceList() {
     }));
   };
 
-  const handleSelectCalendarTimeSlot = (date: Date, startHour: number, endHour: number) => {
+  const handleSelectCalendarTimeSlot = (date: Date, startHour: number, endHour: number, spaceId?: string) => {
     const formattedDate = date.toISOString().split('T')[0];
     const formattedStart = `${startHour.toString().padStart(2, '0')}:00`;
     const formattedEnd = `${endHour.toString().padStart(2, '0')}:00`;
@@ -608,6 +612,14 @@ export default function WorkspaceList() {
     setBookingDate(formattedDate);
     setBookingStart(formattedStart);
     setBookingEnd(formattedEnd);
+
+    if (spaceId) {
+      const spaceObj = workspaces.find((w: any) => w.id === spaceId || w._id === spaceId);
+      if (spaceObj) {
+        handleOpenBookingModal(spaceObj);
+        return;
+      }
+    }
 
     if (workspaces.length > 0) {
       handleOpenBookingModal(workspaces[0]);
@@ -625,6 +637,8 @@ export default function WorkspaceList() {
     setBillingContactEmail(user ? user.email : '');
     setBillingCompany('');
     setBillingAddress('');
+    setBookingReservationType('Workspace');
+    setBookingReservationTitle('');
     setBookingError(null);
   };
 
@@ -931,6 +945,7 @@ export default function WorkspaceList() {
               bookings={bookings} 
               workspaces={workspaces} 
               onSelectTimeSlot={handleSelectCalendarTimeSlot}
+              currentUser={user}
             />
           )}
         </div>
@@ -992,6 +1007,34 @@ export default function WorkspaceList() {
 
             {/* Form Fields */}
             <div className="space-y-4">
+              {isAdminOrStaff && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[12px] font-bold text-[#374151]">Company Activity Title</label>
+                    <Input
+                      placeholder="e.g. Q3 Executive Sync, Orientation, etc."
+                      value={bookingReservationTitle}
+                      onChange={(e) => setBookingReservationTitle(e.target.value)}
+                      className="w-full rounded-[10px] border-[#E5E7EB]"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[12px] font-bold text-[#374151]">Reservation Type</label>
+                    <select
+                      value={bookingReservationType}
+                      onChange={(e) => setBookingReservationType(e.target.value as any)}
+                      className="w-full h-[40px] rounded-[10px] border border-[#E5E7EB] bg-white px-3 text-[13px] font-medium text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#84CC16]"
+                    >
+                      <option value="Workspace">Workspace</option>
+                      <option value="Meeting">Meeting (Team meeting)</option>
+                      <option value="Event">Event (Company event)</option>
+                      <option value="Internal Work Schedule">Internal Work Schedule</option>
+                      <option value="Resource">Resource Reservation</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
               <Input 
                 label="Reservation Date" 
                 type="date" 
@@ -1025,34 +1068,40 @@ export default function WorkspaceList() {
             </div>
 
             {/* Dynamic Calculated Pricing Display */}
-            <div className="p-4 bg-white rounded-[14px] border border-[#E5E7EB] space-y-2 text-[13px]">
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-[#4B5563]">Price Calculation</span>
-                <span className="font-bold text-[11px] bg-[#84CC16]/15 text-[#4D7C0F] px-2 py-0.5 rounded-[4px] uppercase tracking-wider">
-                  {isCalculatingPrice ? 'Calculating...' : (calculatedPricing?.billingRuleApplied || 'Standard Rate')}
-                </span>
+            {bookingReservationType === 'Workspace' ? (
+              <div className="p-4 bg-white rounded-[14px] border border-[#E5E7EB] space-y-2 text-[13px]">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-[#4B5563]">Price Calculation</span>
+                  <span className="font-bold text-[11px] bg-[#84CC16]/15 text-[#4D7C0F] px-2 py-0.5 rounded-[4px] uppercase tracking-wider">
+                    {isCalculatingPrice ? 'Calculating...' : (calculatedPricing?.billingRuleApplied || 'Standard Rate')}
+                  </span>
+                </div>
+                <div className="border-t border-gray-100 pt-2 space-y-1.5">
+                  <div className="flex justify-between items-center text-[#4B5563]">
+                    <span>Base Price</span>
+                    <span className="font-mono font-bold">
+                      {selectedWorkspace.currency || 'USD'} {(calculatedPricing?.basePrice || 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-[#4B5563]">
+                    <span>VAT ({calculatedPricing?.vatPercentage || 15}%)</span>
+                    <span className="font-mono font-bold">
+                      {selectedWorkspace.currency || 'USD'} {(calculatedPricing?.vatAmount || 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center border-t border-gray-100 pt-2 text-[#111827] font-bold">
+                    <span>Total Amount</span>
+                    <span className="font-mono text-[#65A30D] text-[15px]">
+                      {selectedWorkspace.currency || 'USD'} {(calculatedPricing?.totalPrice || 0).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="border-t border-gray-100 pt-2 space-y-1.5">
-                <div className="flex justify-between items-center text-[#4B5563]">
-                  <span>Base Price</span>
-                  <span className="font-mono font-bold">
-                    {selectedWorkspace.currency || 'USD'} {(calculatedPricing?.basePrice || 0).toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-[#4B5563]">
-                  <span>VAT ({calculatedPricing?.vatPercentage || 15}%)</span>
-                  <span className="font-mono font-bold">
-                    {selectedWorkspace.currency || 'USD'} {(calculatedPricing?.vatAmount || 0).toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center border-t border-gray-100 pt-2 text-[#111827] font-bold">
-                  <span>Total Amount</span>
-                  <span className="font-mono text-[#65A30D] text-[15px]">
-                    {selectedWorkspace.currency || 'USD'} {(calculatedPricing?.totalPrice || 0).toFixed(2)}
-                  </span>
-                </div>
+            ) : (
+              <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-[14px] text-center text-[#15803D] text-[13px] font-bold">
+                Company Internal Activity (0.00 cost)
               </div>
-            </div>
+            )}
 
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
               <Button 

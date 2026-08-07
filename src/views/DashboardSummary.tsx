@@ -221,6 +221,9 @@ export default function DashboardSummary() {
         </div>
       </div>
 
+      {/* 6. Calendar Timeline (Workspace Timeline) */}
+      <CalendarWidget />
+
       {/* Statistics Cards Row */}
       <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-6`}>
         <StatisticsCard 
@@ -288,11 +291,12 @@ export default function DashboardSummary() {
         </div>
       )}
 
-      {/* 6. Calendar Timeline & Audit Logs Timeline (2-Column Grid) */}
-      <div className="grid grid-cols-1 gap-8">
-        <CalendarWidget />
-        {isAdmin && <RecentActivityWidget />}
-      </div>
+      {/* 6. Audit Logs Timeline */}
+      {isAdmin && (
+        <div className="grid grid-cols-1 gap-8">
+          <RecentActivityWidget />
+        </div>
+      )}
 
       {/* 7. New Dynamic Operational Modules (Recent Payments, Latest Registrations, Upcoming Events, Announcements) */}
       {isAdmin && (

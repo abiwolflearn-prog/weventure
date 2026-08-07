@@ -5,6 +5,8 @@ export interface IBookingPayload {
   startTime: string;
   endTime: string;
   purpose?: string;
+  reservationTitle?: string;
+  reservationType?: 'Workspace' | 'Meeting' | 'Event' | 'Internal Work Schedule' | 'Resource';
   durationType?: 'Hourly' | 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
   durationQuantity?: number;
   unitPrice?: number;

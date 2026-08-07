@@ -280,6 +280,61 @@ class EmailNotificationManager {
     });
   }
 
+  public async sendTimelineReservationEmail(booking: any, user: any, workspaceName: string, location?: string): Promise<void> {
+    const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'Client';
+    const reservationTitle = booking.reservationTitle || booking.purpose || 'Workspace Utilization';
+    const reservationType = booking.reservationType || 'Workspace';
+    const startTime = booking.startTime ? new Date(booking.startTime).toLocaleString() : 'N/A';
+    const endTime = booking.endTime ? new Date(booking.endTime).toLocaleString() : 'N/A';
+    const dateStr = booking.startTime ? new Date(booking.startTime).toLocaleDateString() : 'N/A';
+    const status = booking.status || 'CONFIRMED';
+    const loc = location || 'WeVentureHub Main Campus';
+
+    // 1. Notify the person who created the reservation
+    await emailService.enqueueEmail({
+      templateKey: 'booking_approved',
+      recipientEmail: user.email,
+      recipientName: userName,
+      variables: {
+        userName,
+        bookingId: booking._id?.toString() || booking.id || 'BK-1001',
+        spaceName: `${workspaceName} (${reservationType})`,
+        startTime,
+        endTime,
+        agreementNumber: `RES-${reservationTitle.substring(0, 6).toUpperCase()}`,
+        paymentStatus: 'Company Internal / Pre-approved',
+        bookingUrl: `${this.appUrl}/dashboard/bookings`,
+      },
+      priority: 'high',
+    });
+
+    // 2. Notify Admin/Super Admin
+    try {
+      const settings = await emailService.getSystemEmailSettings();
+      const adminEmail = settings.adminEmails.primaryAdminEmail || 'admin@weventurehub.com';
+      await emailService.enqueueEmail({
+        templateKey: 'admin_notification_generic',
+        recipientEmail: adminEmail,
+        recipientName: 'WeVentureHub Reservation Admin',
+        variables: {
+          eventTitle: `New Timeline Reservation: ${reservationTitle}`,
+          message: `A new ${reservationType} reservation has been successfully completed.
+Title: ${reservationTitle}
+Resource: ${workspaceName}
+Date: ${dateStr}
+Time: ${startTime} - ${endTime}
+Location: ${loc}
+Organizer: ${userName} (${user.email})
+Status: ${status}`,
+          adminUrl: `${this.appUrl}/dashboard/bookings`,
+        },
+        priority: 'high',
+      });
+    } catch (adminErr) {
+      console.error('Failed to send admin notification for timeline reservation:', adminErr);
+    }
+  }
+
   public async sendPaymentFailed(invoice: any, user: any, reason?: string): Promise<void> {
     const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Client';
     const invoiceNumber = invoice.invoiceNumber || 'INV-2001';

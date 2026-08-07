@@ -5,7 +5,8 @@ interface IBookingCalendarProps {
   bookings: any[];
   workspaces: any[];
   selectedWorkspaceId?: string;
-  onSelectTimeSlot?: (date: Date, startHour: number, endHour: number) => void;
+  onSelectTimeSlot?: (date: Date, startHour: number, endHour: number, spaceId?: string) => void;
+  currentUser?: any;
 }
 
 export function BookingCalendar({
@@ -13,9 +14,16 @@ export function BookingCalendar({
   workspaces = [],
   selectedWorkspaceId,
   onSelectTimeSlot,
+  currentUser,
 }: IBookingCalendarProps) {
   const [viewMode, setViewMode] = useState<'MONTH' | 'WEEK' | 'TIMELINE'>('MONTH');
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
+
+  const isAdminOrStaff = React.useMemo(() => {
+    if (!currentUser) return false;
+    const role = currentUser.role || '';
+    return ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'MANAGER', 'WORKSPACE_MANAGER', 'ADMIN'].includes(role);
+  }, [currentUser]);
 
   // Workspace map for easy retrieval
   const workspaceMap = React.useMemo(() => {
@@ -87,7 +95,7 @@ export function BookingCalendar({
                 key={date.toISOString()}
                 onClick={() => {
                   if (onSelectTimeSlot) {
-                    onSelectTimeSlot(date, 9, 10);
+                    onSelectTimeSlot(date, 9, 10, selectedWorkspaceId);
                   }
                 }}
                 className={`min-h-[70px] p-2 rounded-xl border transition-all text-left flex flex-col justify-between cursor-pointer group ${
@@ -216,7 +224,7 @@ export function BookingCalendar({
                         key={date.toISOString() + hour}
                         onClick={() => {
                           if (!activeBkg && onSelectTimeSlot) {
-                            onSelectTimeSlot(date, hour, hour + 1);
+                            onSelectTimeSlot(date, hour, hour + 1, selectedWorkspaceId);
                           }
                         }}
                         className={`h-11 rounded-lg border text-left p-1.5 flex flex-col justify-between transition cursor-pointer ${
@@ -310,7 +318,7 @@ export function BookingCalendar({
                           key={hour}
                           onClick={() => {
                             if (!activeBkg && onSelectTimeSlot) {
-                              onSelectTimeSlot(currentDate, hour, hour + 1);
+                              onSelectTimeSlot(currentDate, hour, hour + 1, space.id);
                             }
                           }}
                           className={`flex-1 border-r border-gray-200 last:border-r-0 h-full flex items-center justify-center transition cursor-pointer relative group ${
@@ -401,6 +409,165 @@ export function BookingCalendar({
         {viewMode === 'MONTH' && renderMonthlyView()}
         {viewMode === 'WEEK' && renderWeeklyView()}
         {viewMode === 'TIMELINE' && renderTimelineView()}
+      </div>
+
+      {/* Reservation Cards Section */}
+      <div className="border-t border-gray-100 pt-6 space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h4 className="text-[14px] font-extrabold text-[#111827] uppercase tracking-wider">
+              Company Reservations & Scheduled Activities
+            </h4>
+            <p className="text-[11px] text-[#6B7280]">
+              Real-time schedule of workspace allocations and internal company events for {currentDate.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Render booked slots */}
+          {workspaces.flatMap((space) => {
+            const spaceBookings = bookings.filter((bkg) => {
+              if (bkg.status === 'CANCELLED') return false;
+              if (bkg.spaceId !== space.id) return false;
+              const bkgDate = new Date(bkg.startTime);
+              return bkgDate.toDateString() === currentDate.toDateString();
+            });
+            
+            const bookedCards = spaceBookings.map((bkg) => {
+              const statusLabel = bkg.status === 'PENDING_REVIEW' || bkg.status === 'PENDING_APPROVAL' ? 'Pending' :
+                                  bkg.status === 'CONFIRMED' || bkg.status === 'APPROVED' ? 'Confirmed' :
+                                  bkg.status === 'COMPLETED' ? 'Completed' :
+                                  bkg.status === 'CANCELLED' ? 'Cancelled' : bkg.status;
+              
+              const statusColors = bkg.status === 'PENDING_REVIEW' || bkg.status === 'PENDING_APPROVAL' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                   bkg.status === 'CONFIRMED' || bkg.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                   bkg.status === 'COMPLETED' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                   'bg-gray-50 text-gray-700 border-gray-200';
+
+              const typeLabel = bkg.reservationType || 'Workspace';
+              const typeColors = typeLabel === 'Workspace' ? 'bg-blue-100 text-blue-800' :
+                                 typeLabel === 'Meeting' ? 'bg-purple-100 text-purple-800' :
+                                 typeLabel === 'Event' ? 'bg-orange-100 text-orange-800' :
+                                 typeLabel === 'Internal Work Schedule' ? 'bg-pink-100 text-pink-800' :
+                                 'bg-indigo-100 text-indigo-800';
+
+              return (
+                <div 
+                  key={bkg.id || bkg._id} 
+                  className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-3.5"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-start gap-2">
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-[6px] uppercase tracking-wider ${typeColors}`}>
+                        {typeLabel}
+                      </span>
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-[6px] border ${statusColors}`}>
+                        {statusLabel}
+                      </span>
+                    </div>
+                    <h5 className="font-bold text-[14px] text-gray-900 line-clamp-1">
+                      {bkg.reservationTitle || bkg.purpose || 'Workspace Utilization'}
+                    </h5>
+                    <p className="text-[11px] text-gray-500 font-medium">
+                      {space.name} · {space.location || 'WeVentureHub Main Campus'}
+                    </p>
+                  </div>
+
+                  <div className="border-t border-dashed border-gray-100 pt-3 space-y-1.5 text-[11px] text-gray-600 font-medium">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Date:</span>
+                      <span>{new Date(bkg.startTime).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Duration:</span>
+                      <span>
+                        {new Date(bkg.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(bkg.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Organizer:</span>
+                      <span className="truncate max-w-[150px]">{bkg.userEmail || 'WeVentureHub Member'}</span>
+                    </div>
+                    {bkg.teamSize !== undefined && bkg.teamSize > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Participants:</span>
+                        <span>{bkg.teamSize} pax</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {isAdminOrStaff && (
+                    <div className="pt-2">
+                      <button
+                        onClick={() => {
+                          if (onSelectTimeSlot) {
+                            onSelectTimeSlot(currentDate, 9, 10, space.id);
+                          }
+                        }}
+                        className="w-full bg-[#84CC16] hover:bg-[#65A30D] text-[#111111] font-extrabold text-[11px] py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1"
+                      >
+                        <span>Reserve Another Slot</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            });
+
+            const availableCard = (
+              <div 
+                key={`avail-${space.id}`} 
+                className="bg-[#FAFAF9]/60 border border-dashed border-gray-300 rounded-xl p-4 flex flex-col justify-between space-y-3.5"
+              >
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-[6px] uppercase tracking-wider bg-emerald-100 text-emerald-800">
+                      Resource
+                    </span>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-[6px] border bg-emerald-50 text-emerald-700 border-emerald-200">
+                      Available
+                    </span>
+                  </div>
+                  <h5 className="font-bold text-[14px] text-gray-800">
+                    {space.name}
+                  </h5>
+                  <p className="text-[11px] text-gray-500 font-medium">
+                    Capacity: {space.capacity} pax · {space.location || 'WeVentureHub Campus'}
+                  </p>
+                </div>
+
+                <div className="border-t border-dashed border-gray-200 pt-3 space-y-1.5 text-[11px] text-gray-500 font-medium">
+                  <div className="flex justify-between">
+                    <span>Status:</span>
+                    <span className="text-emerald-600 font-bold">Open for Bookings</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Rate:</span>
+                    <span>{space.currency || 'ETB'} {space.hourlyPrice || space.hourlyRate || 0}/hr</span>
+                  </div>
+                </div>
+
+                {isAdminOrStaff && (
+                  <div className="pt-2">
+                    <button
+                      onClick={() => {
+                        if (onSelectTimeSlot) {
+                          onSelectTimeSlot(currentDate, 9, 10, space.id);
+                        }
+                      }}
+                      className="w-full bg-[#84CC16] hover:bg-[#65A30D] text-[#111111] font-extrabold text-[11px] py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1"
+                    >
+                      <span>Reserve Slot</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+
+            return [...bookedCards, availableCard];
+          })}
+        </div>
       </div>
 
       {/* Foot notes */}

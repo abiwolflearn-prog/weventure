@@ -18,6 +18,8 @@ export interface IBookingDocument extends Document {
   totalAmount: number;
   status: 'PENDING_APPROVAL' | 'PENDING_REVIEW' | 'APPROVED' | 'AGREEMENT_GENERATED' | 'CUSTOMER_ACCEPTED' | 'CONFIRMED' | 'CANCELLED' | 'REJECTED' | 'RENEWED' | 'COMPLETED';
   purpose?: string;
+  reservationTitle?: string;
+  reservationType?: 'Workspace' | 'Meeting' | 'Event' | 'Internal Work Schedule' | 'Resource';
   qrCode: string;
   billingPlanId?: string;
   billingPlanName?: 'Hourly' | 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly';
@@ -71,6 +73,8 @@ const BookingSchema = new Schema<IBookingDocument>(
       index: true,
     },
     purpose: { type: String, trim: true },
+    reservationTitle: { type: String, trim: true },
+    reservationType: { type: String, enum: ['Workspace', 'Meeting', 'Event', 'Internal Work Schedule', 'Resource'], default: 'Workspace' },
     qrCode: { type: String, required: true },
     billingPlanId: { type: String },
     billingPlanName: { type: String },

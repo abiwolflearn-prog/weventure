@@ -46,6 +46,8 @@ export class BookingService {
       startTime: string;
       endTime: string;
       purpose?: string;
+      reservationTitle?: string;
+      reservationType?: 'Workspace' | 'Meeting' | 'Event' | 'Internal Work Schedule' | 'Resource';
       billingPlanId?: string;
       signedAgreementText?: string;
       emergencyContact?: {
@@ -139,7 +141,10 @@ export class BookingService {
 
     // 3. Price & Plan Constraints Calculation (Fully Database-Driven)
     const pricingResult = await pricingService.calculateAutomaticPrice(workspace.id, start, end, tenantId);
-    const totalAmount = pricingResult.totalPrice;
+    let totalAmount = pricingResult.totalPrice;
+    if (data.reservationType && data.reservationType !== 'Workspace') {
+      totalAmount = 0;
+    }
     const billingPlanName = pricingResult.billingCycle || 'Hourly';
     const breakdown = pricingResult.billingRuleApplied;
 
@@ -165,6 +170,8 @@ export class BookingService {
       totalAmount,
       status,
       purpose: data.purpose || 'Workspace Utilization',
+      reservationTitle: data.reservationTitle || data.purpose || 'Workspace Utilization',
+      reservationType: data.reservationType || 'Workspace',
       qrCode,
       billingPlanId: data.billingPlanId,
       billingPlanName,
@@ -274,7 +281,9 @@ export class BookingService {
     });
 
     // Send transactional email notifications
-    if (status === 'CONFIRMED') {
+    if (booking.reservationType && booking.reservationType !== 'Workspace') {
+      emailNotificationManager.sendTimelineReservationEmail(booking, user, workspace.name, workspace.location).catch(console.error);
+    } else if (status === 'CONFIRMED') {
       emailNotificationManager.sendBookingApproved(booking, { email: user.email, name: `${user.firstName} ${user.lastName}` }, workspace.name).catch(console.error);
     } else {
       emailNotificationManager.sendBookingReceived(booking, { email: user.email, name: `${user.firstName} ${user.lastName}` }, workspace.name).catch(console.error);
