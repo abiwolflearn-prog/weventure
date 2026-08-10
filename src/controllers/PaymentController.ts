@@ -7,6 +7,7 @@ import { ValidationError, ForbiddenError, NotFoundError } from '../errors/AppErr
 import { IUserIdentity, UserRole } from '../types';
 import { logger } from '../utils/logger';
 import { PaymentProvider } from '../models/Payment';
+import { getBankRecord, getBankRecords, numberToWords, WEVENTURE_SUPPLIER_INFO } from '../utils/invoiceUtils';
 
 export class PaymentController {
   /**
@@ -289,20 +290,39 @@ export class PaymentController {
       const lightGray = '#F9FAFB';
       const borderGray = '#E5E7EB';
 
-      // 1. TOP BRANDING HEADER
-      // Top accent banner bar
-      doc.rect(35, 35, 525, 4).fill(primaryColor);
+      // 1. TOP BRANDING HEADER — WEVENTURE LOGO + HEADER TEXT ABOVE LEMON LINE
+      doc.save();
+      // Draw 3-Node WeVenture Logo Symbol (Larger)
+      const logoX = 35;
+      const logoY = 32;
+      doc.circle(logoX + 7, logoY + 8, 7).fill('#0B0E2A'); // Left Navy Node
+      doc.circle(logoX + 28, logoY + 8, 7).fill('#84CC16'); // Right Green Node
+      doc.circle(logoX + 17.5, logoY + 23, 7).fill('#84CC16'); // Bottom Green Node
+      doc.path(`M ${logoX + 7} ${logoY + 8} Q ${logoX + 12} ${logoY + 16} ${logoX + 17.5} ${logoY + 23} Q ${logoX + 10} ${logoY + 17} ${logoX + 7} ${logoY + 8} Z`).fill('#0B0E2A');
+      doc.path(`M ${logoX + 28} ${logoY + 8} Q ${logoX + 23} ${logoY + 16} ${logoX + 17.5} ${logoY + 23} Q ${logoX + 25} ${logoY + 17} ${logoX + 28} ${logoY + 8} Z`).fill('#84CC16');
+      doc.restore();
 
-      // Left-side Identity
-      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(16).text('WEVENTUREHUB', 35, 48);
-      doc.fillColor(textGray).font('Helvetica').fontSize(8.5).text('Event & Workspace Management Platform', 35, 66);
-      doc.fontSize(8).text('Bole Road, Sur Construction Building, 2nd Floor, Addis Ababa, Ethiopia', 35, 76);
-      doc.text('Email: info@weventurehub.com | Tel: +251 11 600 8899', 35, 86);
+      // WEVENTURE Header Text & Tagline ABOVE LEMON LINE
+      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(22).text('WEVENTURE', logoX + 42, logoY, { align: 'left' });
+      doc.fillColor('#84CC16').font('Helvetica-Bold').fontSize(8.5).text('EVENT & WORKSPACE MANAGEMENT PLATFORM', logoX + 42, logoY + 24, { align: 'left' });
 
-      // Right-side Meta Header
-      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(9).text('OFFICIAL INVOICE', 350, 48, { align: 'right', width: 210 });
-      doc.fontSize(14).text(invoice.invoiceNumber, 350, 60, { align: 'right', width: 210 });
-      doc.font('Helvetica').fontSize(8.5).fillColor(textGray).text(`Booking ID: ${invoice.bookingId || 'N/A'}`, 350, 76, { align: 'right', width: 210 });
+      // THE VIBRANT LEMON GREEN ACCENT LINE
+      doc.rect(35, 70, 525, 4).fill('#84CC16');
+
+      // OFFICIAL INVOICE META BANNER UNDER LEMON LINE
+      doc.save();
+      doc.roundedRect(35, 80, 525, 28, 4).fill('#111827');
+      doc.fillColor('#84CC16').font('Helvetica-Bold').fontSize(10).text('OFFICIAL INVOICE', 45, 89);
+      doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(12).text(invoice.invoiceNumber, 150, 88);
+      doc.fillColor('#9CA3AF').font('Helvetica').fontSize(9).text(`Booking ID: ${invoice.bookingId || 'N/A'}`, 330, 89);
+      doc.restore();
+
+      // 2. SUPPLIER INFORMATION & STATUS BADGE (BELOW META BANNER)
+      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(9).text('SUPPLIER INFORMATION', 35, 118);
+      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(12).text(WEVENTURE_SUPPLIER_INFO.companyName, 35, 130);
+      doc.fillColor(textGray).font('Helvetica').fontSize(8.5).text(`Address: ${WEVENTURE_SUPPLIER_INFO.address}`, 35, 144);
+      doc.text(`Supplier's VAT Reg. No: ${WEVENTURE_SUPPLIER_INFO.vatRegNo}`, 35, 155);
+      doc.text(`Supplier's TIN No: ${WEVENTURE_SUPPLIER_INFO.tinNo}`, 35, 166);
 
       // Dynamic Status Badge
       const statusStr = String(invoice.status || '').toLowerCase();
@@ -312,48 +332,59 @@ export class PaymentController {
       const badgeText = isPaid ? '#047857' : '#D97706';
 
       doc.save();
-      doc.roundedRect(460, 88, 100, 16, 4).fill(badgeBg);
-      doc.fillColor(badgeText).font('Helvetica-Bold').fontSize(7.5).text(statusLabel, 460, 92, { align: 'center', width: 100 });
+      doc.roundedRect(450, 118, 110, 18, 5).fill(badgeBg);
+      doc.fillColor(badgeText).font('Helvetica-Bold').fontSize(8.5).text(statusLabel, 450, 123, { align: 'center', width: 110 });
       doc.restore();
 
       // Horizontal subtle line divider
-      doc.strokeColor(borderGray).lineWidth(1).moveTo(35, 112).lineTo(560, 112).stroke();
+      doc.strokeColor(borderGray).lineWidth(1).moveTo(35, 178).lineTo(560, 178).stroke();
 
       // 2. BILLED TO & METADATA GRID BOX
       doc.save();
-      doc.roundedRect(35, 122, 525, 90, 6).fillAndStroke(lightGray, borderGray);
+      doc.roundedRect(35, 186, 525, 85, 6).fillAndStroke(lightGray, borderGray);
       doc.restore();
 
       // Left column: Billed To
-      doc.fillColor(textGray).font('Helvetica-Bold').fontSize(7.5).text('BILLED TO:', 45, 130);
-      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(9.5).text(invoice.billingDetails?.name || 'N/A', 45, 142);
+      doc.fillColor(textGray).font('Helvetica-Bold').fontSize(7.5).text('BILLED TO:', 45, 194);
+      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(9.5).text(invoice.billingDetails?.name || 'N/A', 45, 206);
       if (invoice.billingDetails?.company) {
-        doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(8.5).text(invoice.billingDetails.company, 45, 154);
+        doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(8.5).text(invoice.billingDetails.company, 45, 218);
       }
-      doc.fillColor(textGray).font('Helvetica').fontSize(8).text(invoice.billingDetails?.email || invoice.userEmail || 'N/A', 45, 165);
+      doc.fillColor(textGray).font('Helvetica').fontSize(8).text(invoice.billingDetails?.email || invoice.userEmail || 'N/A', 45, 229);
       if (invoice.billingDetails?.phone) {
-        doc.text(invoice.billingDetails.phone, 45, 175);
+        doc.text(invoice.billingDetails.phone, 45, 239);
       }
-      doc.fontSize(7).font('Helvetica-Bold').text(`CUSTOMER TYPE: ${(invoice.customerType || 'Individual').toUpperCase()}`, 45, 188);
+      const customerTin = invoice.billingDetails?.tinNumber || invoice.billingDetails?.taxId || (invoice as any).customerTin;
+      if (customerTin) {
+        doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(7.5).text(`CUSTOMER TIN NO: ${customerTin}`, 45, 248);
+        doc.fillColor(textGray).fontSize(7).font('Helvetica-Bold').text(`CUSTOMER TYPE: ${(invoice.customerType || 'Individual').toUpperCase()}`, 45, 258);
+      } else {
+        doc.fontSize(7).font('Helvetica-Bold').text(`CUSTOMER TYPE: ${(invoice.customerType || 'Individual').toUpperCase()}`, 45, 251);
+      }
 
       // Right column: Dates & Workspace Information
-      doc.fillColor(textGray).font('Helvetica-Bold').fontSize(7.5).text('INVOICE DATES & SPACE INFO:', 300, 130);
+      doc.fillColor(textGray).font('Helvetica-Bold').fontSize(7.5).text('INVOICE DATES & SPACE INFO:', 300, 194);
       
       doc.font('Helvetica').fontSize(8);
-      doc.text('Date Issued:', 300, 142);
-      doc.font('Helvetica-Bold').text(invoice.createdAt ? new Date(invoice.createdAt).toLocaleDateString() : 'N/A', 420, 142, { align: 'right', width: 130 });
+      doc.text('Date Issued:', 300, 206);
+      doc.font('Helvetica-Bold').text(invoice.createdAt ? new Date(invoice.createdAt).toLocaleDateString() : 'N/A', 420, 206, { align: 'right', width: 130 });
 
-      doc.font('Helvetica').text('Due Date:', 300, 154);
-      doc.font('Helvetica-Bold').fillColor('#BE123C').text(invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'Immediate', 420, 154, { align: 'right', width: 130 });
+      doc.font('Helvetica').text('Due Date:', 300, 218);
+      doc.font('Helvetica-Bold').fillColor('#BE123C').text(invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'Immediate', 420, 218, { align: 'right', width: 130 });
 
-      doc.fillColor(textGray).font('Helvetica').text('Workspace Name:', 300, 166);
-      doc.font('Helvetica-Bold').fillColor(darkColor).text(invoice.workspaceName || 'Executive Workspace', 420, 166, { align: 'right', width: 130 });
+      doc.fillColor(textGray).font('Helvetica').text('Workspace Name:', 300, 230);
+      doc.font('Helvetica-Bold').fillColor(darkColor).text(invoice.workspaceName || 'Executive Workspace', 420, 230, { align: 'right', width: 130 });
 
-      doc.fillColor(textGray).font('Helvetica').text('Billing Period:', 300, 178);
-      doc.font('Helvetica-Bold').text(invoice.billingPeriod || 'Current Cycle', 420, 178, { align: 'right', width: 130 });
+      doc.fillColor(textGray).font('Helvetica').text('Billing Period:', 300, 242);
+      doc.font('Helvetica-Bold').text(invoice.billingPeriod || 'Current Cycle', 420, 242, { align: 'right', width: 130 });
+
+      const durationQty = invoice.durationQuantity || invoice.lineItems?.[0]?.quantity || 1;
+      const durationType = invoice.durationType || invoice.lineItems?.[0]?.durationType || 'Hourly';
+      doc.fillColor(textGray).font('Helvetica').text('Duration:', 300, 254);
+      doc.font('Helvetica-Bold').text(`${durationQty} ${durationType}`, 420, 254, { align: 'right', width: 130 });
 
       // 3. TABLE OF LINE ITEMS (Compact heights to guarantee single-page fit)
-      const tableTop = 225;
+      const tableTop = 280;
       doc.save().rect(35, tableTop, 525, 18).fill(darkColor);
 
       doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(7.5);
@@ -376,7 +407,7 @@ export class PaymentController {
       items.forEach((item: any) => {
         doc.fillColor(darkColor).font('Helvetica').fontSize(8);
         doc.text(item.description || `Workspace Rental Charge - ${invoice.workspaceName || 'Suite'}`, 45, currentY + 5, { width: 190 });
-        doc.text(invoice.durationType || 'Hourly', 240, currentY + 5, { width: 90, align: 'center' });
+        doc.text(item.durationType || invoice.durationType || 'N/A', 240, currentY + 5, { width: 90, align: 'center' });
         doc.text(String(item.quantity || 1), 340, currentY + 5, { width: 30, align: 'center' });
         doc.text(`${(item.unitPrice || 0).toLocaleString()} ${invoice.currency || 'ETB'}`, 380, currentY + 5, { width: 80, align: 'right' });
         doc.text(`${(item.amount || 0).toLocaleString()} ${invoice.currency || 'ETB'}`, 470, currentY + 5, { width: 80, align: 'right' });
@@ -385,37 +416,42 @@ export class PaymentController {
         doc.strokeColor(borderGray).lineWidth(0.5).moveTo(35, currentY).lineTo(560, currentY).stroke();
       });
 
-      // 4. LOWER SECTION: PAYMENTS, QR CODE & GRAND TOTALS
+      // 4. LOWER SECTION: AMOUNT IN WORDS, PAYMENT INFO (BOTTOM LEFT) & FINANCIAL TOTALS (BOTTOM RIGHT)
       const totalsY = currentY + 12;
 
-      // Draw QR Code
-      try {
-        const qrContent = `Invoice: ${invoice.invoiceNumber}\nAmount: ${invoice.grandTotal || invoice.amount} ${invoice.currency}\nStatus: ${invoice.status}`;
-        const qrDataUrl = await QRCode.toDataURL(qrContent, { margin: 1, width: 110 });
-        const qrBuffer = Buffer.from(qrDataUrl.split(',')[1], 'base64');
-        doc.image(qrBuffer, 35, totalsY, { width: 75, height: 75 });
-      } catch (qrErr) {
-        console.error('Failed to embed QR code in PDF:', qrErr);
-      }
+      // Calculate Bank Records & Amount in words
+      const bankRecords = getBankRecords(invoice.selectedBanks || invoice.selectedBank || invoice.bankName || invoice.bankDetails);
+      const totalVal = invoice.grandTotal || invoice.amount || 0;
+      const currencyVal = invoice.currency || 'ETB';
+      const wordsText = numberToWords(totalVal, currencyVal);
 
-      // Payment Terms info block
-      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(7.5).text('Payment Terms & Instructions:', 125, totalsY);
-      doc.fillColor(textGray).font('Helvetica').fontSize(7);
-      doc.text('Please process your invoice payments via our integrated payment portal (supporting ArifPay, Telebirr, CBE, or Chapa). All workspace tenancy invoices include standard 15% VAT compliance tax.', 125, totalsY + 10, { width: 210, lineGap: 1.5 });
+      // LEFT SIDE: AMOUNT IN WORDS + PAYMENT INFORMATION
+      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(7.5).text('AMOUNT IN WORDS:', 35, totalsY);
+      doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(8.5).text(wordsText, 35, totalsY + 10, { width: 290 });
 
-      // Right Column Financial breakdown
+      const payInfoY = totalsY + 30;
+      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(8).text('PAYMENT SETTLEMENT BANKS:', 35, payInfoY);
+      
+      let bankY = payInfoY + 11;
+      bankRecords.slice(0, 3).forEach((bank, idx) => {
+        doc.font('Helvetica-Bold').fontSize(7.5).fillColor(darkColor).text(`Bank Option ${idx + 1}: ${bank.bankName}`, 35, bankY);
+        doc.font('Helvetica').fontSize(6.5).fillColor(textGray).text(`Acc Name: ${bank.accountName} | Acc No: ${bank.accountNumber} | Branch: ${bank.branch}`, 35, bankY + 9, { width: 300 });
+        bankY += 20;
+      });
+
+      // RIGHT SIDE: Financial breakdown
       doc.fillColor(textGray).font('Helvetica').fontSize(8);
       doc.text('Subtotal Amount:', 350, totalsY);
-      doc.text(`${(invoice.amount || 0).toLocaleString()} ${invoice.currency || 'ETB'}`, 470, totalsY, { align: 'right', width: 80 });
+      doc.text(`${(invoice.amount || 0).toLocaleString()} ${currencyVal}`, 470, totalsY, { align: 'right', width: 80 });
 
       doc.text('VAT (15% Tax):', 350, totalsY + 12);
-      doc.text(`${(invoice.vat || 0).toLocaleString()} ${invoice.currency || 'ETB'}`, 470, totalsY + 12, { align: 'right', width: 80 });
+      doc.text(`${(invoice.vat || 0).toLocaleString()} ${currencyVal}`, 470, totalsY + 12, { align: 'right', width: 80 });
 
       let financialY = totalsY + 24;
       if (invoice.discount > 0) {
         doc.fillColor(primaryColor);
         doc.text('Discount Applied:', 350, financialY);
-        doc.text(`-${(invoice.discount || 0).toLocaleString()} ${invoice.currency || 'ETB'}`, 470, financialY, { align: 'right', width: 80 });
+        doc.text(`-${(invoice.discount || 0).toLocaleString()} ${currencyVal}`, 470, financialY, { align: 'right', width: 80 });
         financialY += 12;
       }
 
@@ -425,7 +461,7 @@ export class PaymentController {
       // Grand Total display
       doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(10);
       doc.text('Grand Total:', 350, financialY + 6);
-      doc.fillColor(primaryColor).text(`${(invoice.grandTotal || invoice.amount || 0).toLocaleString()} ${invoice.currency || 'ETB'}`, 470, financialY + 6, { align: 'right', width: 80 });
+      doc.fillColor(primaryColor).text(`${totalVal.toLocaleString()} ${currencyVal}`, 470, financialY + 6, { align: 'right', width: 80 });
 
       // 5. STABLE SINGLE-PAGE FOOTER SIGNATURES (Anchored to exact bottom range of standard A4)
       const footerY = 745;

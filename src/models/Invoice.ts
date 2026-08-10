@@ -35,6 +35,7 @@ export interface IInvoiceDocument extends Document {
     company?: string;
     address?: string;
     taxId?: string;
+    tinNumber?: string;
   };
   lineItems: {
     description: string;
@@ -68,6 +69,12 @@ export interface IInvoiceDocument extends Document {
   adjustedAt?: Date;
   extraCharges?: number;
   bankDetails?: string;
+  selectedBank?: string;
+  selectedBanks?: string[];
+  bankName?: string;
+  accountName?: string;
+  accountNumber?: string;
+  branch?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -100,6 +107,7 @@ const InvoiceSchema = new Schema<IInvoiceDocument>(
       company: { type: String },
       address: { type: String },
       taxId: { type: String },
+      tinNumber: { type: String },
     },
     lineItems: [
       {
@@ -135,6 +143,12 @@ const InvoiceSchema = new Schema<IInvoiceDocument>(
     adjustedAt: { type: Date },
     extraCharges: { type: Number, default: 0 },
     bankDetails: { type: String },
+    selectedBank: { type: String, default: 'Dashen Bank' },
+    selectedBanks: { type: [String], default: ['Dashen Bank', 'Commercial Bank of Ethiopia'] },
+    bankName: { type: String, default: 'Dashen Bank' },
+    accountName: { type: String, default: 'WE VENTURE HOLDINGS PLC' },
+    accountNumber: { type: String, default: '001210684011' },
+    branch: { type: String, default: 'Bole Branch' },
   },
   {
     timestamps: true,

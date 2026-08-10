@@ -104,6 +104,8 @@
   /* Force the printable containers and all of their descendants to be visible */
   #printable-invoice,
   #printable-invoice *,
+  #printable-expense,
+  #printable-expense *,
   #printable-ticket,
   #printable-ticket * {
     visibility: visible !important;
@@ -112,7 +114,10 @@
   /* Guarantee all parent elements of #printable-invoice are visible and styled cleanly */
   div:has(#printable-invoice),
   main:has(#printable-invoice),
-  section:has(#printable-invoice) {
+  section:has(#printable-invoice),
+  div:has(#printable-expense),
+  main:has(#printable-expense),
+  section:has(#printable-expense) {
     visibility: visible !important;
     background: transparent !important;
     border: none !important;
@@ -149,14 +154,17 @@
     display: none !important;
   }
 
-  /* Style the invoice for clean, ink-friendly, high-contrast, edge-to-edge printing */
-  #printable-invoice {
+  /* Style the invoice & expense voucher for clean, ink-friendly, high-contrast, edge-to-edge printing */
+  #printable-invoice,
+  #printable-expense {
     visibility: visible !important;
     display: block !important;
-    position: relative !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
     border: none !important;
     box-shadow: none !important;
-    padding: 1.5cm !important;
+    padding: 0.8cm !important;
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 auto !important;
@@ -164,6 +172,27 @@
     background: white !important;
     color: black !important;
     page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    max-height: 27.5cm !important;
+    overflow: hidden !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Force exact color adjustment and visibility for SVG logo elements when printing */
+  #printable-invoice svg,
+  #printable-invoice path,
+  #printable-invoice circle,
+  #printable-expense svg,
+  #printable-expense path,
+  #printable-expense circle {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 
   /* Ensure all nested text is completely legible (black on white) when printing */
@@ -175,7 +204,16 @@
   #printable-invoice h1,
   #printable-invoice h2,
   #printable-invoice h3,
-  #printable-invoice h4 {
+  #printable-invoice h4,
+  #printable-expense p,
+  #printable-expense span,
+  #printable-expense td,
+  #printable-expense th,
+  #printable-expense div,
+  #printable-expense h1,
+  #printable-expense h2,
+  #printable-expense h3,
+  #printable-expense h4 {
     color: #000000 !important;
     background-color: transparent !important;
     border-color: #E5E7EB !important;

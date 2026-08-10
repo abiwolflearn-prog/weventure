@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import WeVentureLogo from '../components/WeVentureLogo';
+import { getBankRecord, getBankRecords, numberToWords, WEVENTURE_SUPPLIER_INFO } from '../utils/invoiceUtils';
 import { paymentApi } from '../lib/paymentApi';
 import { workspaceApi } from '../lib/workspaceApi';
 import { getSocket } from '../lib/socket';
@@ -11,6 +12,7 @@ import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import {
  FileText,
+ Plus,
  Download,
  Loader2,
  Calendar,
@@ -81,6 +83,91 @@ export default function InvoicesPage() {
  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
  const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
+
+ // Create Invoice Modal State
+ const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+ const [newInvoiceData, setNewInvoiceData] = useState({
+   userName: '',
+   userEmail: '',
+   userPhone: '',
+   companyName: '',
+   customerTin: '',
+   customerType: 'Individual',
+   workspaceName: 'Executive Coworking Suite',
+   billingPeriod: 'Current Cycle',
+   itemDescription: 'Tenancy Workspace Rental Charge',
+   durationType: 'Hourly',
+   customDurationType: '',
+   durationQuantity: 1,
+   unitPrice: 1500,
+   discount: 0,
+   dueDate: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString().split('T')[0],
+   status: 'Pending Payment',
+   selectedBanks: ['Dashen Bank', 'Commercial Bank of Ethiopia'],
+ });
+
+ const createInvoiceMutation = useMutation({
+   mutationFn: (payload: any) => paymentApi.createInvoice(payload),
+   onSuccess: (data) => {
+     queryClient.invalidateQueries({ queryKey: ['invoices'] });
+     queryClient.invalidateQueries({ queryKey: ['invoice-stats'] });
+     setIsCreateModalOpen(false);
+     alert(`Invoice ${data?.invoiceNumber || ''} created successfully!`);
+   },
+   onError: (err: any) => {
+     alert(`Failed to create invoice: ${err?.response?.data?.message || err.message}`);
+   },
+ });
+
+ const handleCreateInvoiceSubmit = (e: React.FormEvent) => {
+   e.preventDefault();
+   const finalDurationType = newInvoiceData.durationType === 'Custom'
+     ? (newInvoiceData.customDurationType.trim() || 'Custom Duration')
+     : newInvoiceData.durationType;
+
+   const amount = Number(newInvoiceData.durationQuantity || 1) * Number(newInvoiceData.unitPrice || 0);
+   const vat = Math.round(amount * 0.15 * 100) / 100;
+   const grandTotal = amount + vat - Number(newInvoiceData.discount || 0);
+
+   createInvoiceMutation.mutate({
+     userName: newInvoiceData.userName || 'Valued Client',
+     userEmail: newInvoiceData.userEmail || 'client@weventurehub.com',
+     userPhone: newInvoiceData.userPhone,
+     companyName: newInvoiceData.companyName,
+     customerTin: newInvoiceData.customerTin,
+     billingDetails: {
+       name: newInvoiceData.userName || 'Valued Client',
+       email: newInvoiceData.userEmail || 'client@weventurehub.com',
+       phone: newInvoiceData.userPhone,
+       company: newInvoiceData.companyName,
+       taxId: newInvoiceData.customerTin,
+       tinNumber: newInvoiceData.customerTin,
+     },
+     customerType: newInvoiceData.customerType,
+     workspaceName: newInvoiceData.workspaceName,
+     billingPeriod: newInvoiceData.billingPeriod,
+     durationType: finalDurationType,
+     durationQuantity: Number(newInvoiceData.durationQuantity || 1),
+     unitPrice: Number(newInvoiceData.unitPrice || 0),
+     amount,
+     vat,
+     discount: Number(newInvoiceData.discount || 0),
+     grandTotal,
+     dueDate: newInvoiceData.dueDate,
+     status: newInvoiceData.status,
+     selectedBanks: newInvoiceData.selectedBanks,
+     itemDescription: newInvoiceData.itemDescription || `Workspace Rental - ${newInvoiceData.workspaceName}`,
+     lineItems: [
+       {
+         description: newInvoiceData.itemDescription || `Workspace Rental - ${newInvoiceData.workspaceName}`,
+         durationType: finalDurationType,
+         quantity: Number(newInvoiceData.durationQuantity || 1),
+         unitPrice: Number(newInvoiceData.unitPrice || 0),
+         amount,
+       }
+     ]
+   });
+ };
 
  // Print ref
  const printContainerRef = useRef<HTMLDivElement>(null);
@@ -204,13 +291,32 @@ export default function InvoicesPage() {
  });
  };
 
- const handleDownloadTxt = (id: string, invoiceNumber: string) => {
- const token = localStorage.getItem('weventure_jwt_token');
- const url = `/api/v1/payments/invoices/${id}/download${
- token ? `?token=${encodeURIComponent(token)}` : ''
- }`;
- window.open(url, '_blank');
+ const handleDownloadPdf = async (id: string, invoiceNumber: string) => {
+  try {
+    const token = localStorage.getItem('weventure_jwt_token') || '';
+    const tenantId = localStorage.getItem('weventure_tenant_id') || 'weventurehub';
+    const response = await fetch(`/api/v1/payments/invoices/${id}/download?token=${encodeURIComponent(token)}&tenantId=${encodeURIComponent(tenantId)}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch invoice PDF');
+    }
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = `Invoice_${invoiceNumber || id}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
+  } catch (e) {
+    const token = localStorage.getItem('weventure_jwt_token') || '';
+    window.open(`/api/v1/payments/invoices/${id}/download?token=${encodeURIComponent(token)}`, '_blank');
+  }
  };
+
+ const handleDownloadTxt = handleDownloadPdf;
 
  const handlePrint = (invoice: any) => {
  setSelectedInvoice(invoice);
@@ -396,6 +502,15 @@ export default function InvoicesPage() {
  <span>Revenue Analytics</span>
  </button>
  </div>
+
+ <Button
+ size="sm"
+ onClick={() => setIsCreateModalOpen(true)}
+ className="bg-[#84CC16] hover:bg-lime-600 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm"
+ >
+ <Plus className="w-4 h-4" />
+ <span>Create Invoice</span>
+ </Button>
 
  <Button
  size="sm"
@@ -848,9 +963,16 @@ export default function InvoicesPage() {
  </div>
 
  <div className="flex justify-between">
+ <span className="text-neutral-400">Customer TIN No:</span>
+ <span className="font-bold text-[#65A30D] font-mono">
+ {invoice.billingDetails?.tinNumber || invoice.billingDetails?.taxId || invoice.customerTin || 'N/A'}
+ </span>
+ </div>
+
+ <div className="flex justify-between">
  <span className="text-neutral-400">Duration:</span>
  <span className="font-medium text-neutral-700 ">
- {invoice.durationQuantity || 1} {invoice.durationType || 'Hourly'}
+ {invoice.durationQuantity || invoice.lineItems?.[0]?.quantity || 1} {invoice.durationType || invoice.lineItems?.[0]?.durationType || 'Hourly'}
  </span>
  </div>
 
@@ -963,6 +1085,11 @@ export default function InvoicesPage() {
  <div className="text-[10px] text-neutral-500 font-mono">
  {invoice.billingDetails?.email || invoice.userEmail}
  </div>
+ {(invoice.billingDetails?.tinNumber || invoice.billingDetails?.taxId || invoice.customerTin) && (
+ <div className="text-[10px] text-[#65A30D] font-extrabold mt-1">
+ TIN No: {invoice.billingDetails?.tinNumber || invoice.billingDetails?.taxId || invoice.customerTin}
+ </div>
+ )}
  </td>
 
  {/* Workspace & Duration */}
@@ -971,8 +1098,8 @@ export default function InvoicesPage() {
  {invoice.workspaceName || 'Executive Workspace'}
  </div>
  <div className="text-[11px] text-neutral-500 font-medium mt-0.5">
- {invoice.durationQuantity || 1} x {invoice.durationType || 'Hourly'} @{' '}
- {(invoice.unitPrice || invoice.amount || 0).toLocaleString()}{' '}
+ {invoice.durationQuantity || invoice.lineItems?.[0]?.quantity || 1} x {invoice.durationType || invoice.lineItems?.[0]?.durationType || 'Hourly'} @{' '}
+ {(invoice.unitPrice || invoice.lineItems?.[0]?.unitPrice || invoice.amount || 0).toLocaleString()}{' '}
  {invoice.currency || 'ETB'}
  </div>
  </td>
@@ -1104,11 +1231,19 @@ export default function InvoicesPage() {
  className="rounded-xl flex items-center gap-1.5 font-bold text-xs"
  >
  <Printer className="w-4 h-4 text-[#65A30D]" />
- <span>Print Document</span>
+ <span>Print</span>
+ </Button>
+ <Button
+ size="sm"
+ onClick={() => handleDownloadPdf(selectedInvoice.id || selectedInvoice._id, selectedInvoice.invoiceNumber)}
+ className="rounded-xl flex items-center gap-1.5 font-bold text-xs bg-[#65A30D] text-white hover:bg-[#4d7c0a]"
+ >
+ <Download className="w-4 h-4 text-white" />
+ <span>Download PDF</span>
  </Button>
  <button
  onClick={() => setIsDetailModalOpen(false)}
- className="p-2 text-neutral-400 hover:text-neutral-600 :text-[#111827] rounded-full"
+ className="p-2 text-neutral-400 hover:text-neutral-600 rounded-full"
  >
  <X className="w-5 h-5" />
  </button>
@@ -1119,82 +1254,112 @@ export default function InvoicesPage() {
  <div
  id="printable-invoice"
  ref={printContainerRef}
- className="bg-white text-neutral-900 rounded-2xl p-6 md:p-8 border border-neutral-200 space-y-6 shadow-xs font-sans"
+ className="bg-white text-neutral-900 rounded-3xl p-8 md:p-12 border border-neutral-200 space-y-8 shadow-sm font-sans"
  >
- {/* Official Header & Branding */}
- <div className="flex flex-col md:flex-row justify-between items-start border-b border-neutral-200 pb-6 gap-4">
+ {/* Official Header & Branding with WEVENTURE Logo + WEVENTURE Header Text ABOVE Lemon Line */}
+ <div className="space-y-6">
+ <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+ <div className="flex items-center gap-5">
+ <WeVentureLogo size={88} mode="light" />
  <div>
- <div className="flex items-center gap-2">
- <div className="w-8 h-8 rounded-lg bg-[#84CC16] flex items-center justify-center font-black text-black">
- <WeVentureLogo size="32" mode="light" />
- </div>
- <span className="font-display font-black text-xl text-neutral-900 tracking-tight">
- WEVENTUREHUB
+ <span className="font-display font-black text-4xl md:text-5xl text-neutral-900 tracking-tight block leading-tight">
+ WEVENTURE
+ </span>
+ <span className="text-sm md:text-base font-extrabold text-[#84CC16] tracking-widest uppercase block mt-1">
+ EVENT & WORKSPACE MANAGEMENT PLATFORM
  </span>
  </div>
- <p className="text-xs text-neutral-500 mt-1">
- Event & Workspace Management Platform
- </p>
- <p className="text-[11px] text-neutral-400 mt-0.5">
- Bole Road, Sur Construction Building, 2nd Floor, Addis Ababa, Ethiopia
- </p>
- <p className="text-[11px] text-neutral-400">
- Email: info@weventurehub.com | Tel: +251 11 600 8899
- </p>
+ </div>
  </div>
 
- <div className="text-left md:text-right">
- <div className="inline-block px-3 py-1 bg-neutral-900 text-[#111827] font-mono font-bold text-xs rounded-lg mb-2">
+ {/* THE VIBRANT LEMON GREEN ACCENT LINE */}
+ <div className="w-full h-2.5 bg-[#84CC16] rounded-full my-6" />
+
+ {/* OFFICIAL INVOICE META BANNER UNDER LEMON LINE */}
+ <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-neutral-900 text-white rounded-2xl p-5 gap-4">
+ <div className="flex items-center gap-4 flex-wrap">
+ <div className="inline-block px-4 py-1.5 bg-[#84CC16] text-black font-mono font-black text-xs md:text-sm rounded-xl">
  OFFICIAL INVOICE
  </div>
- <div className="font-mono font-black text-lg text-neutral-900">
+ <div className="font-mono font-black text-2xl md:text-3xl text-white">
  {selectedInvoice.invoiceNumber}
  </div>
- <div className="text-xs text-neutral-500 font-mono mt-0.5">
- Booking ID: {selectedInvoice.bookingId || 'N/A'}
  </div>
- <div className="mt-2">{getStatusBadge(selectedInvoice.status)}</div>
+ <div className="flex items-center gap-4 flex-wrap">
+ <div className="text-sm md:text-base text-neutral-300 font-mono font-semibold">
+ Booking ID: <span className="text-white font-bold">{selectedInvoice.bookingId || 'N/A'}</span>
+ </div>
+ <div>{getStatusBadge(selectedInvoice.status)}</div>
  </div>
  </div>
 
- {/* Bill To & Invoice Meta Information */}
- <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-neutral-50 rounded-2xl p-4 border border-neutral-200 text-xs">
+ {/* SUPPLIER & BILLED TO GRID BELOW LEMON LINE */}
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2">
+ {/* Supplier Information */}
+ <div className="space-y-2 text-sm md:text-base">
+ <h4 className="font-black uppercase text-xs md:text-sm text-neutral-500 tracking-wider mb-2">
+ SUPPLIER INFORMATION
+ </h4>
+ <div className="font-black text-lg md:text-xl text-neutral-900">
+ {WEVENTURE_SUPPLIER_INFO.companyName}
+ </div>
+ <div className="text-neutral-700 font-medium">
+ <span className="font-bold text-neutral-900">Address:</span> {WEVENTURE_SUPPLIER_INFO.address}
+ </div>
+ <div className="text-neutral-700 font-medium">
+ <span className="font-bold text-neutral-900">Supplier's VAT Reg. No:</span> {WEVENTURE_SUPPLIER_INFO.vatRegNo}
+ </div>
+ <div className="text-neutral-700 font-medium">
+ <span className="font-bold text-neutral-900">Supplier's TIN No:</span> {WEVENTURE_SUPPLIER_INFO.tinNo}
+ </div>
+ <div className="text-neutral-700 font-medium">
+ <span className="font-bold text-neutral-900">Date of Registration:</span> {WEVENTURE_SUPPLIER_INFO.dateOfRegistration}
+ </div>
+ <div className="text-neutral-500 text-xs md:text-sm mt-2 font-medium">
+ Email: info@weventurehub.com | Tel: +251 11 600 8899
+ </div>
+ </div>
+
+ {/* Billed To Information & Space Info */}
+ <div className="bg-neutral-50 rounded-2xl p-5 border border-neutral-200 text-sm md:text-base space-y-3">
  <div>
- <h4 className="font-extrabold uppercase text-[10px] text-neutral-400 tracking-wider mb-2">
+ <h4 className="font-black uppercase text-xs md:text-sm text-neutral-400 tracking-wider mb-1.5">
  Billed To:
  </h4>
- <div className="font-bold text-sm text-neutral-900">
+ <div className="font-black text-lg md:text-xl text-neutral-900">
  {selectedInvoice.billingDetails?.name}
  </div>
  {selectedInvoice.billingDetails?.company && (
- <div className="font-semibold text-indigo-700 mt-0.5 flex items-center gap-1">
- <Building2 className="w-3.5 h-3.5" />
+ <div className="font-bold text-indigo-700 mt-1 flex items-center gap-1.5 text-base">
+ <Building2 className="w-4 h-4" />
  <span>{selectedInvoice.billingDetails.company}</span>
  </div>
  )}
- <div className="text-neutral-600 mt-1">{selectedInvoice.billingDetails?.email || selectedInvoice.userEmail}</div>
+ <div className="text-neutral-700 font-medium">{selectedInvoice.billingDetails?.email || selectedInvoice.userEmail}</div>
  {selectedInvoice.billingDetails?.phone && (
- <div className="text-neutral-600">{selectedInvoice.billingDetails.phone}</div>
+ <div className="text-neutral-700 font-medium">{selectedInvoice.billingDetails.phone}</div>
  )}
- <div className="mt-2 inline-block px-2 py-0.5 bg-neutral-200 text-neutral-700 text-[10px] font-bold rounded-md uppercase">
+ {(selectedInvoice.billingDetails?.tinNumber || selectedInvoice.billingDetails?.taxId || selectedInvoice.customerTin) && (
+ <div className="text-neutral-800 font-semibold text-xs md:text-sm mt-1">
+ <span className="font-bold text-neutral-900">Customer TIN No:</span> {selectedInvoice.billingDetails?.tinNumber || selectedInvoice.billingDetails?.taxId || selectedInvoice.customerTin}
+ </div>
+ )}
+ <div className="mt-2.5 inline-block px-3 py-1 bg-neutral-200 text-neutral-800 text-xs font-bold rounded-lg uppercase">
  Customer Type: {selectedInvoice.customerType || 'Individual'}
  </div>
  </div>
 
- <div className="space-y-1.5 border-t md:border-t-0 md:border-l border-neutral-200 pt-3 md:pt-0 md:pl-6">
- <h4 className="font-extrabold uppercase text-[10px] text-neutral-400 tracking-wider mb-2">
- Invoice Dates & Space Info:
- </h4>
+ <div className="pt-3 border-t border-neutral-200 space-y-1.5 text-sm md:text-base">
  <div className="flex justify-between">
- <span className="text-neutral-500">Date Issued:</span>
- <span className="font-medium">
+ <span className="text-neutral-500 font-medium">Date Issued:</span>
+ <span className="font-bold text-neutral-900">
  {selectedInvoice.createdAt
  ? new Date(selectedInvoice.createdAt).toLocaleDateString()
  : 'Today'}
  </span>
  </div>
  <div className="flex justify-between">
- <span className="text-neutral-500">Due Date:</span>
+ <span className="text-neutral-500 font-medium">Due Date:</span>
  <span className="font-bold text-rose-700">
  {selectedInvoice.dueDate
  ? new Date(selectedInvoice.dueDate).toLocaleDateString()
@@ -1202,61 +1367,69 @@ export default function InvoicesPage() {
  </span>
  </div>
  <div className="flex justify-between">
- <span className="text-neutral-500">Workspace Name:</span>
+ <span className="text-neutral-500 font-medium">Workspace Name:</span>
  <span className="font-bold text-neutral-900">
  {selectedInvoice.workspaceName || 'Executive Workspace'}
  </span>
  </div>
  <div className="flex justify-between">
- <span className="text-neutral-500">Billing Period:</span>
- <span className="font-medium text-neutral-700">
+ <span className="text-neutral-500 font-medium">Billing Period:</span>
+ <span className="font-semibold text-neutral-800">
  {selectedInvoice.billingPeriod || 'Current Reservation Cycle'}
  </span>
+ </div>
+ <div className="flex justify-between">
+ <span className="text-neutral-500 font-medium">Duration:</span>
+ <span className="font-bold text-neutral-900">
+ {selectedInvoice.durationQuantity || selectedInvoice.lineItems?.[0]?.quantity || 1} {selectedInvoice.durationType || selectedInvoice.lineItems?.[0]?.durationType || 'Hourly'}
+ </span>
+ </div>
+ </div>
  </div>
  </div>
  </div>
 
  {/* Line Items Table */}
  <div>
- <table className="w-full text-left text-xs border-collapse">
+ <table className="w-full text-left text-sm md:text-base border-collapse">
  <thead>
- <tr className="bg-neutral-900 text-[#111827] font-extrabold uppercase text-[10px]">
- <th className="py-3 px-4 rounded-l-xl">Description</th>
- <th className="py-3 px-4 text-center">Duration / Plan</th>
- <th className="py-3 px-4 text-center">Qty</th>
- <th className="py-3 px-4 text-right">Unit Price</th>
- <th className="py-3 px-4 text-right rounded-r-xl">Total Amount</th>
+ <tr className="bg-neutral-900 text-white font-black uppercase text-xs md:text-sm tracking-wider">
+ <th className="py-4 px-5 rounded-l-xl">Description</th>
+ <th className="py-4 px-5 text-center">Duration / Plan</th>
+ <th className="py-4 px-5 text-center">Qty</th>
+ <th className="py-4 px-5 text-right">Unit Price</th>
+ <th className="py-4 px-5 text-right rounded-r-xl">Total Amount</th>
  </tr>
  </thead>
- <tbody>
+ <tbody className="divide-y divide-neutral-200">
  {selectedInvoice.lineItems && selectedInvoice.lineItems.length > 0 ? (
  selectedInvoice.lineItems.map((item: any, i: number) => (
- <tr key={i} className="border-b border-neutral-200 text-neutral-800">
- <td className="py-3 px-4 font-semibold">{item.description}</td>
- <td className="py-3 px-4 text-center">{selectedInvoice.durationType || 'Hourly'}</td>
- <td className="py-3 px-4 text-center font-bold">{item.quantity}</td>
- <td className="py-3 px-4 text-right font-mono">
+ <tr key={i} className="text-neutral-800 font-medium">
+ <td className="py-4 px-5 font-bold text-neutral-900">{item.description}</td>
+ <td className="py-4 px-5 text-center">{item.durationType || selectedInvoice.durationType || 'N/A'}</td>
+ <td className="py-4 px-5 text-center font-bold text-base">{item.quantity}</td>
+ <td className="py-4 px-5 text-right font-mono font-semibold">
  {item.unitPrice.toLocaleString()} {selectedInvoice.currency || 'ETB'}
  </td>
- <td className="py-3 px-4 text-right font-mono font-bold">
+ <td className="py-4 px-5 text-right font-mono font-bold text-base text-neutral-900">
  {item.amount.toLocaleString()} {selectedInvoice.currency || 'ETB'}
  </td>
  </tr>
  ))
  ) : (
- <tr className="border-b border-neutral-200 text-neutral-800">
- <td className="py-3 px-4 font-semibold">
+ <tr className="text-neutral-800 font-medium">
+ <td className="py-4 px-5 font-bold text-neutral-900">
  Tenancy Workspace Rental Charge - {selectedInvoice.workspaceName || 'Executive Suite'}
  </td>
- <td className="py-3 px-4 text-center">{selectedInvoice.durationType || 'Hourly'}</td>
- <td className="py-3 px-4 text-center font-bold">
+ <td className="py-4 px-5 text-center">{selectedInvoice.durationType || 'N/A'}</td>
+ <td className="py-4 px-5 text-center font-bold text-base">
  {selectedInvoice.durationQuantity || 1}
  </td>
- <td className="py-3 px-4 text-right font-mono">
+ <td className="py-4 px-5 text-right font-mono font-semibold">
  {(selectedInvoice.unitPrice || selectedInvoice.amount || 0).toLocaleString()}{' '}
  {selectedInvoice.currency || 'ETB'}
  </td>
- <td className="py-3 px-4 text-right font-mono font-bold">
+ <td className="py-4 px-5 text-right font-mono font-bold text-base text-neutral-900">
  {(selectedInvoice.amount || 0).toLocaleString()}{' '}
  {selectedInvoice.currency || 'ETB'}
  </td>
@@ -1266,54 +1439,91 @@ export default function InvoicesPage() {
  </table>
  </div>
 
- {/* Totals & Grand Total Summary */}
- <div className="flex flex-col md:flex-row justify-between items-start gap-6 border-t border-neutral-200 pt-4">
- <div className="text-xs text-neutral-500 space-y-1 max-w-sm">
- <div className="font-bold text-neutral-800">Payment Terms & Instructions:</div>
- <p>
- Please make payments via our integrated payment portal (ArifPay, Telebirr, CBE, or Chapa).
- All workspace tenancy invoices include applicable 15% VAT compliance tax.
- </p>
+ {/* Totals & Grand Total Summary (Amount in Words & Payment Info BOTTOM LEFT) */}
+ {(() => {
+   const banks = getBankRecords(selectedInvoice.selectedBanks || selectedInvoice.selectedBank || selectedInvoice.bankName || selectedInvoice.bankDetails);
+   const grandTot = selectedInvoice.grandTotal || selectedInvoice.amount || 0;
+   const curr = selectedInvoice.currency || 'ETB';
+   const amountInWordsText = numberToWords(grandTot, curr);
+
+   return (
+ <div className="flex flex-col md:flex-row justify-between items-start gap-8 border-t border-neutral-200 pt-6">
+ {/* BOTTOM LEFT: AMOUNT IN WORDS & PAYMENT INFORMATION */}
+ <div className="text-sm text-neutral-800 space-y-5 max-w-lg w-full">
+ {/* AMOUNT IN WORDS */}
+ <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-200 space-y-1.5">
+ <div className="font-extrabold uppercase text-xs text-neutral-500 tracking-wider">
+ Amount in Words:
+ </div>
+ <div className="font-black text-base md:text-lg text-[#65A30D]">
+ {amountInWordsText}
+ </div>
  </div>
 
- <div className="w-full md:w-64 space-y-2 text-xs">
- <div className="flex justify-between text-neutral-600">
+ {/* PAYMENT INFORMATION - MULTIPLE SETTLEMENT BANKS */}
+ <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-200 space-y-3">
+ <div className="font-extrabold uppercase text-xs text-neutral-500 tracking-wider mb-1">
+ SETTLEMENT BANK OPTIONS (TRANSFER ACCOUNT DETAILS)
+ </div>
+ <div className="space-y-3 divide-y divide-neutral-200">
+ {banks.map((b, idx) => (
+   <div key={b.bankName + idx} className={idx > 0 ? 'pt-3' : ''}>
+     <div className="font-black text-sm md:text-base text-neutral-900 flex items-center justify-between">
+       <span>Option {idx + 1}: {b.bankName}</span>
+       <span className="text-xs text-neutral-500 font-semibold">{b.branch}</span>
+     </div>
+     <div className="grid grid-cols-3 gap-1 text-xs md:text-sm mt-1">
+       <span className="text-neutral-500 font-medium">Account Name:</span>
+       <span className="col-span-2 font-bold text-neutral-800">{b.accountName}</span>
+       <span className="text-neutral-500 font-medium">Account No:</span>
+       <span className="col-span-2 font-black font-mono text-neutral-900 text-sm md:text-base">{b.accountNumber}</span>
+     </div>
+   </div>
+ ))}
+ </div>
+ </div>
+ </div>
+
+ {/* BOTTOM RIGHT: FINANCIAL BREAKDOWN */}
+ <div className="w-full md:w-80 space-y-3 text-sm md:text-base">
+ <div className="flex justify-between text-neutral-600 font-medium">
  <span>Subtotal Amount:</span>
- <span className="font-mono font-semibold">
- {(selectedInvoice.amount || 0).toLocaleString()} {selectedInvoice.currency || 'ETB'}
+ <span className="font-mono font-bold text-neutral-900">
+ {(selectedInvoice.amount || 0).toLocaleString()} {curr}
  </span>
  </div>
- <div className="flex justify-between text-neutral-600">
+ <div className="flex justify-between text-neutral-600 font-medium">
  <span>VAT (15% Tax):</span>
- <span className="font-mono font-semibold">
- {(selectedInvoice.vat || 0).toLocaleString()} {selectedInvoice.currency || 'ETB'}
+ <span className="font-mono font-bold text-neutral-900">
+ {(selectedInvoice.vat || 0).toLocaleString()} {curr}
  </span>
  </div>
  {selectedInvoice.discount > 0 && (
- <div className="flex justify-between text-[#65A30D] font-medium">
+ <div className="flex justify-between text-[#65A30D] font-bold">
  <span>Discount Applied:</span>
  <span className="font-mono">
- -{(selectedInvoice.discount || 0).toLocaleString()} {selectedInvoice.currency || 'ETB'}
+ -{(selectedInvoice.discount || 0).toLocaleString()} {curr}
  </span>
  </div>
  )}
- <div className="border-t border-neutral-300 pt-2 flex justify-between font-black text-base text-neutral-900">
+ <div className="border-t-2 border-neutral-900 pt-3 flex justify-between font-black text-xl md:text-2xl text-neutral-900">
  <span>Grand Total:</span>
  <span className="font-mono text-[#65A30D]">
- {(selectedInvoice.grandTotal || selectedInvoice.amount || 0).toLocaleString()}{' '}
- {selectedInvoice.currency || 'ETB'}
+ {grandTot.toLocaleString()} {curr}
  </span>
  </div>
  </div>
  </div>
+   );
+ })()}
 
  {/* Signature Footer */}
- <div className="border-t border-neutral-200 pt-6 flex justify-between items-end text-[11px] text-neutral-400">
+ <div className="border-t border-neutral-200 pt-8 flex justify-between items-end text-xs md:text-sm text-neutral-500 font-medium">
  <div>
- <div>WeVentureHub Finance Department</div>
+ <div className="font-bold text-neutral-800 text-sm md:text-base">WeVentureHub Finance Department</div>
  <div>Thank you for choosing WeVentureHub Workspaces</div>
  </div>
- <div className="text-right font-mono font-bold text-neutral-800 border-t border-neutral-400 pt-1 w-48 text-center">
+ <div className="text-right font-mono font-bold text-neutral-900 border-t-2 border-neutral-800 pt-2 w-56 text-center">
  Authorized Stamp & Signature
  </div>
  </div>
@@ -1365,6 +1575,279 @@ export default function InvoicesPage() {
  </Button>
  </div>
  </div>
+ </div>
+ </div>
+ )}
+
+ {/* ADMIN CREATE INVOICE MODAL */}
+ {isCreateModalOpen && (
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+ <div className="bg-white rounded-3xl border border-[#E5E7EB] shadow-2xl max-w-2xl w-full my-8 p-6 md:p-8 space-y-6 relative max-h-[90vh] overflow-y-auto">
+ <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-4">
+ <div className="flex items-center gap-2.5">
+ <Receipt className="w-6 h-6 text-[#65A30D]" />
+ <div>
+ <h2 className="font-display font-extrabold text-xl text-[#111827]">
+ Create Custom Invoice
+ </h2>
+ <p className="text-xs text-[#4B5563]">
+ Set duration, customer details, line items, and pricing explicitly.
+ </p>
+ </div>
+ </div>
+ <button
+ onClick={() => setIsCreateModalOpen(false)}
+ className="p-2 rounded-xl text-[#6B7280] hover:text-[#111827] hover:bg-neutral-100 transition-colors"
+ >
+ <X className="w-5 h-5" />
+ </button>
+ </div>
+
+ <form onSubmit={handleCreateInvoiceSubmit} className="space-y-5 text-xs md:text-sm">
+ {/* Customer Details */}
+ <div className="space-y-3">
+ <h3 className="font-bold text-[#111827] uppercase text-[11px] tracking-wider text-slate-500">
+ 1. Customer / Billed To Information
+ </h3>
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+ <div>
+ <label className="block font-semibold text-[#111827] mb-1">Customer Name *</label>
+ <Input
+ type="text"
+ placeholder="e.g. Samuel Kebede"
+ required
+ value={newInvoiceData.userName}
+ onChange={(e) => setNewInvoiceData({ ...newInvoiceData, userName: e.target.value })}
+ />
+ </div>
+ <div>
+ <label className="block font-semibold text-[#111827] mb-1">Email Address *</label>
+ <Input
+ type="email"
+ placeholder="e.g. samuel@example.com"
+ required
+ value={newInvoiceData.userEmail}
+ onChange={(e) => setNewInvoiceData({ ...newInvoiceData, userEmail: e.target.value })}
+ />
+ </div>
+ <div>
+ <label className="block font-semibold text-[#111827] mb-1">Phone Number</label>
+ <Input
+ type="text"
+ placeholder="e.g. +251 91 123 4567"
+ value={newInvoiceData.userPhone}
+ onChange={(e) => setNewInvoiceData({ ...newInvoiceData, userPhone: e.target.value })}
+ />
+ </div>
+ <div>
+ <label className="block font-semibold text-[#111827] mb-1">Company / Organization</label>
+ <Input
+ type="text"
+ placeholder="e.g. VentureTech PLC"
+ value={newInvoiceData.companyName}
+ onChange={(e) => setNewInvoiceData({ ...newInvoiceData, companyName: e.target.value })}
+ />
+ </div>
+ <div>
+ <label className="block font-semibold text-[#111827] mb-1">Customer TIN No.</label>
+ <Input
+ type="text"
+ placeholder="e.g. 0012345678"
+ value={newInvoiceData.customerTin}
+ onChange={(e) => setNewInvoiceData({ ...newInvoiceData, customerTin: e.target.value })}
+ />
+ </div>
+ </div>
+ <div>
+ <label className="block font-semibold text-[#111827] mb-1">Customer Type</label>
+ <select
+ value={newInvoiceData.customerType}
+ onChange={(e) => setNewInvoiceData({ ...newInvoiceData, customerType: e.target.value })}
+ className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-3 py-2 text-xs font-semibold text-[#111827]"
+ >
+ <option value="Individual">Individual</option>
+ <option value="Company">Company</option>
+ <option value="VIP">VIP / Corporate Partner</option>
+ </select>
+ </div>
+ </div>
+
+ {/* Space & Service Information */}
+ <div className="space-y-3 pt-2 border-t border-[#E5E7EB]">
+ <h3 className="font-bold text-[#111827] uppercase text-[11px] tracking-wider text-slate-500">
+ 2. Workspace & Billing Period
+ </h3>
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+ <div>
+ <label className="block font-semibold text-[#111827] mb-1">Workspace Name</label>
+ <Input
+ type="text"
+ placeholder="e.g. Executive Dedicated Desk"
+ value={newInvoiceData.workspaceName}
+ onChange={(e) => setNewInvoiceData({ ...newInvoiceData, workspaceName: e.target.value })}
+ />
+ </div>
+ <div>
+ <label className="block font-semibold text-[#111827] mb-1">Billing Period</label>
+ <Input
+ type="text"
+ placeholder="e.g. Aug 10 - Aug 20, 2026"
+ value={newInvoiceData.billingPeriod}
+ onChange={(e) => setNewInvoiceData({ ...newInvoiceData, billingPeriod: e.target.value })}
+ />
+ </div>
+ </div>
+ </div>
+
+ {/* Duration & Pricing Section */}
+ <div className="space-y-3 pt-2 border-t border-[#E5E7EB]">
+ <h3 className="font-bold text-[#111827] uppercase text-[11px] tracking-wider text-slate-500 flex items-center justify-between">
+ <span>3. Duration & Custom Pricing (Admin Configuration)</span>
+ <span className="text-[#65A30D] text-[10px] lowercase font-normal">*admin created duration</span>
+ </h3>
+
+ <div>
+ <label className="block font-semibold text-[#111827] mb-1">Line Item Description</label>
+ <Input
+ type="text"
+ placeholder="e.g. Dedicated Desk Workspace Rental"
+ value={newInvoiceData.itemDescription}
+ onChange={(e) => setNewInvoiceData({ ...newInvoiceData, itemDescription: e.target.value })}
+ />
+ </div>
+
+ <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+ <div>
+ <label className="block font-semibold text-[#111827] mb-1">Duration Type *</label>
+ <select
+ value={newInvoiceData.durationType}
+ onChange={(e) => setNewInvoiceData({ ...newInvoiceData, durationType: e.target.value })}
+ className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-3 py-2 text-xs font-bold text-[#111827]"
+ >
+ <option value="Hourly">Hourly</option>
+ <option value="Daily">Daily</option>
+ <option value="Weekly">Weekly</option>
+ <option value="Monthly">Monthly</option>
+ <option value="Annual">Annual</option>
+ <option value="Custom">Custom Duration</option>
+ </select>
+ </div>
+
+ {newInvoiceData.durationType === 'Custom' && (
+ <div>
+ <label className="block font-semibold text-[#111827] mb-1">Custom Duration Text *</label>
+ <Input
+ type="text"
+ placeholder="e.g. 3 Days / 10 Hours / Flex Cycle"
+ required
+ value={newInvoiceData.customDurationType}
+ onChange={(e) => setNewInvoiceData({ ...newInvoiceData, customDurationType: e.target.value })}
+ />
+ </div>
+ )}
+
+ <div>
+ <label className="block font-semibold text-[#111827] mb-1">Duration Quantity *</label>
+ <Input
+ type="number"
+ min="1"
+ required
+ value={newInvoiceData.durationQuantity}
+ onChange={(e) => setNewInvoiceData({ ...newInvoiceData, durationQuantity: Number(e.target.value) })}
+ />
+ </div>
+
+ <div>
+ <label className="block font-semibold text-[#111827] mb-1">Unit Price (ETB) *</label>
+ <Input
+ type="number"
+ min="0"
+ required
+ value={newInvoiceData.unitPrice}
+ onChange={(e) => setNewInvoiceData({ ...newInvoiceData, unitPrice: Number(e.target.value) })}
+ />
+ </div>
+ </div>
+
+ {/* Price summary badge */}
+ <div className="p-3 bg-neutral-50 rounded-2xl border border-neutral-200 flex items-center justify-between font-mono">
+ <div>
+ <span className="text-xs text-neutral-500 font-sans block">Subtotal (Qty x Unit Price):</span>
+ <span className="font-bold text-[#111827]">
+ {(Number(newInvoiceData.durationQuantity || 1) * Number(newInvoiceData.unitPrice || 0)).toLocaleString()} ETB
+ </span>
+ </div>
+ <div className="text-right">
+ <span className="text-xs text-neutral-500 font-sans block">Estimated VAT (15%):</span>
+ <span className="font-bold text-[#65A30D]">
+ {Math.round(Number(newInvoiceData.durationQuantity || 1) * Number(newInvoiceData.unitPrice || 0) * 0.15).toLocaleString()} ETB
+ </span>
+ </div>
+ </div>
+ </div>
+
+ {/* Due Date, Discount, Status */}
+ <div className="space-y-3 pt-2 border-t border-[#E5E7EB]">
+ <h3 className="font-bold text-[#111827] uppercase text-[11px] tracking-wider text-slate-500">
+ 4. Invoice Status & Financials
+ </h3>
+ <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+ <div>
+ <label className="block font-semibold text-[#111827] mb-1">Due Date</label>
+ <Input
+ type="date"
+ value={newInvoiceData.dueDate}
+ onChange={(e) => setNewInvoiceData({ ...newInvoiceData, dueDate: e.target.value })}
+ />
+ </div>
+ <div>
+ <label className="block font-semibold text-[#111827] mb-1">Discount (ETB)</label>
+ <Input
+ type="number"
+ min="0"
+ value={newInvoiceData.discount}
+ onChange={(e) => setNewInvoiceData({ ...newInvoiceData, discount: Number(e.target.value) })}
+ />
+ </div>
+ <div>
+ <label className="block font-semibold text-[#111827] mb-1">Initial Status</label>
+ <select
+ value={newInvoiceData.status}
+ onChange={(e) => setNewInvoiceData({ ...newInvoiceData, status: e.target.value })}
+ className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-3 py-2 text-xs font-semibold text-[#111827]"
+ >
+ <option value="Pending Payment">Pending Payment</option>
+ <option value="Paid">Paid</option>
+ <option value="Draft">Draft</option>
+ <option value="Partially Paid">Partially Paid</option>
+ </select>
+ </div>
+ </div>
+ </div>
+
+ <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#E5E7EB]">
+ <Button
+ type="button"
+ variant="secondary"
+ onClick={() => setIsCreateModalOpen(false)}
+ className="rounded-xl font-bold text-xs"
+ >
+ Cancel
+ </Button>
+ <Button
+ type="submit"
+ disabled={createInvoiceMutation.isPending}
+ className="bg-[#84CC16] hover:bg-lime-600 text-white rounded-xl font-bold text-xs flex items-center gap-2"
+ >
+ {createInvoiceMutation.isPending ? (
+ <Loader2 className="w-4 h-4 animate-spin" />
+ ) : (
+ <Receipt className="w-4 h-4" />
+ )}
+ <span>Issue Custom Invoice</span>
+ </Button>
+ </div>
+ </form>
  </div>
  </div>
  )}

@@ -16,6 +16,7 @@ import { IUserIdentity, UserRole, OrderStatus, OrderType } from '../../types';
 import { ConnectedApp } from '../../models/Integration';
 import { workspaceRepository } from '../../repositories/WorkspaceRepository';
 import { pricingService } from '../PricingService';
+import { getBankRecord, getBankRecords } from '../../utils/invoiceUtils';
 
 export class PaymentService {
   /**
@@ -946,7 +947,20 @@ export class PaymentService {
    * Get Invoice details by id
    */
   public async getInvoiceById(id: string, tenantId: string): Promise<any> {
-    return await Invoice.findOne({ _id: id, tenantId }).exec();
+    const isMongoId = /^[0-9a-fA-F]{24}$/.test(id);
+    if (isMongoId) {
+      const inv = await Invoice.findOne({ _id: id, tenantId }).exec();
+      if (inv) return inv;
+    }
+    const invByNum = await Invoice.findOne({ invoiceNumber: id, tenantId }).exec();
+    if (invByNum) return invByNum;
+
+    // Fallback without tenantId restriction for single-tenant resilience
+    if (isMongoId) {
+      const invFallback = await Invoice.findOne({ _id: id }).exec();
+      if (invFallback) return invFallback;
+    }
+    return await Invoice.findOne({ invoiceNumber: id }).exec();
   }
 
   /**
@@ -1170,6 +1184,11 @@ export class PaymentService {
     const discount = Number(data.discount || 0);
     const extraCharges = Number(data.extraCharges || 0);
     const grandTotal = Number(data.grandTotal !== undefined ? data.grandTotal : (amount + vat + extraCharges - discount));
+    const selectedBanksList = data.selectedBanks && data.selectedBanks.length > 0
+      ? data.selectedBanks
+      : (data.selectedBank ? [data.selectedBank] : ['Dashen Bank', 'Commercial Bank of Ethiopia']);
+    const bankRecords = getBankRecords(selectedBanksList);
+    const bankRec = bankRecords[0] || getBankRecord(data.selectedBank || data.bankName || data.bank || data.bankDetails);
 
     const invoice = new Invoice({
       tenantId: tid,
@@ -1178,9 +1197,10 @@ export class PaymentService {
       userEmail: data.userEmail || data.billingDetails?.email || 'customer@weventurehub.com',
       workspaceName: data.workspaceName || 'Executive Coworking Suite',
       bookingId: data.bookingId,
-      durationType: data.durationType || 'Hourly',
+      durationType: data.durationType || 'Custom',
       durationQuantity: data.durationQuantity || 1,
       customerType: data.customerType || 'Individual',
+      currency: data.currency || 'ETB',
       amount,
       vat,
       discount,
@@ -1189,21 +1209,30 @@ export class PaymentService {
       outstandingBalance: data.status === 'Paid' ? 0 : grandTotal,
       status: data.status || 'Pending Payment',
       dueDate: data.dueDate ? new Date(data.dueDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      billingDetails: data.billingDetails || {
-        name: data.userName || 'Valued Member',
-        email: data.userEmail || 'customer@weventurehub.com',
-        phone: data.userPhone,
-        company: data.companyName,
+      billingDetails: {
+        name: data.billingDetails?.name || data.userName || 'Valued Member',
+        email: data.billingDetails?.email || data.userEmail || 'customer@weventurehub.com',
+        phone: data.billingDetails?.phone || data.userPhone,
+        company: data.billingDetails?.company || data.companyName,
+        taxId: data.billingDetails?.taxId || data.billingDetails?.tinNumber || data.customerTin || data.taxId || data.tinNumber,
+        tinNumber: data.billingDetails?.tinNumber || data.billingDetails?.taxId || data.customerTin || data.taxId || data.tinNumber,
       },
       lineItems: data.lineItems || [
         {
-          description: `Workspace Rental - ${data.workspaceName || 'Executive Suite'}`,
+          description: data.itemDescription || `Workspace Rental - ${data.workspaceName || 'Executive Suite'}`,
+          durationType: data.durationType || 'Custom',
           quantity: data.durationQuantity || 1,
           unitPrice: data.unitPrice || amount,
           amount: amount,
         }
       ],
       bankDetails: data.bankDetails,
+      selectedBank: bankRec.bankName,
+      selectedBanks: bankRecords.map((b) => b.bankName),
+      bankName: bankRec.bankName,
+      accountName: bankRec.accountName,
+      accountNumber: bankRec.accountNumber,
+      branch: bankRec.branch,
       originalPrice: data.originalPrice,
       adjustedPrice: data.adjustedPrice,
       adjustmentReason: data.adjustmentReason,

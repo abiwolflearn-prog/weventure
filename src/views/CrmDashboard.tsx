@@ -63,6 +63,8 @@ import {
 } from 'recharts';
 import { crmApi, ICrmContact, ICrmCompany, ICrmLead, ICrmActivity } from '../lib/crmApi';
 import { paymentApi } from '../lib/paymentApi';
+import WeVentureLogo from '../components/WeVentureLogo';
+import { getBankRecord, getBankRecords, WEVENTURE_BANKS, numberToWords, WEVENTURE_SUPPLIER_INFO } from '../utils/invoiceUtils';
 import { useAppSelector } from '../store';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
@@ -123,7 +125,9 @@ export default function CrmDashboard() {
    { description: 'Executive Coworking Suite - Workspace Rental', quantity: 1, unitPrice: 5000 }
  ]);
  const [invoiceExtraCharges, setInvoiceExtraCharges] = useState(0);
- const [invoiceBankDetails, setInvoiceBankDetails] = useState('Commercial Bank of Ethiopia - Account: 1000123456789');
+ const [invoiceSelectedBank, setInvoiceSelectedBank] = useState('Dashen Bank');
+ const [invoiceSelectedBanks, setInvoiceSelectedBanks] = useState<string[]>(['Dashen Bank', 'Commercial Bank of Ethiopia']);
+ const [invoiceBankDetails, setInvoiceBankDetails] = useState('');
  const [invoiceOriginalPrice, setInvoiceOriginalPrice] = useState(0);
  const [invoiceAdjustedPrice, setInvoiceAdjustedPrice] = useState(0);
  const [invoiceAdjustmentReason, setInvoiceAdjustmentReason] = useState('');
@@ -159,22 +163,23 @@ export default function CrmDashboard() {
  customFields: {} as Record<string, any>
  });
 
- const [invoiceForm, setInvoiceForm] = useState({
- userName: '',
- userEmail: '',
- userPhone: '',
- companyName: '',
- customerType: 'Individual',
- workspaceName: 'Executive Coworking Suite',
- durationType: 'Monthly',
- durationQuantity: 1,
- unitPrice: 5000,
- taxEnabled: true,
- discount: 0,
- status: 'Pending Payment',
- dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
- notes: 'Payment is due within 14 days of invoice issuance. Thank you for choosing WeVentureHub.'
- });
+  const [invoiceForm, setInvoiceForm] = useState({
+    userName: '',
+    userEmail: '',
+    userPhone: '',
+    companyName: '',
+    customerType: 'Individual',
+    workspaceName: 'Executive Coworking Suite',
+    durationType: 'Monthly',
+    durationQuantity: 1,
+    unitPrice: 5000,
+    currency: 'USD',
+    taxEnabled: true,
+    discount: 0,
+    status: 'Pending Payment',
+    dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    notes: 'Payment is due within 14 days of invoice issuance. Thank you for choosing WeVentureHub.'
+  });
 
  const [paymentForm, setPaymentForm] = useState({
  amount: 0,
@@ -582,7 +587,13 @@ export default function CrmDashboard() {
    unitPrice: Number(item.unitPrice),
    amount: Number(item.quantity) * Number(item.unitPrice)
  })),
- bankDetails: invoiceBankDetails,
+ selectedBank: invoiceSelectedBanks[0] || "Dashen Bank",
+ selectedBanks: invoiceSelectedBanks,
+ bankName: getBankRecord(invoiceSelectedBank).bankName,
+ accountName: getBankRecord(invoiceSelectedBank).accountName,
+ accountNumber: getBankRecord(invoiceSelectedBank).accountNumber,
+ branch: getBankRecord(invoiceSelectedBank).branch,
+ bankDetails: `${getBankRecord(invoiceSelectedBank).bankName} - Account: ${getBankRecord(invoiceSelectedBank).accountNumber}`,
  originalPrice: invoiceOriginalPrice > 0 ? Number(invoiceOriginalPrice) : undefined,
  adjustedPrice: invoiceAdjustedPrice > 0 ? Number(invoiceAdjustedPrice) : undefined,
  adjustmentReason: invoiceAdjustmentReason || undefined
@@ -2414,14 +2425,73 @@ export default function CrmDashboard() {
        </label>
      </div>
 
-     <div>
-       <label className="font-semibold block mb-1">Bank Settlement Details</label>
-       <textarea
-         value={invoiceBankDetails}
-         onChange={(e) => setInvoiceBankDetails(e.target.value)}
-         placeholder="Commercial bank details for swift / bank wire..."
-         className="w-full p-2 bg-white border border-gray-200 rounded-lg font-mono text-[10px] h-12 outline-none"
-       />
+     <div className="space-y-3 pt-1 border-t border-slate-200">
+       <div>
+         <label className="font-bold block mb-1 text-slate-700">
+           Select Settlement Banks (Choose 2 or More Bank Options for Invoice Display)
+         </label>
+         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+           {WEVENTURE_BANKS.map((b) => {
+             const isChecked = invoiceSelectedBanks.includes(b.bankName);
+             return (
+               <label
+                 key={b.bankName}
+                 className={`flex items-center gap-2 p-2 rounded-md border cursor-pointer text-xs font-semibold transition-all ${
+                   isChecked
+                     ? 'bg-white border-[#84CC16] shadow-2xs text-slate-900'
+                     : 'bg-slate-100/60 border-slate-200 text-slate-600 hover:bg-white'
+                 }`}
+               >
+                 <input
+                   type="checkbox"
+                   checked={isChecked}
+                   onChange={(e) => {
+                     if (e.target.checked) {
+                       setInvoiceSelectedBanks((prev) => [...prev, b.bankName]);
+                       setInvoiceSelectedBank(b.bankName);
+                     } else {
+                       if (invoiceSelectedBanks.length > 1) {
+                         const next = invoiceSelectedBanks.filter((name) => name !== b.bankName);
+                         setInvoiceSelectedBanks(next);
+                         setInvoiceSelectedBank(next[0]);
+                       }
+                     }
+                   }}
+                   className="rounded text-[#84CC16] focus:ring-[#84CC16]"
+                 />
+                 <span>{b.bankName}</span>
+               </label>
+             );
+           })}
+         </div>
+       </div>
+
+       {/* Auto-populated Read-Only Selected Banks List */}
+       <div className="space-y-2 p-3 bg-slate-100/80 rounded-lg border border-slate-200">
+         <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+           Selected Settlement Bank Accounts ({invoiceSelectedBanks.length} Selected)
+         </div>
+         <div className="space-y-2 divide-y divide-slate-200">
+           {getBankRecords(invoiceSelectedBanks).map((bankRec, idx) => (
+             <div key={bankRec.bankName + idx} className={idx > 0 ? 'pt-2' : ''}>
+               <div className="flex items-center justify-between text-xs font-bold text-slate-800 mb-1">
+                 <span>Option {idx + 1}: {bankRec.bankName}</span>
+                 <span className="text-[10px] text-slate-500 font-medium">{bankRec.branch}</span>
+               </div>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-1 text-[11px] bg-white p-2 rounded border border-slate-200">
+                 <div>
+                   <span className="text-slate-500 font-medium">Acc Name: </span>
+                   <span className="font-bold text-slate-700">{bankRec.accountName}</span>
+                 </div>
+                 <div>
+                   <span className="text-slate-500 font-medium">Acc No: </span>
+                   <span className="font-mono font-bold text-slate-900">{bankRec.accountNumber}</span>
+                 </div>
+               </div>
+             </div>
+           ))}
+         </div>
+       </div>
      </div>
    </div>
 
@@ -2647,7 +2717,38 @@ export default function CrmDashboard() {
  <div className="flex items-center gap-2">
  <Button size="sm" className="bg-[#1E3A8A] text-white hover:bg-blue-700 text-xs" onClick={() => window.print()}>
  <Printer className="w-3.5 h-3.5 mr-1.5" />
- Print A4 Document
+ Print A4
+ </Button>
+ <Button
+ size="sm"
+ className="bg-[#84CC16] text-white hover:bg-lime-600 text-xs font-bold"
+ onClick={async () => {
+   if (!activeInvoice) return;
+   const id = activeInvoice.id || activeInvoice._id || activeInvoice.invoiceNumber;
+   try {
+     const token = localStorage.getItem('weventure_jwt_token') || '';
+     const tenantId = localStorage.getItem('weventure_tenant_id') || 'weventurehub';
+     const response = await fetch(`/api/v1/payments/invoices/${id}/download?token=${encodeURIComponent(token)}&tenantId=${encodeURIComponent(tenantId)}`, {
+       headers: token ? { Authorization: `Bearer ${token}` } : {},
+     });
+     if (!response.ok) throw new Error('Failed to fetch invoice PDF');
+     const blob = await response.blob();
+     const blobUrl = window.URL.createObjectURL(blob);
+     const link = document.createElement('a');
+     link.href = blobUrl;
+     link.download = `Invoice_${activeInvoice.invoiceNumber || id}.pdf`;
+     document.body.appendChild(link);
+     link.click();
+     document.body.removeChild(link);
+     window.URL.revokeObjectURL(blobUrl);
+   } catch (e) {
+     const token = localStorage.getItem('weventure_jwt_token') || '';
+     window.open(`/api/v1/payments/invoices/${id}/download?token=${encodeURIComponent(token)}`, '_blank');
+   }
+ }}
+ >
+ <Download className="w-3.5 h-3.5 mr-1.5" />
+ Download PDF
  </Button>
  <button onClick={() => setIsPrintInvoiceOpen(false)} className="text-[#6B7280] hover:text-[#111827] p-1">
  <X className="w-5 h-5" />
@@ -2655,25 +2756,83 @@ export default function CrmDashboard() {
  </div>
  </div>
 
- {/* A4 Document Header */}
- <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6">
+ {/* A4 Document Header (Supplier Information TOP LEFT) */}
+ {/* Official Header & Branding with WEVENTURE Logo + Header Text ABOVE Lemon Line */}
+ <div className="space-y-6">
+ <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+ <div className="flex items-center gap-5">
+ <WeVentureLogo size={88} mode="light" />
  <div>
- <div className="flex items-center gap-2">
- <div className="w-8 h-8 rounded-lg bg-[#1E3A8A] text-white font-black flex items-center justify-center text-sm">
- WV
+ <span className="font-display font-black text-4xl md:text-5xl text-[#111827] tracking-tight block leading-tight">
+ WEVENTURE
+ </span>
+ <span className="text-sm md:text-base font-extrabold text-[#84CC16] tracking-widest uppercase block mt-1">
+ EVENT & WORKSPACE MANAGEMENT PLATFORM
+ </span>
  </div>
- <span className="text-xl font-black text-[#111827] tracking-tight">WEVENTUREHUB</span>
  </div>
- <p className="text-xs text-[#6B7280] font-medium mt-1">WeVentureHub Business Center PLC</p>
-                                    <p className="text-[11px] text-[#6B7280]">Bole Road, Sur Construction Building, 2nd Floor, Addis Ababa, Ethiopia</p>
- <p className="text-[11px] text-[#6B7280]">TIN: 0098412894 | Tel: +251 911 223 344 | Web: www.weventurehub.com</p>
  </div>
 
- <div className="text-right space-y-1">
- <h2 className="text-2xl font-black text-[#111827] tracking-wider">INVOICE</h2>
- <div className="text-xs font-mono font-bold text-[#1E3A8A]">#{activeInvoice.invoiceNumber}</div>
- <div className="text-[11px] text-[#6B7280]">Issued: {new Date(activeInvoice.createdAt || Date.now()).toLocaleDateString()}</div>
- <div className="text-[11px] text-[#6B7280]">Due: {activeInvoice.dueDate ? new Date(activeInvoice.dueDate).toLocaleDateString() : 'Upon Receipt'}</div>
+ {/* THE VIBRANT LEMON GREEN ACCENT LINE */}
+ <div className="w-full h-2.5 bg-[#84CC16] rounded-full my-6" />
+
+ {/* OFFICIAL INVOICE META BANNER UNDER LEMON LINE */}
+ <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-neutral-900 text-white rounded-2xl p-5 gap-4">
+ <div className="flex items-center gap-4 flex-wrap">
+ <div className="inline-block px-4 py-1.5 bg-[#84CC16] text-black font-mono font-black text-xs md:text-sm rounded-xl">
+ OFFICIAL INVOICE
+ </div>
+ <div className="font-mono font-black text-2xl md:text-3xl text-white">
+ #{activeInvoice.invoiceNumber}
+ </div>
+ </div>
+ <div className="flex items-center gap-6 flex-wrap font-mono text-sm md:text-base">
+ <div className="text-neutral-300">
+ Issued: <span className="text-white font-bold">{new Date(activeInvoice.createdAt || Date.now()).toLocaleDateString()}</span>
+ </div>
+ <div className="text-rose-400 font-bold">
+ Due: {activeInvoice.dueDate ? new Date(activeInvoice.dueDate).toLocaleDateString() : 'Upon Receipt'}
+ </div>
+ </div>
+ </div>
+
+ {/* SUPPLIER & BILLED TO GRID BELOW LEMON LINE */}
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2 text-sm md:text-base">
+ {/* SUPPLIER INFORMATION */}
+ <div className="space-y-2">
+ <h4 className="font-black uppercase text-xs md:text-sm text-slate-500 tracking-wider mb-2">
+ SUPPLIER INFORMATION
+ </h4>
+ <div className="font-black text-lg md:text-xl text-[#111827]">
+ {WEVENTURE_SUPPLIER_INFO.companyName}
+ </div>
+ <div className="text-slate-700 font-medium">
+ <span className="font-bold text-slate-900">Address:</span> {WEVENTURE_SUPPLIER_INFO.address}
+ </div>
+ <div className="text-slate-700 font-medium">
+ <span className="font-bold text-slate-900">Supplier's VAT Reg. No:</span> {WEVENTURE_SUPPLIER_INFO.vatRegNo}
+ </div>
+ <div className="text-slate-700 font-medium">
+ <span className="font-bold text-slate-900">Supplier's TIN No:</span> {WEVENTURE_SUPPLIER_INFO.tinNo}
+ </div>
+ <div className="text-slate-700 font-medium">
+ <span className="font-bold text-slate-900">Date of Registration:</span> {WEVENTURE_SUPPLIER_INFO.dateOfRegistration}
+ </div>
+ </div>
+
+ {/* Billed To Information */}
+ <div className="bg-[#F8FAFC] p-5 rounded-2xl border border-gray-200 space-y-2.5">
+ <span className="text-xs md:text-sm font-black uppercase text-[#6B7280] block">Billed To</span>
+ <div className="font-black text-lg md:text-xl text-[#111827]">
+ {activeInvoice.billingDetails?.name || activeInvoice.userEmail}
+ </div>
+ <div className="text-base font-bold text-indigo-700">
+ {activeInvoice.billingDetails?.company || 'Individual Client'}
+ </div>
+ <div className="text-sm md:text-base text-[#6B7280] font-medium">
+ {activeInvoice.billingDetails?.email || activeInvoice.userEmail}
+ </div>
+ </div>
  </div>
  </div>
 
@@ -2684,6 +2843,9 @@ export default function CrmDashboard() {
  <div className="font-bold text-sm text-[#111827]">{activeInvoice.billingDetails?.name || activeInvoice.userEmail}</div>
  <div className="text-xs text-[#6B7280]">{activeInvoice.billingDetails?.company || 'Individual Client'}</div>
  <div className="text-xs text-[#6B7280]">{activeInvoice.billingDetails?.email || activeInvoice.userEmail}</div>
+ {(activeInvoice.billingDetails?.tinNumber || activeInvoice.billingDetails?.taxId || activeInvoice.customerTin) && (
+ <div className="text-xs font-bold text-[#111827] mt-0.5">TIN No: {activeInvoice.billingDetails?.tinNumber || activeInvoice.billingDetails?.taxId || activeInvoice.customerTin}</div>
+ )}
  </div>
 
  <div className="text-right">
@@ -2707,50 +2869,112 @@ export default function CrmDashboard() {
  <thead>
  <tr className="border-b-2 border-gray-200 text-[#6B7280] uppercase text-[10px] font-bold">
  <th className="py-2">Description / Workspace</th>
+ <th className="py-2 text-center">Duration / Plan</th>
  <th className="py-2 text-center">Qty</th>
  <th className="py-2 text-right">Unit Price</th>
  <th className="py-2 text-right">Line Total</th>
  </tr>
  </thead>
  <tbody className="divide-y divide-slate-100">
+ {activeInvoice.lineItems && activeInvoice.lineItems.length > 0 ? (
+ activeInvoice.lineItems.map((item: any, i: number) => (
+ <tr key={i}>
+ <td className="py-3 font-medium text-[#111827]">
+ {item.description || activeInvoice.workspaceName || 'Executive Suite'}
+ </td>
+ <td className="py-3 text-center">{item.durationType || activeInvoice.durationType || 'N/A'}</td>
+ <td className="py-3 text-center font-bold">{item.quantity || 1}</td>
+ <td className="py-3 text-right">{(item.unitPrice || 0).toLocaleString()} {activeInvoice.currency || 'ETB'}</td>
+ <td className="py-3 text-right font-bold font-mono">{(item.amount || 0).toLocaleString()} {activeInvoice.currency || 'ETB'}</td>
+ </tr>
+ ))
+ ) : (
  <tr>
  <td className="py-3 font-medium text-[#111827]">
  {activeInvoice.workspaceName || 'Executive Coworking Suite'}
  <span className="block text-[10px] text-[#6B7280]">WeVentureHub Premium Space Allocation</span>
  </td>
- <td className="py-3 text-center">{activeInvoice.durationQuantity || 1}</td>
- <td className="py-3 text-right">{(activeInvoice.amount || activeInvoice.grandTotal || 0).toLocaleString()} ETB</td>
+ <td className="py-3 text-center">{activeInvoice.durationType || 'N/A'}</td>
+ <td className="py-3 text-center font-bold">{activeInvoice.durationQuantity || 1}</td>
+ <td className="py-3 text-right">{(activeInvoice.unitPrice || activeInvoice.amount || 0).toLocaleString()} ETB</td>
  <td className="py-3 text-right font-bold font-mono">{(activeInvoice.amount || activeInvoice.grandTotal || 0).toLocaleString()} ETB</td>
  </tr>
+ )}
  </tbody>
  </table>
 
- {/* Total Calculation Box */}
- <div className="flex justify-end pt-4 border-t border-gray-200">
- <div className="w-64 space-y-2 text-xs">
+ {/* Total Calculation Box with Amount in Words & Payment Info BOTTOM LEFT */}
+ {(() => {
+   const banks = getBankRecords(activeInvoice.selectedBanks || activeInvoice.selectedBank || activeInvoice.bankName || activeInvoice.bankDetails);
+   const grandTot = activeInvoice.grandTotal || activeInvoice.amount || 0;
+   const curr = activeInvoice.currency || 'ETB';
+   const amountInWordsText = numberToWords(grandTot, curr);
+
+   return (
+ <div className="flex flex-col md:flex-row justify-between items-start gap-6 pt-4 border-t border-gray-200">
+ {/* BOTTOM LEFT: AMOUNT IN WORDS & PAYMENT INFORMATION */}
+ <div className="text-xs text-[#111827] space-y-3 max-w-md w-full">
+ {/* AMOUNT IN WORDS */}
+ <div className="p-3 bg-slate-50 rounded-xl border border-gray-200 space-y-1">
+ <div className="font-extrabold uppercase text-[10px] text-slate-500 tracking-wider">
+ Amount in Words:
+ </div>
+ <div className="font-bold text-sm text-[#84CC16]">
+ {amountInWordsText}
+ </div>
+ </div>
+
+ {/* PAYMENT INFORMATION - MULTIPLE SETTLEMENT BANKS */}
+ <div className="p-3 bg-slate-50 rounded-xl border border-gray-200 space-y-2">
+ <div className="font-extrabold uppercase text-[10px] text-slate-500 tracking-wider mb-1">
+ SETTLEMENT BANK OPTIONS (TRANSFER ACCOUNTS)
+ </div>
+ <div className="space-y-2 divide-y divide-gray-200">
+ {banks.map((b, idx) => (
+   <div key={b.bankName + idx} className={idx > 0 ? 'pt-2' : ''}>
+     <div className="font-extrabold text-xs text-[#111827] flex items-center justify-between">
+       <span>Option {idx + 1}: {b.bankName}</span>
+       <span className="text-[10px] text-slate-500 font-normal">{b.branch}</span>
+     </div>
+     <div className="grid grid-cols-3 gap-0.5 text-[11px] mt-0.5">
+       <span className="text-slate-500">Account Name:</span>
+       <span className="col-span-2 font-semibold text-slate-800">{b.accountName}</span>
+       <span className="text-slate-500">Account No:</span>
+       <span className="col-span-2 font-bold font-mono text-slate-900">{b.accountNumber}</span>
+     </div>
+   </div>
+ ))}
+ </div>
+ </div>
+ </div>
+
+ {/* BOTTOM RIGHT: FINANCIAL BREAKDOWN */}
+ <div className="w-full md:w-64 space-y-2 text-xs">
  <div className="flex justify-between text-[#6B7280]">
  <span>Subtotal:</span>
- <span>{(activeInvoice.amount || activeInvoice.grandTotal || 0).toLocaleString()} ETB</span>
+ <span>{(activeInvoice.amount || grandTot).toLocaleString()} {curr}</span>
  </div>
  <div className="flex justify-between text-[#6B7280]">
  <span>15% VAT:</span>
- <span>{(activeInvoice.vat || 0).toLocaleString()} ETB</span>
+ <span>{(activeInvoice.vat || 0).toLocaleString()} {curr}</span>
  </div>
+ {activeInvoice.discount > 0 && (
+ <div className="flex justify-between text-emerald-600 font-medium">
+ <span>Discount Applied:</span>
+ <span>-{(activeInvoice.discount || 0).toLocaleString()} {curr}</span>
+ </div>
+ )}
  <div className="flex justify-between font-bold text-sm text-[#111827] border-t border-gray-300 pt-2">
  <span>Grand Total:</span>
- <span className="text-[#1E3A8A]">{(activeInvoice.grandTotal || activeInvoice.amount || 0).toLocaleString()} ETB</span>
+ <span className="text-[#1E3A8A] font-mono">{grandTot.toLocaleString()} {curr}</span>
  </div>
  </div>
  </div>
+   );
+ })()}
 
- {/* Footer Bank & Signature Stamp */}
- <div className="border-t border-gray-200 pt-6 text-[11px] text-[#6B7280] flex justify-between items-end">
- <div>
- <div className="font-bold text-[#111827] mb-1">Payment Instructions</div>
- <div>Commercial Bank of Ethiopia (CBE): 100012948192</div>
- <div>Telebirr Merchant Code: 889911 (WeVentureHub)</div>
- </div>
-
+ {/* Footer Signature Stamp */}
+ <div className="border-t border-gray-200 pt-6 text-[11px] text-[#6B7280] flex justify-end items-end">
  <div className="text-center space-y-1">
  <div className="w-32 h-10 border-b border-dashed border-gray-400 mx-auto"></div>
  <div className="text-[10px] font-semibold text-[#6B7280]">Authorized Signature & Stamp</div>

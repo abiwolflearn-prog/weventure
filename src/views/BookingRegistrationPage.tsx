@@ -28,6 +28,8 @@ import {
 } from 'lucide-react';
 import { useAppSelector } from '../store';
 import { axiosInstance } from '../lib/axiosInstance';
+import WeVentureLogo from '../components/WeVentureLogo';
+import { WEVENTURE_SUPPLIER_INFO } from '../utils/invoiceUtils';
 import { bookingApi } from '../lib/bookingApi';
 import { ticketingApi } from '../lib/ticketingApi';
 import { Button } from '../components/Button';
@@ -502,36 +504,123 @@ export default function BookingRegistrationPage() {
                     <h3 className="text-lg font-bold text-white">Reservation ID: {submittedResult.id}</h3>
                   </div>
                 </div>
-                <button 
-                  onClick={() => window.print()}
-                  className="inline-flex items-center space-x-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl text-xs font-bold transition-colors no-print"
-                >
-                  <Printer className="w-4 h-4" />
-                  <span>Print Invoice</span>
-                </button>
+                <div className="flex items-center gap-2 no-print">
+                  <button 
+                    onClick={() => window.print()}
+                    className="inline-flex items-center space-x-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl text-xs font-bold transition-colors"
+                  >
+                    <Printer className="w-4 h-4" />
+                    <span>Print Invoice</span>
+                  </button>
+                  <button 
+                    onClick={async () => {
+                      const invId = submittedResult.invoiceId || submittedResult.id;
+                      if (!invId) return;
+                      try {
+                        const token = localStorage.getItem('weventure_jwt_token') || '';
+                        const tenantId = localStorage.getItem('weventure_tenant_id') || 'weventurehub';
+                        const response = await fetch(`/api/v1/payments/invoices/${invId}/download?token=${encodeURIComponent(token)}&tenantId=${encodeURIComponent(tenantId)}`, {
+                          headers: token ? { Authorization: `Bearer ${token}` } : {},
+                        });
+                        if (!response.ok) throw new Error('Failed to fetch invoice PDF');
+                        const blob = await response.blob();
+                        const blobUrl = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = blobUrl;
+                        link.download = `Invoice_${invId}.pdf`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(blobUrl);
+                      } catch (e) {
+                        const token = localStorage.getItem('weventure_jwt_token') || '';
+                        window.open(`/api/v1/payments/invoices/${invId}/download?token=${encodeURIComponent(token)}`, '_blank');
+                      }
+                    }}
+                    className="inline-flex items-center space-x-2 px-4 py-2 bg-[#84CC16] hover:bg-lime-600 text-white rounded-xl text-xs font-bold transition-colors"
+                  >
+                    <Download className="w-4 h-4 text-white" />
+                    <span>Download PDF</span>
+                  </button>
+                </div>
               </div>
 
               <div className="p-8 space-y-8">
-                {/* Billing Header Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
-                  <div>
-                    <p className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-1">Billed To</p>
-                    <p className="font-bold text-white text-base">{submittedResult.primaryName}</p>
-                    <p className="text-neutral-400">{submittedResult.primaryEmail}</p>
-                    <p className="text-neutral-400">{submittedResult.phone}</p>
-                    {submittedResult.userType === 'company' && (
-                      <p className="text-brand-accent font-semibold mt-1">{submittedResult.userTypeDetails.companyName} ({submittedResult.userTypeDetails.industry})</p>
-                    )}
+                {/* Official Header & Branding with WEVENTURE Logo + Header Text ABOVE Lemon Line */}
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div className="flex items-center gap-4">
+                      <WeVentureLogo size={76} mode="dark" />
+                      <div>
+                        <span className="font-display font-black text-3xl sm:text-4xl text-white tracking-tight block leading-tight">
+                          WEVENTURE
+                        </span>
+                        <span className="text-xs sm:text-sm font-extrabold text-[#84CC16] tracking-widest uppercase block mt-0.5">
+                          EVENT & WORKSPACE MANAGEMENT PLATFORM
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-left sm:text-right flex flex-col items-start sm:items-end space-y-1">
+                      <div className="inline-block px-3.5 py-1 bg-[#84CC16] text-black font-mono font-extrabold text-xs sm:text-sm rounded-xl">
+                        CONFIRMED RESERVATION INVOICE
+                      </div>
+                      <div className="text-xs sm:text-sm text-neutral-400 font-mono">
+                        Reference ID: #{submittedResult.referenceNumber || submittedResult.bookingId || 'WV-CONF'}
+                      </div>
+                    </div>
                   </div>
-                  <div className="sm:text-right">
-                    <p className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-1">Reservation Details</p>
+
+                  {/* THE VIBRANT LEMON GREEN ACCENT LINE */}
+                  <div className="w-full h-2 bg-[#84CC16] rounded-full my-4" />
+
+                  {/* SUPPLIER & BILLED TO GRID BELOW LEMON LINE */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-1 text-xs sm:text-sm">
+                    {/* SUPPLIER INFORMATION */}
+                    <div className="space-y-1.5">
+                      <h4 className="font-extrabold uppercase text-xs text-neutral-400 tracking-wider mb-1">
+                        SUPPLIER INFORMATION
+                      </h4>
+                      <div className="font-black text-base sm:text-lg text-white">
+                        {WEVENTURE_SUPPLIER_INFO.companyName}
+                      </div>
+                      <div className="text-neutral-300">
+                        <span className="font-bold">Address:</span> {WEVENTURE_SUPPLIER_INFO.address}
+                      </div>
+                      <div className="text-neutral-300">
+                        <span className="font-bold">Supplier's VAT Reg. No:</span> {WEVENTURE_SUPPLIER_INFO.vatRegNo}
+                      </div>
+                      <div className="text-neutral-300">
+                        <span className="font-bold">Supplier's TIN No:</span> {WEVENTURE_SUPPLIER_INFO.tinNo}
+                      </div>
+                    </div>
+
+                    {/* BILLED TO */}
+                    <div className="bg-neutral-900/80 p-4 rounded-2xl border border-neutral-800 space-y-1.5">
+                      <p className="text-xs font-extrabold text-neutral-400 uppercase tracking-wider mb-1">Billed To</p>
+                      <p className="font-black text-white text-base sm:text-lg">{submittedResult.primaryName}</p>
+                      <p className="text-neutral-300 font-medium">{submittedResult.primaryEmail}</p>
+                      <p className="text-neutral-300 font-medium">{submittedResult.phone}</p>
+                      {submittedResult.userType === 'company' && (
+                        <p className="text-[#84CC16] font-bold text-sm mt-1">{submittedResult.userTypeDetails.companyName} ({submittedResult.userTypeDetails.industry})</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reservation Details Summary */}
+                <div className="bg-neutral-900/60 p-4 rounded-2xl border border-neutral-800 text-xs sm:text-sm grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-1">Reservation Details</p>
                     <p className="text-neutral-300"><span className="text-neutral-500">Date:</span> {submittedResult.workspaceBookingInfo.bookingDate}</p>
                     <p className="text-neutral-300"><span className="text-neutral-500">Hours:</span> {submittedResult.workspaceBookingInfo.startTime} - {submittedResult.workspaceBookingInfo.endTime}</p>
                     <p className="text-neutral-300"><span className="text-neutral-500">Desks/Seats:</span> {submittedResult.workspaceBookingInfo.desksRequested}</p>
+                  </div>
+                  <div className="sm:text-right">
                     {submittedResult.workspaceBookingInfo?.formattedDuration && (
-                      <p className="text-neutral-300"><span className="text-neutral-500">Duration:</span> <span className="text-brand-accent font-bold">{submittedResult.workspaceBookingInfo.formattedDuration}</span></p>
+                      <p className="text-neutral-300"><span className="text-neutral-500">Duration:</span> <span className="text-[#84CC16] font-bold">{submittedResult.workspaceBookingInfo.formattedDuration}</span></p>
                     )}
-                    <p className="text-emerald-400 font-bold mt-1">Status: Confirmed & Paid</p>
+                    <p className="text-[#84CC16] font-bold mt-1">Status: Confirmed & Paid</p>
                   </div>
                 </div>
 
