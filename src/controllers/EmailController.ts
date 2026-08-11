@@ -350,56 +350,52 @@ export class EmailController {
   }
 
   /**
-   * GET /api/v1/emails/admin/smtp
-   * Check current SMTP settings and transport status
+   * GET /api/v1/emails/admin/resend
+   * Check current Resend settings and status
    */
-  public async getSmtpStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+  public async getResendStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const config = {
-        host: env.SMTP_HOST || 'smtp.gmail.com',
-        port: env.SMTP_PORT || 587,
-        from: env.EMAIL_FROM || env.SMTP_FROM || 'WeVentureHub <info@weventurehub.com>',
-        hasUser: Boolean(env.SMTP_USER),
-        hasPass: Boolean(env.SMTP_PASS),
+        provider: 'Resend API',
+        apiKeyConfigured: Boolean(env.RESEND_API_KEY),
+        from: env.EMAIL_FROM || 'WeVentureHub <info@weventurehub.com>',
+        replyTo: env.EMAIL_REPLY_TO || 'info@weventurehub.com',
+        domainVerified: env.RESEND_DOMAIN_VERIFIED,
         adminEmail: env.ADMIN_EMAIL || 'info@weventurehub.com',
-        status: 'ONLINE',
+        status: env.RESEND_API_KEY ? 'ONLINE' : 'SIMULATION_MODE',
       };
 
-      ApiResponse.success(res, { smtp: config }, 200);
+      ApiResponse.success(res, { resend: config }, 200);
     } catch (error) {
       next(error);
     }
   }
 
   /**
-   * POST /api/v1/emails/admin/smtp/test
-   * Send a test email to verify SMTP delivery
+   * POST /api/v1/emails/admin/resend/test
+   * Send a test email to verify Resend delivery
    */
-  public async testSmtp(req: Request, res: Response, next: NextFunction): Promise<void> {
+  public async testResend(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { testEmail, host, port, user, pass, from } = req.body;
+      const { testEmail } = req.body;
       const target = testEmail || env.ADMIN_EMAIL || 'info@weventurehub.com';
 
-      if (host) {
-        emailService.initTransporter({ host, port: Number(port), user, pass, from });
-      }
-
       const testHtml = emailTemplateService.wrapInMasterLayout(
-        `<h2>SMTP Test Connection Successful</h2><p>This is a test notification verifying that the WeVentureHub SMTP automated mailer is online and fully operational.</p>`,
+        `<h2>Resend Test Connection Successful</h2><p>This is a test notification verifying that the WeVentureHub Resend automated mailer is online and fully operational.</p>`,
         undefined,
-        'SMTP Test Email'
+        'Resend Test Email'
       );
 
       const success = await emailService.sendEmail({
         to: target,
-        subject: '🧪 WeVentureHub SMTP Test Email',
+        subject: '🧪 WeVentureHub Resend Test Email',
         html: testHtml,
         category: 'admin',
-        templateKey: 'smtp_test',
+        templateKey: 'resend_test',
       });
 
       if (!success) {
-        throw new ValidationError('Failed to deliver test email. Please check SMTP credentials and server port.');
+        throw new ValidationError('Failed to deliver test email. Please check Resend API key and sender configuration.');
       }
 
       ApiResponse.success(res, { target, success: true }, 200, { message: `Test email delivered successfully to ${target}` });
@@ -488,7 +484,7 @@ export class EmailController {
         await log.save();
       }
 
-      ApiResponse.success(res, { success }, 200, { message: success ? 'Email re-sent successfully!' : 'Email re-send failed. Check SMTP logs.' });
+      ApiResponse.success(res, { success }, 200, { message: success ? 'Email re-sent successfully!' : 'Email re-send failed. Check email logs.' });
     } catch (error) {
       next(error);
     }

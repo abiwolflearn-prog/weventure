@@ -1,4 +1,3 @@
-import nodemailer from 'nodemailer';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
 import { EmailLog } from '../models/EmailLog';
@@ -37,10 +36,8 @@ export interface EmailPayload {
 }
 
 class EmailService {
-  private transporter: nodemailer.Transporter | null = null;
-
   constructor() {
-    this.initTransporter();
+    // SMTP transporter completely removed. Using Resend API only.
   }
 
   public async getSystemEmailSettings(tenantId = 'weventurehub'): Promise<ISystemEmailSettings> {
@@ -85,27 +82,6 @@ class EmailService {
           notificationsSender: defaultFrom,
         },
       };
-    }
-  }
-
-  public initTransporter(customConfig?: { host?: string; port?: number; user?: string; pass?: string; from?: string }) {
-    try {
-      const host = customConfig?.host || env.SMTP_HOST;
-      const port = customConfig?.port || env.SMTP_PORT;
-      const user = customConfig?.user || env.SMTP_USER;
-      const pass = customConfig?.pass || env.SMTP_PASS;
-
-      const config = {
-        host,
-        port,
-        secure: port === 465,
-        auth: user && pass ? { user, pass } : undefined,
-      };
-
-      this.transporter = nodemailer.createTransport(config);
-      logger.info(`📧 Email Service transport initialized with SMTP: ${host}:${port}`);
-    } catch (error) {
-      logger.error('❌ Failed to initialize Nodemailer SMTP transport, emails will operate in fallback mode', error);
     }
   }
 
@@ -176,8 +152,10 @@ class EmailService {
       return false;
     }
 
-    // Prefer Resend Service if configured
-    if (isResendEnabled()) {
+    let lastErrorMessage = '';
+    let messageId = '';
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
       try {
         const resendRes = await resendEmailService.sendEmail({
           to: payload.to,
@@ -185,85 +163,15 @@ class EmailService {
           html: payload.html,
           text: payload.text,
           from: fromAddress,
-          replyTo: payload.replyTo || 'info@weventurehub.com',
+          replyTo: payload.replyTo || env.EMAIL_REPLY_TO || 'info@weventurehub.com',
           attachments: payload.attachments,
         });
 
         if (resendRes.success) {
-          await (EmailLog as any).create({
-            tenantId,
-            recipientEmail: payload.to.toLowerCase(),
-            recipientName: payload.recipientName,
-            subject: payload.subject,
-            category,
-            templateKey,
-            status: 'delivered',
-            sentAt: new Date(),
-            messageId: resendRes.messageId || 'resend_ok',
-          });
-          return true;
-        }
-      } catch (resendErr: any) {
-        logger.error(`❌ Resend delivery attempt failed, falling back to SMTP: ${resendErr.message}`);
-      }
-    }
+          messageId = resendRes.messageId || 'resend_ok';
+          logger.info(`📧 [EMAIL DELIVERED] ID: ${messageId} | Target: ${payload.to} | Subject: "${payload.subject}"`);
 
-    let lastErrorMessage = '';
-    let messageId = '';
-
-    for (let attempt = 1; attempt <= retries; attempt++) {
-      try {
-        if (!this.transporter) {
-          throw new Error('SMTP Transport offline');
-        }
-
-        let smtpTo = payload.to;
-        if (env.EMAIL_TEST_MODE) {
-          smtpTo = env.EMAIL_TEST_RECIPIENT;
-          logger.info(`[EMAIL TEST MODE]\nOriginal recipient: ${payload.to}\nRedirected recipient: ${env.EMAIL_TEST_RECIPIENT}`);
-          logger.info(`Email redirected from ${payload.to} to test recipient ${env.EMAIL_TEST_RECIPIENT}`);
-        }
-
-        const info = await this.transporter.sendMail({
-          from: fromAddress,
-          to: smtpTo,
-          replyTo: payload.replyTo || 'info@weventurehub.com',
-          subject: payload.subject,
-          html: payload.html,
-          text: payload.text || 'View this email in an HTML-compatible email reader',
-          attachments: payload.attachments,
-        });
-
-        messageId = info.messageId;
-        logger.info(`📧 [EMAIL DELIVERED] ID: ${messageId} | Target: ${smtpTo} | Subject: "${payload.subject}"`);
-
-        // Log successful delivery
-        await (EmailLog as any).create({
-          tenantId,
-          recipientEmail: payload.to.toLowerCase(),
-          recipientName: payload.recipientName,
-          subject: payload.subject,
-          category,
-          templateKey,
-          status: 'delivered',
-          sentAt: new Date(),
-          messageId,
-        });
-
-        return true;
-      } catch (error: any) {
-        lastErrorMessage = error instanceof Error ? error.message : String(error);
-
-        // Handle SMTP Auth failure or unconfigured credentials gracefully by simulating delivery
-        if (
-          lastErrorMessage.includes('Authentication required') ||
-          lastErrorMessage.includes('530 5.7.1') ||
-          lastErrorMessage.includes('EAUTH') ||
-          lastErrorMessage.includes('SMTP Transport offline')
-        ) {
-          messageId = `sim_${Math.random().toString(36).substring(2, 10)}`;
-          logger.info(`📧 [SIMULATED EMAIL DELIVERED] (SMTP Auth unconfigured) | Target: ${payload.to} | Subject: "${payload.subject}"`);
-
+          // Log successful delivery
           await (EmailLog as any).create({
             tenantId,
             recipientEmail: payload.to.toLowerCase(),
@@ -275,10 +183,12 @@ class EmailService {
             sentAt: new Date(),
             messageId,
           });
-
           return true;
+        } else {
+          throw new Error(resendRes.error || 'Resend delivery failed');
         }
-
+      } catch (error: any) {
+        lastErrorMessage = error instanceof Error ? error.message : String(error);
         logger.warn(`⚠️ [EMAIL FAILURE] Attempt ${attempt}/${retries} to ${payload.to} failed: ${lastErrorMessage}`);
 
         if (attempt === retries) {

@@ -22,7 +22,7 @@ import {
 import { axiosInstance } from '../../lib/axiosInstance';
 
 export const AdminEmailCenter: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'templates' | 'queue' | 'settings' | 'smtp'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'templates' | 'queue' | 'settings' | 'resend'>('analytics');
   
   // Analytics State
   const [analytics, setAnalytics] = useState<any>(null);
@@ -72,10 +72,10 @@ export const AdminEmailCenter: React.FC = () => {
   });
   const [isSavingSettings, setIsSavingSettings] = useState<boolean>(false);
 
-  // SMTP Settings State
-  const [smtpConfig, setSmtpConfig] = useState<any>(null);
+  // Resend Settings State
+  const [resendConfig, setResendConfig] = useState<any>(null);
   const [testEmailInput, setTestEmailInput] = useState<string>('');
-  const [isTestingSmtp, setIsTestingSmtp] = useState<boolean>(false);
+  const [isTestingResend, setIsTestingResend] = useState<boolean>(false);
 
   // Feedback State
   const [loading, setLoading] = useState<boolean>(false);
@@ -86,7 +86,7 @@ export const AdminEmailCenter: React.FC = () => {
     if (activeTab === 'templates') fetchTemplates();
     if (activeTab === 'queue') fetchQueue();
     if (activeTab === 'settings') fetchSettings();
-    if (activeTab === 'smtp') fetchSmtpStatus();
+    if (activeTab === 'resend') fetchResendStatus();
   }, [activeTab, queueFilter, queueSearch, queuePage]);
 
   const showToast = (msg: string) => {
@@ -161,12 +161,12 @@ export const AdminEmailCenter: React.FC = () => {
     }
   };
 
-  const fetchSmtpStatus = async () => {
+  const fetchResendStatus = async () => {
     setLoading(true);
     try {
-      const res = await axiosInstance.get('/emails/admin/smtp');
+      const res = await axiosInstance.get('/emails/admin/resend');
       if (res.data?.data) {
-        setSmtpConfig(res.data.data);
+        setResendConfig(res.data.data);
       }
     } catch (err) {
       console.error(err);
@@ -227,17 +227,17 @@ export const AdminEmailCenter: React.FC = () => {
     }
   };
 
-  const handleTestSmtp = async () => {
-    setIsTestingSmtp(true);
+  const handleTestResend = async () => {
+    setIsTestingResend(true);
     try {
-      const res = await axiosInstance.post('/emails/admin/smtp/test', { testEmail: testEmailInput });
+      const res = await axiosInstance.post('/emails/admin/resend/test', { testEmail: testEmailInput });
       if (res.data) {
         showToast(res.data.message || 'Test email dispatched successfully!');
       }
     } catch (err: any) {
-      showToast(err?.message || 'Failed to connect to SMTP server');
+      showToast(err?.message || 'Failed to connect to Resend service');
     } finally {
-      setIsTestingSmtp(false);
+      setIsTestingResend(false);
     }
   };
 
@@ -262,7 +262,7 @@ export const AdminEmailCenter: React.FC = () => {
             </span>
           </div>
           <p className="text-xs text-slate-600 mt-1">
-            Automated email queue processor, template builder, delivery tracking & SMTP settings for WeVentureHub.
+            Automated email queue processor, template builder, delivery tracking & Resend API settings for WeVentureHub.
           </p>
         </div>
 
@@ -308,14 +308,14 @@ export const AdminEmailCenter: React.FC = () => {
             <Settings className="w-3.5 h-3.5" /> Admin Email Settings
           </button>
           <button
-            onClick={() => setActiveTab('smtp')}
+            onClick={() => setActiveTab('resend')}
             className={`px-3.5 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
-              activeTab === 'smtp'
+              activeTab === 'resend'
                 ? 'bg-brand-primary text-white shadow-sm'
                 : 'text-slate-700 hover:text-slate-900 hover:bg-slate-200'
             }`}
           >
-            <Server className="w-3.5 h-3.5" /> SMTP Server
+            <Server className="w-3.5 h-3.5" /> Resend Mailer
           </button>
         </div>
       </div>
@@ -781,31 +781,43 @@ export const AdminEmailCenter: React.FC = () => {
         </div>
       )}
 
-      {/* 5. SMTP SETTINGS TAB */}
-      {activeTab === 'smtp' && (
+      {/* 5. RESEND SETTINGS TAB */}
+      {activeTab === 'resend' && (
         <div className="max-w-2xl space-y-6">
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Server className="w-4 h-4 text-brand-primary" /> Active Nodemailer SMTP Credentials
+              <Server className="w-4 h-4 text-brand-primary" /> Active Resend API Connection
             </h3>
 
             <div className="space-y-3 text-xs font-medium">
               <div className="flex justify-between py-2 border-b border-slate-200">
-                <span className="text-slate-500">SMTP Host:</span>
-                <span className="font-mono text-slate-900 font-bold">{smtpConfig?.host || 'smtp.gmail.com'}</span>
+                <span className="text-slate-500">Provider:</span>
+                <span className="font-mono text-slate-900 font-bold">{resendConfig?.resend?.provider || 'Resend API'}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-slate-200">
-                <span className="text-slate-500">SMTP Port:</span>
-                <span className="font-mono text-slate-900 font-bold">{smtpConfig?.port || 587}</span>
+                <span className="text-slate-500">API Key Configured:</span>
+                <span className={`font-bold ${resendConfig?.resend?.apiKeyConfigured ? 'text-emerald-700' : 'text-slate-600'}`}>
+                  {resendConfig?.resend?.apiKeyConfigured ? 'Yes' : 'No (Simulation mode)'}
+                </span>
               </div>
               <div className="flex justify-between py-2 border-b border-slate-200">
                 <span className="text-slate-500">From Address:</span>
-                <span className="font-mono text-slate-900 font-bold">{smtpConfig?.from || 'WeVentureHub <info@weventurehub.com>'}</span>
+                <span className="font-mono text-slate-900 font-bold">{resendConfig?.resend?.from || 'WeVentureHub <info@weventurehub.com>'}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-slate-200">
-                <span className="text-slate-500">SMTP User Configured:</span>
-                <span className={`font-bold ${smtpConfig?.hasUser ? 'text-emerald-700' : 'text-slate-600'}`}>
-                  {smtpConfig?.hasUser ? 'Yes (Encrypted)' : 'No (Fallback mode)'}
+                <span className="text-slate-500">Reply-To Address:</span>
+                <span className="font-mono text-slate-900 font-bold">{resendConfig?.resend?.replyTo || 'info@weventurehub.com'}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-slate-200">
+                <span className="text-slate-500">Domain Verified:</span>
+                <span className={`font-bold ${resendConfig?.resend?.domainVerified ? 'text-emerald-700' : 'text-amber-600'}`}>
+                  {resendConfig?.resend?.domainVerified ? 'Yes (info@weventurehub.com)' : 'No (onboarding@resend.dev)'}
+                </span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-slate-200">
+                <span className="text-slate-500">System Status:</span>
+                <span className={`font-bold ${resendConfig?.resend?.status === 'ONLINE' ? 'text-emerald-700' : 'text-amber-600'}`}>
+                  {resendConfig?.resend?.status || 'SIMULATION_MODE'}
                 </span>
               </div>
             </div>
@@ -822,12 +834,12 @@ export const AdminEmailCenter: React.FC = () => {
                 className="flex-1 bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-brand-primary"
               />
               <button
-                onClick={handleTestSmtp}
-                disabled={isTestingSmtp}
+                onClick={handleTestResend}
+                disabled={isTestingResend}
                 className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
               >
                 <Send className="w-3.5 h-3.5" />
-                {isTestingSmtp ? 'Sending...' : 'Send Test'}
+                {isTestingResend ? 'Sending...' : 'Send Test'}
               </button>
             </div>
           </div>
