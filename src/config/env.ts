@@ -17,8 +17,12 @@ const envSchema = z.object({
   APP_URL: z.string().default('http://localhost:3000'),
   CHAPA_SECRET_KEY: z.string().default('CHAPA_SEC_KEY_MOCK_SECRET_12345'),
   CHAPA_WEBHOOK_SECRET: z.string().default('mock_webhook_secret_key_67890'),
+  SMTP_HOST: z.string().default('smtp.mailtrap.io'),
+  SMTP_PORT: z.coerce.number().default(587),
+  SMTP_USER: z.string().default(''),
+  SMTP_PASS: z.string().default(''),
+  SMTP_FROM: z.string().default('WeVentureHub <info@weventurehub.com>'),
   EMAIL_FROM: z.string().default('WeVentureHub <info@weventurehub.com>'),
-  EMAIL_REPLY_TO: z.string().default('info@weventurehub.com'),
   ADMIN_EMAIL: z.string().default('info@weventurehub.com'),
   RESEND_API_KEY: z.string().optional(),
   RESEND_DOMAIN_VERIFIED: z.preprocess((val) => val === 'true' || val === true, z.boolean()).default(false),
@@ -41,4 +45,5 @@ export const env = parsedEnv.data;
 
 if (!env.RESEND_DOMAIN_VERIFIED) {
   env.EMAIL_FROM = 'WeVentureHub <onboarding@resend.dev>';
+  env.SMTP_FROM = 'WeVentureHub <onboarding@resend.dev>';
 }

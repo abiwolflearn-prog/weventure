@@ -50,12 +50,12 @@ emailRouter.get('/admin/analytics', authGuard, hasRoles(ADMIN_ROLES), (req, res,
   emailController.getAnalytics(req, res, next);
 });
 
-emailRouter.get('/admin/resend', authGuard, hasRoles(ADMIN_ROLES), (req, res, next) => {
-  emailController.getResendStatus(req, res, next);
+emailRouter.get('/admin/smtp', authGuard, hasRoles(ADMIN_ROLES), (req, res, next) => {
+  emailController.getSmtpStatus(req, res, next);
 });
 
-emailRouter.post('/admin/resend/test', authGuard, hasRoles(ADMIN_ROLES), (req, res, next) => {
-  emailController.testResend(req, res, next);
+emailRouter.post('/admin/smtp/test', authGuard, hasRoles(ADMIN_ROLES), (req, res, next) => {
+  emailController.testSmtp(req, res, next);
 });
 
 emailRouter.get('/admin/settings', authGuard, hasRoles(ADMIN_ROLES), (req, res, next) => {
