@@ -32,14 +32,29 @@ export class EventRepository {
    * Find a single event by ID and tenant ID
    */
   public async findById(id: string, tenantId: string): Promise<IEventDocument | null> {
-    return await Event.findOne({ _id: id, tenantId }).exec();
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    if (isObjectId) {
+      const doc = await Event.findOne({ _id: id, ...(tenantId ? { tenantId } : {}) }).exec();
+      if (doc) return doc;
+    }
+    return await Event.findOne({
+      $or: [{ slug: id }, { id: id }],
+      ...(tenantId ? { tenantId } : {})
+    }).exec();
   }
 
   /**
    * Find a single event by Slug and tenant ID
    */
   public async findBySlug(slug: string, tenantId: string): Promise<IEventDocument | null> {
-    return await Event.findOne({ slug, tenantId }).exec();
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(slug);
+    const filter = tenantId ? { tenantId } : {};
+    const doc = await Event.findOne({ slug, ...filter }).exec();
+    if (doc) return doc;
+    if (isObjectId) {
+      return await Event.findOne({ _id: slug, ...filter }).exec();
+    }
+    return null;
   }
 
   /**
@@ -50,8 +65,13 @@ export class EventRepository {
     tenantId: string,
     updateData: Partial<IEvent>
   ): Promise<IEventDocument | null> {
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const query: any = {
+      ...(isObjectId ? { _id: id } : { slug: id }),
+      ...(tenantId ? { tenantId } : {})
+    };
     return await Event.findOneAndUpdate(
-      { _id: id, tenantId },
+      query,
       { $set: updateData },
       { new: true, runValidators: true }
     ).exec();
@@ -61,7 +81,12 @@ export class EventRepository {
    * Delete an event
    */
   public async delete(id: string, tenantId: string): Promise<boolean> {
-    const result = await Event.deleteOne({ _id: id, tenantId }).exec();
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const query: any = {
+      ...(isObjectId ? { _id: id } : { slug: id }),
+      ...(tenantId ? { tenantId } : {})
+    };
+    const result = await Event.deleteOne(query).exec();
     return result.deletedCount > 0;
   }
 

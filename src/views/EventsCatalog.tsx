@@ -663,15 +663,19 @@ export default function EventsCatalog() {
                 <div className="flex items-center space-x-2 text-xs font-mono font-bold">
                   <Calendar className="w-4 h-4 text-[#84CC16]" />
                   <span>
-                    {new Date(selectedEvent.schedule.startDate).toLocaleDateString('en-US', {
-                      weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
-                    })}
+                    {selectedEvent.schedule?.startDate
+                      ? new Date(selectedEvent.schedule.startDate).toLocaleDateString('en-US', {
+                          weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+                        })
+                      : 'Date TBD'}
                   </span>
                   <span>•</span>
                   <span>
-                    {new Date(selectedEvent.schedule.startDate).toLocaleTimeString('en-US', {
-                      hour: '2-digit', minute: '2-digit'
-                    })}
+                    {selectedEvent.schedule?.startDate
+                      ? new Date(selectedEvent.schedule.startDate).toLocaleTimeString('en-US', {
+                          hour: '2-digit', minute: '2-digit'
+                        })
+                      : 'TBD'}
                   </span>
                 </div>
                 <h1 className="font-display font-extrabold text-2xl md:text-4xl tracking-tight leading-tight">
@@ -721,21 +725,21 @@ export default function EventsCatalog() {
                      <div className="flex justify-between text-xs text-neutral-slate-500">
                        <span>Admission Limit</span>
                        <span className="font-bold text-gray-900">
-                         {selectedEvent.capacity.isUnlimited ? 'Unlimited' : `${selectedEvent.capacity.maxCapacity} seats`}
+                         {selectedEvent.capacity?.isUnlimited ? 'Unlimited' : `${selectedEvent.capacity?.maxCapacity ?? 100} seats`}
                        </span>
                      </div>
 
                      <div className="flex justify-between text-xs text-neutral-slate-500">
                        <span>Registrations</span>
                        <span className="font-bold text-[#65A30D]">
-                         {selectedEvent.capacity.activeRegistrations} active
+                         {selectedEvent.capacity?.activeRegistrations ?? 0} active
                        </span>
                      </div>
 
                      <div className="flex justify-between text-xs text-neutral-slate-500">
                        <span>Approval Setting</span>
                        <span className="font-bold text-gray-900">
-                         {selectedEvent.registrationSettings.requiresApproval ? 'Required' : 'Instant Confirm'}
+                         {selectedEvent.registrationSettings?.requiresApproval ? 'Required' : 'Instant Confirm'}
                        </span>
                      </div>
                   </div>
@@ -749,7 +753,7 @@ export default function EventsCatalog() {
                 <div className="space-y-3.5 text-xs text-gray-500">
                   <div className="flex items-center space-x-2.5">
                     <Clock className="w-4 h-4 text-neutral-slate-400 shrink-0" />
-                    <span>Timezone: <b>{selectedEvent.schedule.timezone}</b></span>
+                    <span>Timezone: <b>{selectedEvent.schedule?.timezone || 'UTC'}</b></span>
                   </div>
                   <div className="flex items-center space-x-2.5">
                     <Layers className="w-4 h-4 text-neutral-slate-400 shrink-0" />

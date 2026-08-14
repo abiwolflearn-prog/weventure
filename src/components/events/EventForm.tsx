@@ -301,27 +301,27 @@ export const EventForm: React.FC<EventFormProps> = ({
       rsvpFormFields,
       rsvpFormAppearance,
       schedule: {
-        ...data.schedule,
-        startDate: data.schedule.startDate ? new Date(data.schedule.startDate).toISOString() : '',
-        endDate: data.schedule.endDate ? new Date(data.schedule.endDate).toISOString() : '',
+        ...data?.schedule,
+        startDate: data?.schedule?.startDate ? new Date(data.schedule.startDate).toISOString() : '',
+        endDate: data?.schedule?.endDate ? new Date(data.schedule.endDate).toISOString() : '',
       },
       capacity: {
-        maxCapacity: data.capacity.isUnlimited ? 0 : Number(data.capacity.maxCapacity),
-        isUnlimited: data.capacity.isUnlimited,
+        maxCapacity: data?.capacity?.isUnlimited ? 0 : Number(data?.capacity?.maxCapacity || 0),
+        isUnlimited: !!data?.capacity?.isUnlimited,
       },
       registrationSettings: {
-        ...data.registrationSettings,
+        ...data?.registrationSettings,
         customFormFields,
-        registrationOpenDate: data.registrationSettings.registrationOpenDate 
+        registrationOpenDate: data?.registrationSettings?.registrationOpenDate 
           ? new Date(data.registrationSettings.registrationOpenDate).toISOString() 
           : undefined,
-        registrationCloseDate: data.registrationSettings.registrationCloseDate 
+        registrationCloseDate: data?.registrationSettings?.registrationCloseDate 
           ? new Date(data.registrationSettings.registrationCloseDate).toISOString() 
           : undefined,
       },
       seo: {
-        ...data.seo,
-        metaKeywords: data.seo.metaKeywords
+        ...data?.seo,
+        metaKeywords: data?.seo?.metaKeywords
           ? data.seo.metaKeywords.split(',').map((kw) => kw.trim()).filter(Boolean)
           : [],
       },

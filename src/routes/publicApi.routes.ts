@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { publicApiController } from '../controllers/PublicApiController';
+import { publicMarketplaceController } from '../controllers/PublicMarketplaceController';
 
 const router = Router();
 
@@ -9,6 +10,9 @@ router.get('/events/upcoming', (req, res, next) => publicApiController.getUpcomi
 router.get('/events/ongoing', (req, res, next) => publicApiController.getOngoingEvents(req, res, next));
 router.get('/events/completed', (req, res, next) => publicApiController.getCompletedEvents(req, res, next));
 router.get('/events/featured', (req, res, next) => publicApiController.getFeaturedEvents(req, res, next));
+router.get('/events/slug/:slug', (req, res, next) => publicMarketplaceController.getEventBySlug(req, res, next));
+router.post('/events/:eventId/rsvp', (req, res, next) => publicMarketplaceController.submitRsvp(req, res, next));
+router.post('/events/slug/:slug/rsvp', (req, res, next) => publicMarketplaceController.submitRsvp(req, res, next));
 
 // Workspaces
 router.get('/workspaces/availability', (req, res, next) => publicApiController.getWorkspaceAvailability(req, res, next));

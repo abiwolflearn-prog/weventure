@@ -116,6 +116,8 @@ export default function App() {
                 <Route path="/events" element={<EventMarketplace />} />
                 <Route path="/events/:slug" element={<EventDetailsPage />} />
                 <Route path="/events/:slug/rsvp" element={<PublicRsvpPage />} />
+                <Route path="/event/:slug" element={<EventDetailsPage />} />
+                <Route path="/event/:slug/rsvp" element={<PublicRsvpPage />} />
                 <Route path="/workspaces" element={<WorkspaceMarketplace />} />
                 <Route path="/workspaces/:id" element={<WorkspaceDetailsPage />} />
                 <Route path="/organizers/:id" element={<OrganizerProfilePage />} />

@@ -46,7 +46,7 @@ const RegistrationSchema = new Schema<IRegistrationDocument>(
     checkedIn: { type: Boolean, required: true, default: false },
     checkedInAt: { type: Date },
     registrationDate: { type: Date, default: Date.now, required: true },
-    customAnswers: { type: Map, of: Schema.Types.Mixed },
+    customAnswers: { type: Schema.Types.Mixed, default: {} },
   },
   {
     timestamps: true,

@@ -501,7 +501,26 @@ export class TicketingService {
     tenantId: string,
     filters?: { status?: string; checkedIn?: string; search?: string }
   ): Promise<IRegistrationDocument[]> {
-    const query: any = { eventId, tenantId };
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(eventId);
+    const event = await Event.findOne({
+      $or: [
+        ...(isObjectId ? [{ _id: eventId }] : []),
+        { id: eventId },
+        { slug: eventId }
+      ]
+    }).exec();
+
+    const possibleIds = Array.from(new Set([
+      eventId,
+      ...(event ? [event._id.toString(), (event as any).id, event.slug].filter(Boolean) : [])
+    ]));
+
+    const query: any = {
+      eventId: { $in: possibleIds }
+    };
+    if (tenantId && tenantId !== 'global' && tenantId !== 'weventurehub') {
+      query.tenantId = tenantId;
+    }
 
     if (filters?.status) {
       query.status = filters.status;
@@ -774,7 +793,7 @@ export class TicketingService {
       const event = await Event.findById(eventId).exec();
       const eventTitle = event ? event.title : 'Event Admission';
       const eventLocation = event && event.sessions && event.sessions[0] ? event.sessions[0].location || 'Main Hall' : 'Main Venue';
-      const eventDates = event ? `${event.schedule.startDate.toLocaleDateString()}` : 'Scheduled Dates';
+      const eventDates = event?.schedule?.startDate ? `${new Date(event.schedule.startDate).toLocaleDateString()}` : 'Scheduled Dates';
 
       // 1. Create personal notification
       await notificationService.createNotification({
@@ -870,7 +889,7 @@ export class TicketingService {
       const event = await Event.findById(eventId).exec();
       const eventTitle = event ? event.title : 'Event';
       const eventLocation = event && event.sessions && event.sessions[0] ? event.sessions[0].location || 'Main Hall' : 'Main Venue';
-      const eventDates = event ? `${event.schedule.startDate.toLocaleDateString()}` : 'Scheduled Dates';
+      const eventDates = event?.schedule?.startDate ? `${new Date(event.schedule.startDate).toLocaleDateString()}` : 'Scheduled Dates';
 
       // 1. Create personal notification
       await notificationService.createNotification({

@@ -81,6 +81,8 @@ publicRouter.post('/events/:eventId/reviews', publicMarketplaceController.addRev
  * @access  Public
  */
 publicRouter.post('/events/:eventId/rsvp', publicMarketplaceController.submitRsvp);
+publicRouter.post('/events/slug/:slug/rsvp', publicMarketplaceController.submitRsvp);
+publicRouter.post('/events/:eventId/rsvps', publicMarketplaceController.submitRsvp);
 
 /**
  * @route   GET /api/v1/public/tickets/:id

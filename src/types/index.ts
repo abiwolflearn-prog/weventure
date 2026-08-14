@@ -232,6 +232,7 @@ export interface IRsvpFormAppearance {
   textColor?: string;
   cardBackground?: string;
   buttonColor?: string;
+  buttonTextColor?: string;
   buttonHoverColor?: string;
   buttonText?: string;
   buttonRadius?: number;

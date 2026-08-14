@@ -156,7 +156,7 @@ export function MyRegistrations() {
                         <div className="flex items-center gap-1.5 font-medium">
                           <Calendar className="w-3.5 h-3.5 shrink-0" />
                           <span>
-                            {event?.schedule.startDate
+                            {event?.schedule?.startDate
                               ? new Date(event.schedule.startDate).toLocaleDateString()
                               : 'TBD'}
                           </span>

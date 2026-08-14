@@ -269,22 +269,40 @@ export default function EventDetailsPage() {
     );
   }
 
-  const startDateFormatted = new Date(event.schedule?.startDate).toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric'
-  });
+  const startDateFormatted = event.schedule?.startDate ? (() => {
+    try {
+      return new Date(event.schedule.startDate).toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch {
+      return 'Date TBD';
+    }
+  })() : 'Date TBD';
 
-  const startTimeFormatted = new Date(event.schedule?.startDate).toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  const startTimeFormatted = event.schedule?.startDate ? (() => {
+    try {
+      return new Date(event.schedule.startDate).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return '';
+    }
+  })() : '';
 
-  const endTimeFormatted = new Date(event.schedule?.endDate).toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  const endTimeFormatted = event.schedule?.endDate ? (() => {
+    try {
+      return new Date(event.schedule.endDate).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return '';
+    }
+  })() : '';
 
   return (
     <div className="bg-[#111111] min-h-screen py-8 text-white">

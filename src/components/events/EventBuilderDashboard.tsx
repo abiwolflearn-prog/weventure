@@ -330,26 +330,26 @@ export const EventBuilderDashboard: React.FC<EventBuilderDashboardProps> = ({
       template: selectedTemplate,
       modules,
       schedule: {
-        ...formData.schedule,
-        startDate: formData.schedule.startDate ? new Date(formData.schedule.startDate).toISOString() : '',
-        endDate: formData.schedule.endDate ? new Date(formData.schedule.endDate).toISOString() : '',
+        ...formData?.schedule,
+        startDate: formData?.schedule?.startDate ? new Date(formData.schedule.startDate).toISOString() : '',
+        endDate: formData?.schedule?.endDate ? new Date(formData.schedule.endDate).toISOString() : '',
       },
       capacity: {
-        maxCapacity: formData.capacity.isUnlimited ? 0 : Number(formData.capacity.maxCapacity),
-        isUnlimited: formData.capacity.isUnlimited,
+        maxCapacity: formData?.capacity?.isUnlimited ? 0 : Number(formData?.capacity?.maxCapacity || 0),
+        isUnlimited: !!formData?.capacity?.isUnlimited,
       },
       registrationSettings: {
-        ...formData.registrationSettings,
-        registrationOpenDate: formData.registrationSettings.registrationOpenDate 
+        ...formData?.registrationSettings,
+        registrationOpenDate: formData?.registrationSettings?.registrationOpenDate 
           ? new Date(formData.registrationSettings.registrationOpenDate).toISOString() 
           : undefined,
-        registrationCloseDate: formData.registrationSettings.registrationCloseDate 
+        registrationCloseDate: formData?.registrationSettings?.registrationCloseDate 
           ? new Date(formData.registrationSettings.registrationCloseDate).toISOString() 
           : undefined,
       },
       seo: {
-        ...formData.seo,
-        metaKeywords: formData.seo.metaKeywords
+        ...formData?.seo,
+        metaKeywords: formData?.seo?.metaKeywords
           ? formData.seo.metaKeywords.split(',').map(k => k.trim()).filter(Boolean)
           : [],
       },

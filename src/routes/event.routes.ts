@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { eventController } from '../controllers/EventController';
+import { publicMarketplaceController } from '../controllers/PublicMarketplaceController';
 import { authGuard } from '../middleware/authGuard';
 import { hasRoles, hasPermission } from '../middleware/roleGuard';
 import { validateRequest } from '../middleware/requestValidator';
@@ -54,6 +55,14 @@ eventRouter.get('/id/:id', eventController.getById);
  * @access  Public / Context Isolated
  */
 eventRouter.get('/slug/:slug', eventController.getBySlug);
+
+/**
+ * @route   POST /api/v1/events/:eventId/rsvp
+ * @desc    Submit RSVP for an event
+ * @access  Public
+ */
+eventRouter.post('/:eventId/rsvp', (req, res, next) => publicMarketplaceController.submitRsvp(req, res, next));
+eventRouter.post('/slug/:slug/rsvp', (req, res, next) => publicMarketplaceController.submitRsvp(req, res, next));
 
 /**
  * @route   POST /api/v1/events

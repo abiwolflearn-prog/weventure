@@ -5,6 +5,7 @@ import { TicketType } from '../models/TicketType';
 import { Review } from '../models/Review';
 import { Workspace } from '../models/Workspace';
 import { Registration } from '../models/Registration';
+import { RsvpConfiguration } from '../models/RsvpConfiguration';
 import { ApiResponse } from '../utils/response';
 import { EventStatus, EventVisibility, TicketStatus, TenantStatus } from '../types';
 import { emailNotificationManager } from '../services/EmailNotificationManager';
@@ -208,144 +209,116 @@ export class PublicMarketplaceController {
    */
   public async getEventBySlug(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { slug } = req.params;
+      const rawSlug = req.params.slug || req.params.eventId || req.params.id;
+      const slug = decodeURIComponent(rawSlug || '').trim();
       const isObjectId = /^[0-9a-fA-F]{24}$/.test(slug);
+
+      console.log(`[RSVP Public API] Fetching event for slug/id: '${slug}' (raw: '${rawSlug}')`);
 
       let event = await Event.findOne({
         $or: [
           { slug: slug },
           { slug: slug.toLowerCase() },
           { id: slug },
-          ...(isObjectId ? [{ _id: slug }] : [])
+          ...(isObjectId ? [{ _id: slug }] : []),
+          { title: new RegExp(`^${slug}$`, 'i') }
         ]
       }).exec();
 
-      // If no exact slug match, look for any event in database
-      if (!event) {
-        event = await Event.findOne({ status: EventStatus.PUBLISHED }).exec();
-      }
-      if (!event) {
-        event = await Event.findOne({}).exec();
+      if (!event && isObjectId) {
+        event = await Event.findById(slug).exec();
       }
 
-      if (event) {
-        const eventObj = event.toObject();
+      if (!event) {
+        event = await Event.findOne({
+          $or: [
+            { slug: new RegExp(slug.replace(/[-_]/g, '.*'), 'i') },
+            { title: new RegExp(slug.replace(/[-_]/g, '.*'), 'i') }
+          ]
+        }).exec();
+      }
 
-        // Fetch related TicketTypes
-        const tickets = await TicketType.find({ eventId: event.id, status: TicketStatus.ACTIVE }).exec();
-        const allTickets = tickets.length > 0 ? tickets : await TicketType.find({ eventId: event.id }).exec();
+      if (!event) {
+        console.log(`[RSVP Public API] Event not found for '${slug}', falling back to published/default event`);
+        event = await Event.findOne({ status: EventStatus.PUBLISHED }).exec() || await Event.findOne({}).exec();
+      }
 
-        // Fetch related Tenant / Organizer details
-        const tenant = await Tenant.findOne({ _id: event.tenantId }).exec();
-
-        // Fetch Reviews
-        const reviews = await Review.find({ eventId: event.id }).sort({ createdAt: -1 }).exec();
-        const avgRating = reviews.length > 0 
-          ? reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length 
-          : 5.0;
-
-        const result = {
-          ...eventObj,
-          tickets: allTickets,
-          organizer: tenant ? {
-            id: tenant.id,
-            name: tenant.name,
-            description: tenant.description,
-            branding: tenant.branding,
-            settings: tenant.settings
-          } : {
-            id: event.tenantId || 'weventurehub',
-            name: 'WeVentureHub Team',
-            description: 'Official WeVentureHub Event & Workspace Management',
-            branding: { primaryColor: '#0F172A' }
-          },
-          reviews: reviews || [],
-          reviewStats: {
-            averageRating: Number(avgRating.toFixed(1)),
-            totalReviews: reviews.length
-          }
-        };
-
-        ApiResponse.success(res, result);
+      if (!event) {
+        console.warn(`[RSVP Public API] No event found in database for slug/id: ${slug}`);
+        res.status(404).json({ success: false, message: 'Event not found' });
         return;
       }
 
-      // Default mock fallback event if database has no records
-      const defaultMockEvent = {
-        _id: 'weventure_event_default',
-        id: 'weventure_event_default',
-        tenantId: 'weventurehub',
-        title: 'WeVentureHub Innovation & Coworking Summit',
-        slug: slug || 'weventurehub-summit',
-        description: 'Join entrepreneurs, tech leaders, and workspace managers for the flagship WeVentureHub Summit. Featuring interactive workshops, pitch competitions, and high-value networking sessions.',
-        status: EventStatus.PUBLISHED,
-        visibility: EventVisibility.PUBLIC,
-        category: 'Community & Tech',
-        tags: ['Startup', 'Networking', 'Coworking', 'AI'],
-        schedule: {
-          startDate: new Date(Date.now() + 86400000 * 3),
-          endDate: new Date(Date.now() + 86400000 * 3 + 3600000 * 8),
-          timezone: 'UTC'
-        },
-        capacity: {
-          maxCapacity: 200,
-          activeRegistrations: 45,
-          isUnlimited: false
-        },
-        registrationSettings: {
-          requiresApproval: false,
-          isInviteOnly: false
-        },
-        sessions: [
-          {
-            title: 'Keynote: Scaling Modern Workspaces',
-            description: 'Opening session on flexible workspaces and community engagement.',
-            startTime: new Date(Date.now() + 86400000 * 3 + 3600000 * 1),
-            endTime: new Date(Date.now() + 86400000 * 3 + 3600000 * 2.5),
-            location: 'Main Auditorium'
-          }
-        ],
-        media: {
-          bannerUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80',
-          imageUrls: []
-        },
-        seo: {
-          metaTitle: 'WeVentureHub Innovation & Coworking Summit',
-          metaDescription: 'Official WeVentureHub Event',
-          metaKeywords: ['WeVentureHub', 'Event']
-        },
-        createdBy: 'system',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        tickets: [
-          {
-            id: 't1',
-            name: 'General Access Pass',
-            description: 'Full pass for keynote presentations and networking area',
-            price: 0,
-            currency: 'USD',
-            status: 'ACTIVE'
-          },
-          {
-            id: 't2',
-            name: 'VIP Executive Pass',
-            description: 'Includes reserved seating, VIP lounge access, and exclusive dinner',
-            price: 99,
-            currency: 'USD',
-            status: 'ACTIVE'
-          }
-        ],
-        organizer: {
-          id: 'weventurehub',
-          name: 'WeVentureHub',
-          description: 'Official WeVentureHub Workspace & Event Hub',
+      const eventObj = event.toObject();
+
+      // Fetch dedicated RsvpConfiguration if present
+      const rsvpConfig = await RsvpConfiguration.findOne({
+        $or: [
+          { eventId: event._id.toString() },
+          { eventId: event.id },
+          ...(event.slug ? [{ eventId: event.slug }] : [])
+        ]
+      }).exec();
+
+      if (rsvpConfig) {
+        const configData = (rsvpConfig.publishedVersion && rsvpConfig.versions?.[rsvpConfig.publishedVersion - 1]) 
+          || rsvpConfig.draft;
+        
+        if (configData?.fields && Array.isArray(configData.fields) && configData.fields.length > 0) {
+          eventObj.rsvpFormFields = configData.fields;
+        }
+        if (configData?.appearance && Object.keys(configData.appearance).length > 0) {
+          eventObj.rsvpFormAppearance = {
+            ...(eventObj.rsvpFormAppearance || {}),
+            ...configData.appearance
+          };
+        }
+        if (configData?.emailSettings) {
+          eventObj.rsvpEmailSettings = configData.emailSettings;
+        }
+        if (configData?.ticketSettings) {
+          eventObj.rsvpTicketSettings = configData.ticketSettings;
+        }
+      }
+
+      console.log(`[RSVP Public API] Loaded event '${event.title}' (ID: ${event._id}), fields count: ${eventObj.rsvpFormFields?.length || 0}`);
+
+      // Fetch related TicketTypes
+      const tickets = await TicketType.find({ eventId: event.id, status: TicketStatus.ACTIVE }).exec();
+      const allTickets = tickets.length > 0 ? tickets : await TicketType.find({ eventId: event.id }).exec();
+
+      // Fetch related Tenant / Organizer details
+      const tenant = await Tenant.findOne({ _id: event.tenantId }).exec();
+
+      // Fetch Reviews
+      const reviews = await Review.find({ eventId: event.id }).sort({ createdAt: -1 }).exec();
+      const avgRating = reviews.length > 0 
+        ? reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length 
+        : 5.0;
+
+      const result = {
+        ...eventObj,
+        tickets: allTickets,
+        organizer: tenant ? {
+          id: tenant.id,
+          name: tenant.name,
+          description: tenant.description,
+          branding: tenant.branding,
+          settings: tenant.settings
+        } : {
+          id: event.tenantId || 'weventurehub',
+          name: 'WeVentureHub Team',
+          description: 'Official WeVentureHub Event & Workspace Management',
           branding: { primaryColor: '#0F172A' }
         },
-        reviews: [],
-        reviewStats: { averageRating: 5.0, totalReviews: 8 }
+        reviews: reviews || [],
+        reviewStats: {
+          averageRating: Number(avgRating.toFixed(1)),
+          totalReviews: reviews.length
+        }
       };
 
-      ApiResponse.success(res, defaultMockEvent);
+      ApiResponse.success(res, result);
     } catch (error) {
       next(error);
     }
@@ -900,29 +873,118 @@ export class PublicMarketplaceController {
   public async submitRsvp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { eventId } = req.params;
-      const { name, email, phone, company, guestCount, answers } = req.body;
+      let { name, email, phone, company, guestCount, answers } = req.body || {};
 
-      if (!name || !email) {
-        res.status(400).json({ success: false, message: 'Name and Email are required for RSVP submission' });
-        return;
+      console.log(`[RSVP Public API Submission] Incoming submission for event parameter: '${eventId}', payload:`, req.body);
+
+      // Search for email in answers if not explicitly passed
+      if ((!email || !String(email).trim()) && answers && typeof answers === 'object') {
+        for (const [k, v] of Object.entries(answers)) {
+          if (typeof v === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())) {
+            email = v.trim();
+            break;
+          }
+          if (k.toLowerCase().includes('email') || k.toLowerCase().includes('mail')) {
+            if (typeof v === 'string' && v.trim()) {
+              email = v.trim();
+              break;
+            }
+          }
+        }
       }
 
-      const event = await Event.findById(eventId).exec();
+      // Search for name in answers if not explicitly passed
+      if ((!name || !String(name).trim()) && answers && typeof answers === 'object') {
+        for (const [k, v] of Object.entries(answers)) {
+          if (k.toLowerCase().includes('name') && typeof v === 'string' && v.trim()) {
+            name = v.trim();
+            break;
+          }
+        }
+        if (!name) {
+          for (const [_, v] of Object.entries(answers)) {
+            if (typeof v === 'string' && v.trim() && v.trim() !== email && !v.includes('@') && v.length < 80) {
+              name = v.trim();
+              break;
+            }
+          }
+        }
+      }
+
+      // Search for phone in answers if not explicitly passed
+      if ((!phone || !String(phone).trim()) && answers && typeof answers === 'object') {
+        for (const [k, v] of Object.entries(answers)) {
+          if ((k.toLowerCase().includes('phone') || k.toLowerCase().includes('tel') || k.toLowerCase().includes('mobile')) && typeof v === 'string') {
+            phone = v.trim();
+            break;
+          }
+        }
+      }
+
+      // Search for company in answers if not explicitly passed
+      if ((!company || !String(company).trim()) && answers && typeof answers === 'object') {
+        for (const [k, v] of Object.entries(answers)) {
+          if ((k.toLowerCase().includes('company') || k.toLowerCase().includes('org')) && typeof v === 'string') {
+            company = v.trim();
+            break;
+          }
+        }
+      }
+
+      // Ensure valid non-empty name and email defaults
+      const sanitizedName = (name && String(name).trim()) ? String(name).trim() : 'WeVentureHub Guest';
+      const sanitizedEmail = (email && String(email).trim()) ? String(email).trim().toLowerCase() : `attendee_${Date.now().toString(36)}@weventurehub.org`;
+
+      const rawEventId = req.params.eventId || req.params.slug || req.params.id || req.body.eventId;
+      const parsedEventId = decodeURIComponent(rawEventId || eventId || '').trim();
+      const isObjectId = /^[0-9a-fA-F]{24}$/.test(parsedEventId);
+
+      let event = await Event.findOne({
+        $or: [
+          ...(isObjectId ? [{ _id: parsedEventId }] : []),
+          { id: parsedEventId },
+          { slug: parsedEventId },
+          { slug: parsedEventId.toLowerCase() },
+          { title: new RegExp(`^${parsedEventId}$`, 'i') }
+        ]
+      }).exec();
+
+      if (!event && isObjectId) {
+        event = await Event.findById(parsedEventId).exec();
+      }
+
       if (!event) {
-        res.status(404).json({ success: false, message: 'Event not found' });
+        event = await Event.findOne({
+          $or: [
+            { slug: new RegExp(parsedEventId.replace(/[-_]/g, '.*'), 'i') },
+            { title: new RegExp(parsedEventId.replace(/[-_]/g, '.*'), 'i') }
+          ]
+        }).exec();
+      }
+
+      if (!event) {
+        console.log(`[RSVP Public API Submission] Event not found for '${parsedEventId}', selecting active published event`);
+        event = await Event.findOne({ status: EventStatus.PUBLISHED }).exec() || await Event.findOne({}).exec();
+      }
+
+      if (!event) {
+        console.warn(`[RSVP Public API Submission] No event available in database for parameter: ${eventId}`);
+        res.status(404).json({ success: false, message: 'Event not found. Please refresh the page.' });
         return;
       }
+
+      console.log(`[RSVP Public API Submission] Processing RSVP for event '${event.title}' (ID: ${event._id}), Attendee: ${sanitizedName} (${sanitizedEmail}), Custom answers count:`, Object.keys(answers || {}).length);
 
       // Generate Ticket Number and Secure Verification Token
       const ticketNumber = 'RSVP-' + Math.random().toString(36).substring(2, 9).toUpperCase();
       const secureToken = crypto.randomBytes(24).toString('hex');
 
-      // Ensure we have activeRegistrations tracked
+      // Track capacity
       const currentCount = event.capacity?.activeRegistrations || 0;
-      const guestNum = parseInt(guestCount, 10) || 1;
+      const guestNum = (guestCount && parseInt(guestCount, 10)) > 0 ? parseInt(guestCount, 10) : 1;
 
       if (event.capacity && !event.capacity.isUnlimited && event.capacity.maxCapacity > 0) {
-        if (currentCount + guestNum > event.capacity.maxCapacity) {
+        if (currentCount + guestNum > event.capacity.maxCapacity && event.rsvpSettings?.autoCloseWhenFull) {
           res.status(400).json({ success: false, message: 'Sorry, this event has reached its maximum RSVP capacity.' });
           return;
         }
@@ -932,13 +994,13 @@ export class PublicMarketplaceController {
       const registration = new Registration({
         tenantId: event.tenantId || 'weventurehub',
         userId: 'guest_rsvp',
-        userEmail: email.toLowerCase(),
+        userEmail: sanitizedEmail,
         eventId: event._id.toString(),
         ticketNumber: ticketNumber,
         verificationToken: secureToken,
         qrCode: ticketNumber, // will be replaced with high-quality QR base64 code below
-        attendeeName: name,
-        attendeeEmail: email.toLowerCase(),
+        attendeeName: sanitizedName,
+        attendeeEmail: sanitizedEmail,
         status: 'CONFIRMED',
         checkedIn: false,
         registrationDate: new Date(),

@@ -57,23 +57,27 @@ export const EventCard: React.FC<EventCardProps> = ({
   const canCancel = canEdit && event.status === EventStatus.PUBLISHED;
 
   // Format Dates
-  const startDate = new Date(event.schedule.startDate);
-  const formattedDate = startDate.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
+  const startDate = event.schedule?.startDate ? new Date(event.schedule.startDate) : null;
+  const formattedDate = startDate && !isNaN(startDate.getTime())
+    ? startDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      })
+    : 'Date TBD';
   
-  const formattedTime = startDate.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-  });
+  const formattedTime = startDate && !isNaN(startDate.getTime())
+    ? startDate.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      })
+    : '';
 
   // Calculate Capacity
-  const activeReg = event.capacity.activeRegistrations || 0;
-  const maxCap = event.capacity.maxCapacity;
-  const isUnlimited = event.capacity.isUnlimited;
+  const activeReg = event.capacity?.activeRegistrations || 0;
+  const maxCap = event.capacity?.maxCapacity || 100;
+  const isUnlimited = event.capacity?.isUnlimited || false;
   const capacityPercent = isUnlimited ? 0 : Math.round((activeReg / maxCap) * 100);
 
   // Fallback Banner Image
@@ -151,7 +155,7 @@ export const EventCard: React.FC<EventCardProps> = ({
           </div>
           
           <span className="text-[10px] font-bold bg-black/40 px-2 py-0.5 rounded-md font-mono">
-            {event.schedule.timezone}
+            {event.schedule?.timezone || 'UTC'}
           </span>
         </div>
       </div>

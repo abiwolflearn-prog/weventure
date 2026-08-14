@@ -29,7 +29,17 @@ export class WorkspaceRepository {
   }
 
   public async findById(id: string, tenantId: string): Promise<IWorkspaceDocument | null> {
-    return await Workspace.findOne({ _id: id, tenantId, isDeleted: false }).exec();
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const filter: any = { isDeleted: false };
+    if (tenantId && tenantId !== 'global') filter.tenantId = tenantId;
+    if (isObjectId) {
+      const doc = await Workspace.findOne({ _id: id, ...filter }).exec();
+      if (doc) return doc;
+    }
+    return await Workspace.findOne({
+      $or: [{ slug: id }, { name: id }, { title: id }],
+      ...filter
+    }).exec();
   }
 
   public async update(
@@ -37,16 +47,28 @@ export class WorkspaceRepository {
     tenantId: string,
     updateData: Partial<any>
   ): Promise<IWorkspaceDocument | null> {
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const query: any = {
+      ...(isObjectId ? { _id: id } : { name: id }),
+      isDeleted: false
+    };
+    if (tenantId && tenantId !== 'global') query.tenantId = tenantId;
     return await Workspace.findOneAndUpdate(
-      { _id: id, tenantId, isDeleted: false },
+      query,
       { $set: updateData },
       { new: true, runValidators: true }
     ).exec();
   }
 
   public async softDelete(id: string, tenantId: string): Promise<boolean> {
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const query: any = {
+      ...(isObjectId ? { _id: id } : { name: id }),
+      isDeleted: false
+    };
+    if (tenantId && tenantId !== 'global') query.tenantId = tenantId;
     const result = await Workspace.findOneAndUpdate(
-      { _id: id, tenantId, isDeleted: false },
+      query,
       { $set: { isDeleted: true } }
     ).exec();
     return !!result;

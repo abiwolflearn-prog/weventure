@@ -586,7 +586,7 @@ export default function LandingPage() {
                       <div className="mt-6 pt-4 border-t border-neutral-800 flex items-center justify-between">
                         <div className="flex items-center gap-1.5 text-xs text-neutral-slate-400 font-semibold">
                           <Calendar className="w-3.5 h-3.5 text-brand-accent" />
-                          <span>{new Date(event.schedule.startDate).toLocaleDateString()}</span>
+                          <span>{event.schedule?.startDate ? new Date(event.schedule.startDate).toLocaleDateString() : 'Date TBD'}</span>
                         </div>
                         <Link to={`/events/${event.slug}`}>
                           <Button variant="success" className="text-xs font-bold px-4 h-9 rounded-xl shadow-sm transition">
