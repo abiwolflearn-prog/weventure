@@ -75,6 +75,8 @@ export interface IInvoiceDocument extends Document {
   accountName?: string;
   accountNumber?: string;
   branch?: string;
+  notes?: string;
+  customerTin?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -149,6 +151,8 @@ const InvoiceSchema = new Schema<IInvoiceDocument>(
     accountName: { type: String, default: 'WE VENTURE HOLDINGS PLC' },
     accountNumber: { type: String, default: '001210684011' },
     branch: { type: String, default: 'Bole Branch' },
+    notes: { type: String },
+    customerTin: { type: String },
   },
   {
     timestamps: true,

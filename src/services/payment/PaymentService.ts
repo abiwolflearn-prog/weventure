@@ -1226,7 +1226,11 @@ export class PaymentService {
           amount: amount,
         }
       ],
+      notes: data.notes,
+      customerTin: data.billingDetails?.tinNumber || data.billingDetails?.taxId || data.customerTin,
       bankDetails: data.bankDetails,
+      billingPeriod: data.billingPeriod || data.durationPlan,
+      invoiceDate: data.invoiceDate ? new Date(data.invoiceDate) : new Date(),
       selectedBank: bankRec.bankName,
       selectedBanks: bankRecords.map((b) => b.bankName),
       bankName: bankRec.bankName,
@@ -1238,13 +1242,120 @@ export class PaymentService {
       adjustmentReason: data.adjustmentReason,
       adjustedBy: data.adjustedBy || (data.adjustedPrice ? (user?.email || 'Admin') : undefined),
       adjustedAt: data.adjustedAt || (data.adjustedPrice ? new Date() : undefined),
-      createdAt: new Date(),
+      createdAt: data.invoiceDate ? new Date(data.invoiceDate) : new Date(),
     });
 
     const saved = await invoice.save();
     if (user) {
       await this.logActivity(tenantId, user, 'CREATE_INVOICE', 'INVOICE', saved.id, { invoiceNumber });
     }
+    return saved;
+  }
+
+  /**
+   * Update existing Invoice
+   */
+  public async updateInvoice(tenantId: string, invoiceId: string, data: any, user?: IUserIdentity): Promise<any> {
+    const tid = tenantId || 'weventurehub';
+    const invoice = await Invoice.findOne({ _id: invoiceId, tenantId: tid }).exec();
+    if (!invoice) {
+      throw new NotFoundError('Invoice not found');
+    }
+
+    const amount = Number(data.amount !== undefined ? data.amount : (data.subtotal !== undefined ? data.subtotal : invoice.amount));
+    const vat = data.vat !== undefined ? Number(data.vat) : (invoice.vat !== undefined ? invoice.vat : Math.round(amount * 0.15 * 100) / 100);
+    const discount = Number(data.discount !== undefined ? data.discount : (invoice.discount || 0));
+    const extraCharges = Number(data.extraCharges !== undefined ? data.extraCharges : (invoice.extraCharges || 0));
+    const grandTotal = Number(data.grandTotal !== undefined ? data.grandTotal : (amount + vat + extraCharges - discount));
+
+    const selectedBanksList = data.selectedBanks && data.selectedBanks.length > 0
+      ? data.selectedBanks
+      : (data.selectedBank ? [data.selectedBank] : (invoice.selectedBanks || ['Dashen Bank', 'Commercial Bank of Ethiopia']));
+    const bankRecords = getBankRecords(selectedBanksList);
+    const bankRec = bankRecords[0] || getBankRecord(data.selectedBank || data.bankName || data.bank || data.bankDetails);
+
+    if (data.invoiceNumber) invoice.invoiceNumber = data.invoiceNumber;
+    if (data.workspaceName !== undefined) invoice.workspaceName = data.workspaceName;
+    if (data.bookingId !== undefined) invoice.bookingId = data.bookingId;
+    if (data.durationType) invoice.durationType = data.durationType;
+    if (data.durationQuantity !== undefined) invoice.durationQuantity = data.durationQuantity;
+    if (data.customerType) invoice.customerType = data.customerType;
+    if (data.currency) invoice.currency = data.currency;
+    if (data.notes !== undefined) invoice.notes = data.notes;
+
+    invoice.amount = amount;
+    invoice.vat = vat;
+    invoice.discount = discount;
+    invoice.extraCharges = extraCharges;
+    invoice.grandTotal = grandTotal;
+
+    const newStatus = data.status || invoice.status;
+    invoice.status = newStatus;
+    invoice.paymentStatus = newStatus;
+
+    if (newStatus === 'Paid' || newStatus === 'PAID') {
+      invoice.paidAt = invoice.paidAt || new Date();
+      invoice.outstandingBalance = 0;
+    } else if (newStatus === 'Partially Paid') {
+      invoice.outstandingBalance = Math.round((grandTotal / 2) * 100) / 100;
+    } else if (newStatus === 'Pending Payment' || newStatus === 'Draft') {
+      invoice.outstandingBalance = grandTotal;
+    }
+
+    if (data.dueDate) invoice.dueDate = new Date(data.dueDate);
+    if (data.invoiceDate) {
+      invoice.invoiceDate = new Date(data.invoiceDate);
+      invoice.createdAt = new Date(data.invoiceDate);
+    }
+    if (data.billingPeriod) invoice.billingPeriod = data.billingPeriod;
+
+    // Billing Details
+    invoice.billingDetails = {
+      name: data.billingDetails?.name || data.userName || invoice.billingDetails?.name || 'Valued Member',
+      email: data.billingDetails?.email || data.userEmail || invoice.billingDetails?.email || 'customer@weventurehub.com',
+      phone: data.billingDetails?.phone || data.userPhone || invoice.billingDetails?.phone,
+      company: data.billingDetails?.company || data.companyName || invoice.billingDetails?.company,
+      taxId: data.billingDetails?.taxId || data.billingDetails?.tinNumber || data.customerTin || data.taxId || data.tinNumber || invoice.billingDetails?.taxId,
+      tinNumber: data.billingDetails?.tinNumber || data.billingDetails?.taxId || data.customerTin || data.taxId || data.tinNumber || invoice.billingDetails?.tinNumber,
+    };
+    invoice.userEmail = invoice.billingDetails.email;
+    invoice.customerTin = invoice.billingDetails.tinNumber;
+
+    // Line Items
+    if (data.lineItems && data.lineItems.length > 0) {
+      invoice.lineItems = data.lineItems.map((item: any) => ({
+        description: item.description,
+        durationType: item.durationType || invoice.durationType || 'Custom',
+        quantity: Number(item.quantity) || 1,
+        unitPrice: Number(item.unitPrice) || 0,
+        amount: (Number(item.quantity) || 1) * (Number(item.unitPrice) || 0),
+      }));
+    }
+
+    // Banks
+    invoice.selectedBank = bankRec.bankName;
+    invoice.selectedBanks = bankRecords.map((b) => b.bankName);
+    invoice.bankName = bankRec.bankName;
+    invoice.accountName = bankRec.accountName;
+    invoice.accountNumber = bankRec.accountNumber;
+    invoice.branch = bankRec.branch;
+    invoice.bankDetails = data.bankDetails || `${bankRec.bankName} - Account: ${bankRec.accountNumber}`;
+
+    // Price Adjustments & Auditing
+    if (data.originalPrice !== undefined) invoice.originalPrice = data.originalPrice;
+    if (data.adjustedPrice !== undefined) invoice.adjustedPrice = data.adjustedPrice;
+    if (data.adjustmentReason !== undefined) invoice.adjustmentReason = data.adjustmentReason;
+    if (data.adjustedPrice && !invoice.adjustedBy) {
+      invoice.adjustedBy = user?.email || 'Admin';
+      invoice.adjustedAt = new Date();
+    }
+
+    const saved = await invoice.save();
+
+    if (user) {
+      await this.logActivity(tenantId, user, 'UPDATE_INVOICE', 'INVOICE', saved.id, { invoiceNumber: saved.invoiceNumber });
+    }
+
     return saved;
   }
 

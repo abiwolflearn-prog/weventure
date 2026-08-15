@@ -146,6 +146,21 @@ export class PaymentController {
   }
 
   /**
+   * Update an invoice
+   */
+  public async updateInvoice(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
+      const user = req.user as IUserIdentity;
+      const { id } = req.params;
+      const updated = await paymentService.updateInvoice(tenantId, id, req.body, user);
+      ApiResponse.success(res, updated, 200, { message: 'Invoice updated successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Delete an invoice
    */
   public async deleteInvoice(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -318,11 +333,20 @@ export class PaymentController {
       doc.restore();
 
       // 2. SUPPLIER INFORMATION & STATUS BADGE (BELOW META BANNER)
-      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(9).text('SUPPLIER INFORMATION', 35, 118);
-      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(12).text(WEVENTURE_SUPPLIER_INFO.companyName, 35, 130);
-      doc.fillColor(textGray).font('Helvetica').fontSize(8.5).text(`Address: ${WEVENTURE_SUPPLIER_INFO.address}`, 35, 144);
-      doc.text(`Supplier's VAT Reg. No: ${WEVENTURE_SUPPLIER_INFO.vatRegNo}`, 35, 155);
-      doc.text(`Supplier's TIN No: ${WEVENTURE_SUPPLIER_INFO.tinNo}`, 35, 166);
+      let currentY = 120;
+      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(10).text('SUPPLIER INFORMATION', 35, currentY);
+      currentY += 14;
+      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(12).text(WEVENTURE_SUPPLIER_INFO.companyName, 35, currentY);
+      currentY += 16;
+      doc.fillColor(textGray).font('Helvetica').fontSize(10).text(`Address: ${WEVENTURE_SUPPLIER_INFO.address}`, 35, currentY);
+      currentY += 14;
+      doc.text(`Supplier's VAT Reg. No: ${WEVENTURE_SUPPLIER_INFO.vatRegNo}`, 35, currentY);
+      currentY += 14;
+      doc.text(`Supplier's TIN No: ${WEVENTURE_SUPPLIER_INFO.tinNo}`, 35, currentY);
+
+      // Hardcoded Supplier Email and Tel right-aligned column
+      doc.text('Email: info@weventurehub.com', 300, 134);
+      doc.text('Tel: 0911243503', 300, 150);
 
       // Dynamic Status Badge
       const statusStr = String(invoice.status || '').toLowerCase();
@@ -332,67 +356,84 @@ export class PaymentController {
       const badgeText = isPaid ? '#047857' : '#D97706';
 
       doc.save();
-      doc.roundedRect(450, 118, 110, 18, 5).fill(badgeBg);
-      doc.fillColor(badgeText).font('Helvetica-Bold').fontSize(8.5).text(statusLabel, 450, 123, { align: 'center', width: 110 });
+      doc.roundedRect(450, 118, 110, 18, 4).fill(badgeBg);
+      doc.fillColor(badgeText).font('Helvetica-Bold').fontSize(9).text(statusLabel, 450, 123, { align: 'center', width: 110 });
       doc.restore();
 
       // Horizontal subtle line divider
-      doc.strokeColor(borderGray).lineWidth(1).moveTo(35, 178).lineTo(560, 178).stroke();
+      currentY += 20;
+      doc.strokeColor(borderGray).lineWidth(1).moveTo(35, currentY).lineTo(560, currentY).stroke();
 
       // 2. BILLED TO & METADATA GRID BOX
+      currentY += 8;
+      const gridBoxY = currentY;
       doc.save();
-      doc.roundedRect(35, 186, 525, 85, 6).fillAndStroke(lightGray, borderGray);
+      doc.roundedRect(35, gridBoxY, 525, 120, 6).fillAndStroke(lightGray, borderGray);
       doc.restore();
 
       // Left column: Billed To
-      doc.fillColor(textGray).font('Helvetica-Bold').fontSize(7.5).text('BILLED TO:', 45, 194);
-      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(9.5).text(invoice.billingDetails?.name || 'N/A', 45, 206);
+      let leftY = gridBoxY + 10;
+      doc.fillColor(textGray).font('Helvetica-Bold').fontSize(10).text('BILLED TO:', 45, leftY);
+      leftY += 14;
+      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(12).text(invoice.billingDetails?.name || 'N/A', 45, leftY);
+      leftY += 18;
       if (invoice.billingDetails?.company) {
-        doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(8.5).text(invoice.billingDetails.company, 45, 218);
+        doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(10).text(invoice.billingDetails.company, 45, leftY);
+        leftY += 14;
       }
-      doc.fillColor(textGray).font('Helvetica').fontSize(8).text(invoice.billingDetails?.email || invoice.userEmail || 'N/A', 45, 229);
+      doc.fillColor(textGray).font('Helvetica').fontSize(10).text(invoice.billingDetails?.email || invoice.userEmail || 'N/A', 45, leftY);
+      leftY += 14;
       if (invoice.billingDetails?.phone) {
-        doc.text(invoice.billingDetails.phone, 45, 239);
+        doc.text(invoice.billingDetails.phone, 45, leftY);
+        leftY += 14;
       }
       const customerTin = invoice.billingDetails?.tinNumber || invoice.billingDetails?.taxId || (invoice as any).customerTin;
       if (customerTin) {
-        doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(7.5).text(`CUSTOMER TIN NO: ${customerTin}`, 45, 248);
-        doc.fillColor(textGray).fontSize(7).font('Helvetica-Bold').text(`CUSTOMER TYPE: ${(invoice.customerType || 'Individual').toUpperCase()}`, 45, 258);
+        doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(10).text(`CUSTOMER TIN NO: ${customerTin}`, 45, leftY);
+        leftY += 14;
+        doc.fillColor(textGray).fontSize(10).font('Helvetica-Bold').text(`CUSTOMER TYPE: ${(invoice.customerType || 'Individual').toUpperCase()}`, 45, leftY);
       } else {
-        doc.fontSize(7).font('Helvetica-Bold').text(`CUSTOMER TYPE: ${(invoice.customerType || 'Individual').toUpperCase()}`, 45, 251);
+        doc.fontSize(10).font('Helvetica-Bold').text(`CUSTOMER TYPE: ${(invoice.customerType || 'Individual').toUpperCase()}`, 45, leftY);
       }
 
       // Right column: Dates & Workspace Information
-      doc.fillColor(textGray).font('Helvetica-Bold').fontSize(7.5).text('INVOICE DATES & SPACE INFO:', 300, 194);
+      let rightY = gridBoxY + 10;
+      doc.fillColor(textGray).font('Helvetica-Bold').fontSize(10).text('INVOICE DATES & SPACE INFO:', 300, rightY);
+      rightY += 14;
       
-      doc.font('Helvetica').fontSize(8);
-      doc.text('Date Issued:', 300, 206);
-      doc.font('Helvetica-Bold').text(invoice.createdAt ? new Date(invoice.createdAt).toLocaleDateString() : 'N/A', 420, 206, { align: 'right', width: 130 });
+      doc.font('Helvetica').fontSize(10);
+      doc.text('Date Issued:', 300, rightY);
+      const issuedDateVal = invoice.invoiceDate ? new Date(invoice.invoiceDate) : (invoice.createdAt ? new Date(invoice.createdAt) : new Date());
+      doc.font('Helvetica-Bold').text(issuedDateVal.toLocaleDateString(), 420, rightY, { align: 'right', width: 130 });
+      rightY += 16;
 
-      doc.font('Helvetica').text('Due Date:', 300, 218);
-      doc.font('Helvetica-Bold').fillColor('#BE123C').text(invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'Immediate', 420, 218, { align: 'right', width: 130 });
+      doc.font('Helvetica').text('Due Date:', 300, rightY);
+      doc.font('Helvetica-Bold').fillColor('#BE123C').text(invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'Immediate', 420, rightY, { align: 'right', width: 130 });
+      rightY += 16;
 
-      doc.fillColor(textGray).font('Helvetica').text('Workspace Name:', 300, 230);
-      doc.font('Helvetica-Bold').fillColor(darkColor).text(invoice.workspaceName || 'Executive Workspace', 420, 230, { align: 'right', width: 130 });
+      doc.fillColor(textGray).font('Helvetica').text('Workspace Name:', 300, rightY);
+      doc.font('Helvetica-Bold').fillColor(darkColor).text(invoice.workspaceName || 'Executive Workspace', 420, rightY, { align: 'right', width: 130 });
+      rightY += 16;
 
-      doc.fillColor(textGray).font('Helvetica').text('Billing Period:', 300, 242);
-      doc.font('Helvetica-Bold').text(invoice.billingPeriod || 'Current Cycle', 420, 242, { align: 'right', width: 130 });
+      doc.fillColor(textGray).font('Helvetica').text('Duration / Plan:', 300, rightY);
+      doc.font('Helvetica-Bold').text(invoice.billingPeriod || invoice.durationType || 'Monthly Plan', 420, rightY, { align: 'right', width: 130 });
+      rightY += 16;
 
       const durationQty = invoice.durationQuantity || invoice.lineItems?.[0]?.quantity || 1;
       const durationType = invoice.durationType || invoice.lineItems?.[0]?.durationType || 'Hourly';
-      doc.fillColor(textGray).font('Helvetica').text('Duration:', 300, 254);
-      doc.font('Helvetica-Bold').text(`${durationQty} ${durationType}`, 420, 254, { align: 'right', width: 130 });
+      doc.fillColor(textGray).font('Helvetica').text('Duration:', 300, rightY);
+      doc.font('Helvetica-Bold').text(`${durationQty} ${durationType}`, 420, rightY, { align: 'right', width: 130 });
 
-      // 3. TABLE OF LINE ITEMS (Compact heights to guarantee single-page fit)
-      const tableTop = 280;
+      // 3. TABLE OF LINE ITEMS
+      const tableTop = gridBoxY + 130;
       doc.save().rect(35, tableTop, 525, 18).fill(darkColor);
 
-      doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(7.5);
-      doc.text('Description', 45, tableTop + 5);
-      doc.text('Duration / Plan', 240, tableTop + 5, { width: 90, align: 'center' });
-      doc.text('Qty', 340, tableTop + 5, { width: 30, align: 'center' });
-      doc.text('Unit Price', 380, tableTop + 5, { width: 80, align: 'right' });
-      doc.text('Total Amount', 470, tableTop + 5, { width: 80, align: 'right' });
+      doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(10);
+      doc.text('Description', 45, tableTop + 4);
+      doc.text('Duration / Plan', 240, tableTop + 4, { width: 90, align: 'center' });
+      doc.text('Qty', 340, tableTop + 4, { width: 30, align: 'center' });
+      doc.text('Unit Price', 380, tableTop + 4, { width: 80, align: 'right' });
+      doc.text('Total Amount', 470, tableTop + 4, { width: 80, align: 'right' });
       doc.restore();
 
       // Populate row items
@@ -403,21 +444,21 @@ export class PaymentController {
         amount: invoice.amount || 0
       }];
 
-      let currentY = tableTop + 18;
+      currentY = tableTop + 18;
       items.forEach((item: any) => {
-        doc.fillColor(darkColor).font('Helvetica').fontSize(8);
-        doc.text(item.description || `Workspace Rental Charge - ${invoice.workspaceName || 'Suite'}`, 45, currentY + 5, { width: 190 });
-        doc.text(item.durationType || invoice.durationType || 'N/A', 240, currentY + 5, { width: 90, align: 'center' });
-        doc.text(String(item.quantity || 1), 340, currentY + 5, { width: 30, align: 'center' });
-        doc.text(`${(item.unitPrice || 0).toLocaleString()} ${invoice.currency || 'ETB'}`, 380, currentY + 5, { width: 80, align: 'right' });
-        doc.text(`${(item.amount || 0).toLocaleString()} ${invoice.currency || 'ETB'}`, 470, currentY + 5, { width: 80, align: 'right' });
+        doc.fillColor(darkColor).font('Helvetica').fontSize(10);
+        doc.text(item.description || `Workspace Rental Charge - ${invoice.workspaceName || 'Suite'}`, 45, currentY + 4, { width: 190 });
+        doc.text(item.durationType || invoice.durationType || 'N/A', 240, currentY + 4, { width: 90, align: 'center' });
+        doc.text(String(item.quantity || 1), 340, currentY + 4, { width: 30, align: 'center' });
+        doc.text(`${(item.unitPrice || 0).toLocaleString()} ${invoice.currency || 'ETB'}`, 380, currentY + 4, { width: 80, align: 'right' });
+        doc.text(`${(item.amount || 0).toLocaleString()} ${invoice.currency || 'ETB'}`, 470, currentY + 4, { width: 80, align: 'right' });
 
-        currentY += 20;
+        currentY += 24;
         doc.strokeColor(borderGray).lineWidth(0.5).moveTo(35, currentY).lineTo(560, currentY).stroke();
       });
 
       // 4. LOWER SECTION: AMOUNT IN WORDS, PAYMENT INFO (BOTTOM LEFT) & FINANCIAL TOTALS (BOTTOM RIGHT)
-      const totalsY = currentY + 12;
+      const totalsY = currentY + 8;
 
       // Calculate Bank Records & Amount in words
       const bankRecords = getBankRecords(invoice.selectedBanks || invoice.selectedBank || invoice.bankName || invoice.bankDetails);
@@ -426,21 +467,29 @@ export class PaymentController {
       const wordsText = numberToWords(totalVal, currencyVal);
 
       // LEFT SIDE: AMOUNT IN WORDS + PAYMENT INFORMATION
-      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(7.5).text('AMOUNT IN WORDS:', 35, totalsY);
-      doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(8.5).text(wordsText, 35, totalsY + 10, { width: 290 });
+      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(10).text('AMOUNT IN WORDS:', 35, totalsY);
+      doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(10).text(wordsText, 35, totalsY + 12, { width: 290 });
 
-      const payInfoY = totalsY + 30;
-      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(8).text('PAYMENT SETTLEMENT BANKS:', 35, payInfoY);
+      const payInfoY = totalsY + 40;
+      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(10).text('PAYMENT SETTLEMENT BANKS:', 35, payInfoY);
       
-      let bankY = payInfoY + 11;
-      bankRecords.slice(0, 3).forEach((bank, idx) => {
-        doc.font('Helvetica-Bold').fontSize(7.5).fillColor(darkColor).text(`Bank Option ${idx + 1}: ${bank.bankName}`, 35, bankY);
-        doc.font('Helvetica').fontSize(6.5).fillColor(textGray).text(`Acc Name: ${bank.accountName} | Acc No: ${bank.accountNumber} | Branch: ${bank.branch}`, 35, bankY + 9, { width: 300 });
-        bankY += 20;
+      let bankY = payInfoY + 12;
+      bankRecords.forEach((bank, idx) => {
+        const optionTitle = `Bank Option ${idx + 1}: ${bank.bankName}`;
+        doc.font('Helvetica-Bold').fontSize(10).fillColor(darkColor).text(optionTitle, 35, bankY, { width: 280 });
+        
+        const titleHeight = doc.heightOfString(optionTitle, { width: 280 });
+        const detailsY = bankY + titleHeight + 2;
+        
+        const detailsText = `Acc Name: ${bank.accountName}\nAcc No: ${bank.accountNumber} | Branch: ${bank.branch}`;
+        doc.font('Helvetica').fontSize(10).fillColor(textGray).text(detailsText, 45, detailsY, { width: 270 });
+        
+        const detailsHeight = doc.heightOfString(detailsText, { width: 270 });
+        bankY = detailsY + detailsHeight + 6; // generous margin to prevent overlap
       });
 
       // RIGHT SIDE: Financial breakdown
-      doc.fillColor(textGray).font('Helvetica').fontSize(8);
+      doc.fillColor(textGray).font('Helvetica').fontSize(10);
       doc.text('Subtotal Amount:', 350, totalsY);
       doc.text(`${(invoice.amount || 0).toLocaleString()} ${currencyVal}`, 470, totalsY, { align: 'right', width: 80 });
 
@@ -459,7 +508,7 @@ export class PaymentController {
       doc.strokeColor('#D1D5DB').lineWidth(0.75).moveTo(350, financialY).lineTo(560, financialY).stroke();
 
       // Grand Total display
-      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(10);
+      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(12);
       doc.text('Grand Total:', 350, financialY + 6);
       doc.fillColor(primaryColor).text(`${totalVal.toLocaleString()} ${currencyVal}`, 470, financialY + 6, { align: 'right', width: 80 });
 
@@ -467,14 +516,14 @@ export class PaymentController {
       const footerY = 745;
       doc.strokeColor(borderGray).lineWidth(1).moveTo(35, footerY - 8).lineTo(560, footerY - 8).stroke();
 
-      doc.fillColor(textGray).font('Helvetica').fontSize(7.5);
+      doc.fillColor(textGray).font('Helvetica').fontSize(10);
       doc.text('WeVentureHub Finance Department', 35, footerY);
-      doc.text('Thank you for choosing WeVentureHub Workspace Solutions!', 35, footerY + 10);
+      doc.text('Thank you for choosing WeVentureHub Workspace Solutions!', 35, footerY + 12);
 
       // Authorized signature line
-      doc.strokeColor('#9CA3AF').lineWidth(0.75).moveTo(380, footerY + 10).lineTo(540, footerY + 10).stroke();
-      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(7.5);
-      doc.text('Authorized Stamp & Signature', 380, footerY + 14, { width: 160, align: 'center' });
+      doc.strokeColor('#9CA3AF').lineWidth(0.75).moveTo(380, footerY + 8).lineTo(540, footerY + 8).stroke();
+      doc.fillColor(darkColor).font('Helvetica-Bold').fontSize(10);
+      doc.text('Authorized Stamp & Signature', 380, footerY + 12, { width: 160, align: 'center' });
 
       doc.end();
 

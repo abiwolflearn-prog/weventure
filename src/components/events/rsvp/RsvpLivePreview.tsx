@@ -299,7 +299,7 @@ export const RsvpLivePreview: React.FC<RsvpLivePreviewProps> = ({
                                 placeholder={field.placeholder || 'Enter your response...'}
                                 value={formData[field.id] || ''}
                                 onChange={(e) => handleInputChange(field.id, e.target.value)}
-                                className={`w-full p-3.5 bg-neutral-50 border rounded-xl text-xs focus:bg-white focus:outline-none transition-all ${
+                                className={`w-full p-3.5 bg-neutral-50 border rounded-xl text-xs text-neutral-900 focus:bg-white focus:outline-none transition-all ${
                                   hasError ? 'border-rose-400 bg-rose-50/30' : 'border-neutral-200 focus:border-brand-primary'
                                 }`}
                               />
@@ -307,13 +307,13 @@ export const RsvpLivePreview: React.FC<RsvpLivePreviewProps> = ({
                               <select
                                 value={formData[field.id] || ''}
                                 onChange={(e) => handleInputChange(field.id, e.target.value)}
-                                className={`w-full p-3.5 bg-neutral-50 border rounded-xl text-xs focus:bg-white focus:outline-none transition-all ${
+                                className={`w-full p-3.5 bg-neutral-50 border rounded-xl text-xs text-neutral-900 focus:bg-white focus:outline-none transition-all ${
                                   hasError ? 'border-rose-400 bg-rose-50/30' : 'border-neutral-200 focus:border-brand-primary'
                                 }`}
                               >
-                                <option value="">{field.placeholder || 'Select an option...'}</option>
+                                <option value="" className="text-neutral-900">{field.placeholder || 'Select an option...'}</option>
                                 {(field.options || ['Option 1', 'Option 2']).map((opt, i) => (
-                                  <option key={i} value={opt}>{opt}</option>
+                                  <option key={i} value={opt} className="text-neutral-900">{opt}</option>
                                 ))}
                               </select>
                             ) : field.type === 'radio' ? (
@@ -453,7 +453,7 @@ export const RsvpLivePreview: React.FC<RsvpLivePreviewProps> = ({
                                 placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
                                 value={formData[field.id] || ''}
                                 onChange={(e) => handleInputChange(field.id, e.target.value)}
-                                className={`w-full px-3.5 py-3 bg-neutral-50 border rounded-xl text-xs focus:bg-white focus:outline-none transition-all ${
+                                className={`w-full px-3.5 py-3 bg-neutral-50 border rounded-xl text-xs text-neutral-900 focus:bg-white focus:outline-none transition-all ${
                                   hasError ? 'border-rose-400 bg-rose-50/30' : 'border-neutral-200 focus:border-brand-primary'
                                 }`}
                               />

@@ -43,12 +43,12 @@ export const DEFAULT_BANK: BankRecord = WEVENTURE_BANKS[0]; // Dashen Bank
 export const WEVENTURE_SUPPLIER_INFO = {
   companyName: 'WE VENTURE HOLDINGS PLC',
   address: 'Kirkos Sub City, W. 02 H. No New',
-  vatRegNo: '', // [blank]
+  vatRegNo: '23130180002',
   tinNo: '0082788884',
   taxId: '0082788884',
   dateOfRegistration: '', // [blank]
   email: 'info@weventurehub.com',
-  phone: '+251 911 000 000',
+  phone: '0911243503',
 };
 
 /**

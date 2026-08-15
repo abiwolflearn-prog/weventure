@@ -305,7 +305,7 @@ export const RsvpFieldCard: React.FC<RsvpFieldCardProps> = ({
                       type="text"
                       value={opt}
                       onChange={(e) => handleOptionChange(i, e.target.value)}
-                      className="bg-transparent border-none text-[11px] focus:outline-none w-20"
+                      className="bg-transparent border-none text-[11px] text-neutral-900 font-medium focus:outline-none w-20"
                     />
                     <button
                       type="button"

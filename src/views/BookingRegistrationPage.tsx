@@ -575,7 +575,7 @@ export default function BookingRegistrationPage() {
                   <div className="w-full h-2 bg-[#84CC16] rounded-full my-4" />
 
                   {/* SUPPLIER & BILLED TO GRID BELOW LEMON LINE */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-1 text-xs sm:text-sm">
+                  <div className="supplier-billed-grid grid grid-cols-1 sm:grid-cols-2 gap-6 pt-1 text-xs sm:text-sm">
                     {/* SUPPLIER INFORMATION */}
                     <div className="space-y-1.5">
                       <h4 className="font-extrabold uppercase text-xs text-neutral-400 tracking-wider mb-1">

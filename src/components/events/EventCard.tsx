@@ -228,11 +228,11 @@ export const EventCard: React.FC<EventCardProps> = ({
             {canEdit && onEdit && (
               <Button 
                 variant="secondary" 
-                className="w-10 h-10 p-0 flex items-center justify-center shrink-0"
+                className="w-10 h-10 p-0 flex items-center justify-center shrink-0 !border !border-neutral-200 !bg-neutral-50 !text-neutral-600 hover:!bg-brand-primary hover:!text-neutral-900 hover:!border-brand-primary transition-all duration-200"
                 onClick={() => onEdit(event)}
                 title="Edit Event Specifications"
               >
-                <Edit className="w-4 h-4 text-neutral-slate-500" />
+                <Edit className="w-4 h-4" />
               </Button>
             )}
           </div>
@@ -244,7 +244,7 @@ export const EventCard: React.FC<EventCardProps> = ({
                 <Button 
                   variant="secondary" 
                   size="sm" 
-                  className="flex-1 text-[11px] h-8 text-[#65A30D] hover:bg-[#84CC16]/5 font-bold border-[#84CC16]/20 hover:border-[#84CC16]"
+                  className="flex-1 text-[11px] h-8 !text-[#65A30D] hover:!bg-[#84CC16]/5 font-bold !border-[#84CC16]/20 hover:!border-[#84CC16]"
                   onClick={() => onPublish(event)}
                   isLoading={isMutating}
                 >
@@ -257,7 +257,7 @@ export const EventCard: React.FC<EventCardProps> = ({
                 <Button 
                   variant="secondary" 
                   size="sm" 
-                  className="flex-1 text-[11px] h-8 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/25 border-amber-200 dark:border-amber-900/30 font-bold"
+                  className="flex-1 text-[11px] h-8 !text-amber-600 hover:!bg-amber-50 dark:hover:!bg-amber-950/25 !border-amber-200 dark:!border-amber-900/30 font-bold"
                   onClick={() => onCancel(event)}
                   isLoading={isMutating}
                 >
@@ -270,7 +270,7 @@ export const EventCard: React.FC<EventCardProps> = ({
                 <Button 
                   variant="secondary" 
                   size="sm" 
-                  className="w-8 h-8 p-0 flex items-center justify-center border-rose-200 dark:border-rose-950/40 hover:bg-rose-50 dark:hover:bg-rose-950/25 text-rose-500 shrink-0"
+                  className="w-8 h-8 p-0 flex items-center justify-center !border !border-rose-200 !bg-rose-50 !text-rose-500 hover:!bg-rose-600 hover:!text-white hover:!border-rose-600 shrink-0 transition-all duration-200"
                   onClick={() => onDelete(event)}
                   isLoading={isMutating}
                   title="Purge Event"

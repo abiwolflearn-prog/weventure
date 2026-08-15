@@ -45,6 +45,11 @@ export const paymentApi = {
     return response.data.data;
   },
 
+  updateInvoice: async (id: string, payload: any) => {
+    const response = await axiosInstance.put(`/payments/invoices/${id}`, payload);
+    return response.data.data;
+  },
+
   deleteInvoice: async (id: string) => {
     const response = await axiosInstance.delete(`/payments/invoices/${id}`);
     return response.data.data;

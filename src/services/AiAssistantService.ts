@@ -326,9 +326,9 @@ If the response naturally includes a recommendation or direct action (e.g., book
     let detectedActions: any[] = [];
 
     try {
-      // Call Gemini 3.6 Flash via @google/genai SDK
+      // Call Gemini 2.5 Flash via @google/genai SDK
       const response = await ai.models.generateContent({
-        model: 'gemini-3.6-flash',
+        model: 'gemini-2.5-flash',
         contents: [
           ...recentMessages,
           {
