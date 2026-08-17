@@ -1,4 +1,4 @@
-import { axiosInstance } from './axiosInstance';
+import { axiosInstance, getApiBaseUrl } from './axiosInstance';
 
 export interface CreatePaymentPayload {
   amount: number;
@@ -139,5 +139,36 @@ export const paymentApi = {
   saveArifPayConfig: async (payload: { settings: Record<string, boolean>; enabled: boolean }) => {
     const response = await axiosInstance.post('/payments/config/arifpay', payload);
     return response.data.data;
+  },
+
+  getInvoiceDownloadUrl: (id: string) => {
+    const baseUrl = axiosInstance.defaults.baseURL || getApiBaseUrl();
+    const token = localStorage.getItem('weventure_jwt_token') || '';
+    const tenantId = localStorage.getItem('weventure_tenant_id') || 'weventurehub';
+    const cleanId = (id || '').trim().replace(/^#/, '');
+    return `${baseUrl}/payments/invoices/${encodeURIComponent(cleanId)}/download?token=${encodeURIComponent(token)}&tenantId=${encodeURIComponent(tenantId)}`;
+  },
+
+  downloadInvoicePdf: async (id: string, invoiceNumber?: string) => {
+    const targetId = id || invoiceNumber || '';
+    const cleanId = targetId.trim().replace(/^#/, '');
+    if (!cleanId || cleanId === 'undefined') {
+      throw new Error('Invalid invoice identifier for download');
+    }
+    const response = await axiosInstance.get(`/payments/invoices/${encodeURIComponent(cleanId)}/download`, {
+      responseType: 'blob',
+    });
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = `Invoice_${invoiceNumber || cleanId}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => {
+      window.URL.revokeObjectURL(blobUrl);
+    }, 2000);
+    return blob;
   },
 };

@@ -31,6 +31,7 @@ import { axiosInstance } from '../lib/axiosInstance';
 import WeVentureLogo from '../components/WeVentureLogo';
 import { WEVENTURE_SUPPLIER_INFO } from '../utils/invoiceUtils';
 import { bookingApi } from '../lib/bookingApi';
+import { paymentApi } from '../lib/paymentApi';
 import { ticketingApi } from '../lib/ticketingApi';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
@@ -517,28 +518,11 @@ export default function BookingRegistrationPage() {
                       const invId = submittedResult.invoiceId || submittedResult.id;
                       if (!invId) return;
                       try {
-                        const token = localStorage.getItem('weventure_jwt_token') || '';
-                        const tenantId = localStorage.getItem('weventure_tenant_id') || 'weventurehub';
-                        const response = await fetch(`/api/v1/payments/invoices/${invId}/download?token=${encodeURIComponent(token)}&tenantId=${encodeURIComponent(tenantId)}`, {
-                          headers: token ? { Authorization: `Bearer ${token}` } : {},
-                        });
-                        if (!response.ok) throw new Error(`Failed to fetch invoice PDF (Status: ${response.status})`);
-                        const blob = await response.blob();
-                        const blobUrl = window.URL.createObjectURL(blob);
-                        const link = document.createElement('a');
-                        link.href = blobUrl;
-                        link.download = `Invoice_${invId}.pdf`;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        setTimeout(() => {
-                          window.URL.revokeObjectURL(blobUrl);
-                        }, 2000);
+                        await paymentApi.downloadInvoicePdf(invId);
                       } catch (e) {
                         console.error('Download invoice PDF failed:', e);
-                        const token = localStorage.getItem('weventure_jwt_token') || '';
-                        const tenantId = localStorage.getItem('weventure_tenant_id') || 'weventurehub';
-                        window.open(`/api/v1/payments/invoices/${invId}/download?token=${encodeURIComponent(token)}&tenantId=${encodeURIComponent(tenantId)}`, '_blank');
+                        const downloadUrl = paymentApi.getInvoiceDownloadUrl(invId);
+                        window.open(downloadUrl, '_blank');
                       }
                     }}
                     className="inline-flex items-center space-x-2 px-4 py-2 bg-[#84CC16] hover:bg-lime-600 text-white rounded-xl text-xs font-bold transition-colors"

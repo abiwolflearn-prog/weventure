@@ -478,31 +478,14 @@ export default function BookingList() {
 
   // Download printable invoice details format
   const handleDownloadInvoice = async (id: string, invoiceNumber: string) => {
+    const targetId = id || invoiceNumber;
+    if (!targetId || targetId === 'undefined') return;
     try {
-      const token = localStorage.getItem('weventure_jwt_token') || '';
-      const tenantId = localStorage.getItem('weventure_tenant_id') || 'weventurehub';
-      const response = await fetch(`/api/v1/payments/invoices/${id}/download?token=${encodeURIComponent(token)}&tenantId=${encodeURIComponent(tenantId)}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to fetch invoice PDF (Status: ${response.status})`);
-      }
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = `Invoice_${invoiceNumber || id}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => {
-        window.URL.revokeObjectURL(blobUrl);
-      }, 2000);
+      await paymentApi.downloadInvoicePdf(targetId, invoiceNumber);
     } catch (e: any) {
       console.error('Download invoice PDF failed:', e);
-      const token = localStorage.getItem('weventure_jwt_token') || '';
-      const tenantId = localStorage.getItem('weventure_tenant_id') || 'weventurehub';
-      window.open(`/api/v1/payments/invoices/${id}/download?token=${encodeURIComponent(token)}&tenantId=${encodeURIComponent(tenantId)}`, '_blank');
+      const downloadUrl = paymentApi.getInvoiceDownloadUrl(targetId);
+      window.open(downloadUrl, '_blank');
     }
   };
 

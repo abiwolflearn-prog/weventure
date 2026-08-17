@@ -3,7 +3,7 @@ import { store } from '../store';
 import { logout } from '../store/authSlice';
 
 // Compute API base URL from VITE_API_URL environment variable or default to Render production URL
-const getApiBaseUrl = (): string => {
+export const getApiBaseUrl = (): string => {
   const envUrl = import.meta.env.VITE_API_URL;
   if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
     const cleanUrl = envUrl.trim().replace(/\/+$/, '');
