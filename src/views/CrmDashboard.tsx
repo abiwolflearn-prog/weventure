@@ -2172,7 +2172,7 @@ export default function CrmDashboard() {
      const response = await fetch(`/api/v1/payments/invoices/${id}/download?token=${encodeURIComponent(token)}&tenantId=${encodeURIComponent(tenantId)}`, {
        headers: token ? { Authorization: `Bearer ${token}` } : {},
      });
-     if (!response.ok) throw new Error('Failed to fetch invoice PDF');
+     if (!response.ok) throw new Error(`Failed to fetch invoice PDF (Status: ${response.status})`);
      const blob = await response.blob();
      const blobUrl = window.URL.createObjectURL(blob);
      const link = document.createElement('a');
@@ -2181,10 +2181,14 @@ export default function CrmDashboard() {
      document.body.appendChild(link);
      link.click();
      document.body.removeChild(link);
-     window.URL.revokeObjectURL(blobUrl);
+     setTimeout(() => {
+       window.URL.revokeObjectURL(blobUrl);
+     }, 2000);
    } catch (e) {
+     console.error('Download invoice PDF failed:', e);
      const token = localStorage.getItem('weventure_jwt_token') || '';
-     window.open(`/api/v1/payments/invoices/${id}/download?token=${encodeURIComponent(token)}`, '_blank');
+     const tenantId = localStorage.getItem('weventure_tenant_id') || 'weventurehub';
+     window.open(`/api/v1/payments/invoices/${id}/download?token=${encodeURIComponent(token)}&tenantId=${encodeURIComponent(tenantId)}`, '_blank');
    }
  }}
  >

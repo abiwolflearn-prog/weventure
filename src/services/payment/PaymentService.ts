@@ -1172,12 +1172,30 @@ export class PaymentService {
   }
 
   /**
+   * Helper to find the next available sequential invoice number
+   */
+  private async getNextAvailableInvoiceNumber(tid: string, requestedNumber?: string): Promise<string> {
+    if (requestedNumber) {
+      const exists = await Invoice.exists({ invoiceNumber: requestedNumber });
+      if (!exists) {
+        return requestedNumber;
+      }
+    }
+
+    const invCount = await Invoice.countDocuments({ tenantId: tid });
+    let nextNum = 1000 + invCount + 1;
+    while (await Invoice.exists({ invoiceNumber: `INV-WV-${nextNum}` })) {
+      nextNum++;
+    }
+    return `INV-WV-${nextNum}`;
+  }
+
+  /**
    * Create new Invoice
    */
   public async createInvoice(tenantId: string, data: any, user?: IUserIdentity): Promise<any> {
     const tid = tenantId || 'weventurehub';
-    const invCount = await Invoice.countDocuments({ tenantId: tid });
-    const invoiceNumber = data.invoiceNumber || `INV-WV-${(1000 + invCount + 1)}`;
+    let invoiceNumber = await this.getNextAvailableInvoiceNumber(tid, data.invoiceNumber);
     
     const amount = Number(data.amount || data.subtotal || 0);
     const vat = data.vat !== undefined ? Number(data.vat) : Math.round(amount * 0.15 * 100) / 100;
@@ -1245,9 +1263,34 @@ export class PaymentService {
       createdAt: data.invoiceDate ? new Date(data.invoiceDate) : new Date(),
     });
 
-    const saved = await invoice.save();
-    if (user) {
-      await this.logActivity(tenantId, user, 'CREATE_INVOICE', 'INVOICE', saved.id, { invoiceNumber });
+    let saved: any = null;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    while (!saved && attempts < maxAttempts) {
+      try {
+        saved = await invoice.save();
+      } catch (err: any) {
+        // Specifically catch MongoDB duplicate key error (code 11000) for invoiceNumber
+        const isDuplicateInvoiceNumber =
+          (err.code === 11000 || err.name === 'MongoServerError') &&
+          (err.keyPattern?.invoiceNumber ||
+            err.keyValue?.invoiceNumber ||
+            (err.message && err.message.includes('invoiceNumber')));
+
+        if (isDuplicateInvoiceNumber && attempts < maxAttempts - 1) {
+          attempts++;
+          invoiceNumber = await this.getNextAvailableInvoiceNumber(tid);
+          invoice.invoiceNumber = invoiceNumber;
+          logger.warn(`⚠️ Duplicate invoice number collision caught. Retrying with next available number: ${invoiceNumber} (Attempt ${attempts})`);
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    if (user && saved) {
+      await this.logActivity(tenantId, user, 'CREATE_INVOICE', 'INVOICE', saved.id, { invoiceNumber: saved.invoiceNumber });
     }
     return saved;
   }

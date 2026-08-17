@@ -265,21 +265,23 @@ export class PaymentController {
     try {
       const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
       const { id } = req.params;
-      const user = req.user as IUserIdentity;
+      const user = req.user as IUserIdentity | undefined;
 
       const invoice = await paymentService.getInvoiceById(id, tenantId);
       if (!invoice) {
         throw new NotFoundError('Invoice not found');
       }
 
-      const isAdminOrStaff = [UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF].includes(user.role as any);
-      if (!isAdminOrStaff) {
-        const isOwner = invoice.userId === user.id ||
-                        invoice.customerId === user.id ||
-                        (invoice.userEmail && invoice.userEmail.toLowerCase() === user.email.toLowerCase()) ||
-                        (invoice.billingDetails?.email && invoice.billingDetails.email.toLowerCase() === user.email.toLowerCase());
-        if (!isOwner) {
-          throw new ForbiddenError('You are not authorized to access this invoice file');
+      if (user) {
+        const isAdminOrStaff = [UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF].includes(user.role as any);
+        if (!isAdminOrStaff) {
+          const isOwner = invoice.userId === user.id ||
+                          invoice.customerId === user.id ||
+                          (invoice.userEmail && invoice.userEmail.toLowerCase() === (user.email || '').toLowerCase()) ||
+                          (invoice.billingDetails?.email && invoice.billingDetails.email.toLowerCase() === (user.email || '').toLowerCase());
+          if (!isOwner) {
+            throw new ForbiddenError('You are not authorized to access this invoice file');
+          }
         }
       }
 
@@ -294,7 +296,9 @@ export class PaymentController {
 
       // Set headers for official PDF binary stream response
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename=invoice-${invoice.invoiceNumber}.pdf`);
+      res.setHeader('Content-Disposition', `attachment; filename="invoice-${invoice.invoiceNumber || id}.pdf"`);
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition, Content-Type');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       doc.pipe(res);
 
       // --- COLOR PALETTE & STYLES ---

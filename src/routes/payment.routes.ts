@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { paymentController } from '../controllers/PaymentController';
-import { authGuard } from '../middleware/authGuard';
+import { authGuard, optionalAuthGuard } from '../middleware/authGuard';
 import { hasRoles } from '../middleware/roleGuard';
 import { UserRole } from '../types';
 
@@ -48,7 +48,7 @@ paymentRouter.patch('/invoices/:id', authGuard, hasRoles([UserRole.SUPER_ADMIN, 
 paymentRouter.get('/invoices/stats', authGuard, paymentController.getInvoiceStats);
 paymentRouter.get('/invoices/:id', authGuard, paymentController.getInvoiceById);
 paymentRouter.delete('/invoices/:id', authGuard, hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF]), paymentController.deleteInvoice);
-paymentRouter.get('/invoices/:id/download', authGuard, paymentController.downloadInvoicePdf);
+paymentRouter.get('/invoices/:id/download', optionalAuthGuard, paymentController.downloadInvoicePdf);
 paymentRouter.post('/invoices/:id/email', authGuard, paymentController.emailInvoice);
 paymentRouter.post('/invoices/:id/payments', authGuard, hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF]), paymentController.recordPayment);
 paymentRouter.patch(
