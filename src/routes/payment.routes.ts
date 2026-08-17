@@ -49,6 +49,9 @@ paymentRouter.get('/invoices/stats', authGuard, paymentController.getInvoiceStat
 paymentRouter.get('/invoices/:id', authGuard, paymentController.getInvoiceById);
 paymentRouter.delete('/invoices/:id', authGuard, hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF]), paymentController.deleteInvoice);
 paymentRouter.get('/invoices/:id/download', optionalAuthGuard, paymentController.downloadInvoicePdf);
+paymentRouter.get('/invoices/:id/pdf', optionalAuthGuard, paymentController.downloadInvoicePdf);
+paymentRouter.get('/:id/download', optionalAuthGuard, paymentController.downloadInvoicePdf);
+paymentRouter.get('/:id/pdf', optionalAuthGuard, paymentController.downloadInvoicePdf);
 paymentRouter.post('/invoices/:id/email', authGuard, paymentController.emailInvoice);
 paymentRouter.post('/invoices/:id/payments', authGuard, hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF]), paymentController.recordPayment);
 paymentRouter.patch(

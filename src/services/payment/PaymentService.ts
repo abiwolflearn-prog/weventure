@@ -947,20 +947,29 @@ export class PaymentService {
    * Get Invoice details by id
    */
   public async getInvoiceById(id: string, tenantId: string): Promise<any> {
-    const isMongoId = /^[0-9a-fA-F]{24}$/.test(id);
+    if (!id || typeof id !== 'string' || id === 'undefined' || id === 'null') {
+      return null;
+    }
+    const cleanId = id.trim().replace(/^#/, '');
+    const isMongoId = /^[0-9a-fA-F]{24}$/.test(cleanId);
     if (isMongoId) {
-      const inv = await Invoice.findOne({ _id: id, tenantId }).exec();
+      const inv = await Invoice.findOne({ _id: cleanId, tenantId }).exec();
       if (inv) return inv;
     }
-    const invByNum = await Invoice.findOne({ invoiceNumber: id, tenantId }).exec();
+    const invByNum = await Invoice.findOne({ 
+      invoiceNumber: { $regex: new RegExp(`^${cleanId}$`, 'i') }, 
+      tenantId 
+    }).exec();
     if (invByNum) return invByNum;
 
     // Fallback without tenantId restriction for single-tenant resilience
     if (isMongoId) {
-      const invFallback = await Invoice.findOne({ _id: id }).exec();
+      const invFallback = await Invoice.findOne({ _id: cleanId }).exec();
       if (invFallback) return invFallback;
     }
-    return await Invoice.findOne({ invoiceNumber: id }).exec();
+    return await Invoice.findOne({ 
+      invoiceNumber: { $regex: new RegExp(`^${cleanId}$`, 'i') } 
+    }).exec();
   }
 
   /**

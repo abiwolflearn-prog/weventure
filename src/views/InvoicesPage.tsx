@@ -277,10 +277,15 @@ export default function InvoicesPage() {
  };
 
  const handleDownloadPdf = async (id: string, invoiceNumber: string) => {
+  const targetId = id || invoiceNumber;
+  if (!targetId || targetId === 'undefined') {
+    console.warn('Invalid invoice identifier for download');
+    return;
+  }
   try {
     const token = localStorage.getItem('weventure_jwt_token') || '';
     const tenantId = localStorage.getItem('weventure_tenant_id') || 'weventurehub';
-    const response = await fetch(`/api/v1/payments/invoices/${id}/download?token=${encodeURIComponent(token)}&tenantId=${encodeURIComponent(tenantId)}`, {
+    const response = await fetch(`/api/v1/payments/invoices/${encodeURIComponent(targetId)}/download?token=${encodeURIComponent(token)}&tenantId=${encodeURIComponent(tenantId)}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!response.ok) {
@@ -290,7 +295,7 @@ export default function InvoicesPage() {
     const blobUrl = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = blobUrl;
-    link.download = `Invoice_${invoiceNumber || id}.pdf`;
+    link.download = `Invoice_${invoiceNumber || targetId}.pdf`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -301,7 +306,7 @@ export default function InvoicesPage() {
     console.error('Download invoice PDF failed:', e);
     const token = localStorage.getItem('weventure_jwt_token') || '';
     const tenantId = localStorage.getItem('weventure_tenant_id') || 'weventurehub';
-    window.open(`/api/v1/payments/invoices/${id}/download?token=${encodeURIComponent(token)}&tenantId=${encodeURIComponent(tenantId)}`, '_blank');
+    window.open(`/api/v1/payments/invoices/${encodeURIComponent(targetId)}/download?token=${encodeURIComponent(token)}&tenantId=${encodeURIComponent(tenantId)}`, '_blank');
   }
  };
 
@@ -1423,8 +1428,8 @@ export default function InvoicesPage() {
  </button>
 
  <button
- onClick={() => handleDownloadTxt(invoice.id, invoice.invoiceNumber)}
- title="Download Text Invoice"
+ onClick={() => handleDownloadPdf(invoice.id || invoice._id || invoice.invoiceNumber, invoice.invoiceNumber)}
+ title="Download Invoice PDF"
  className="p-1.5 rounded-xl border border-[#E5E7EB] text-neutral-600 hover:bg-[#F3F4F6] transition-all"
  >
  <Download className="w-4 h-4" />
@@ -1521,7 +1526,7 @@ export default function InvoicesPage() {
  <div
  id="printable-invoice"
  ref={printContainerRef}
- className="bg-white text-neutral-900 rounded-3xl p-8 md:p-12 border border-neutral-200 space-y-8 shadow-sm font-sans"
+ className="bg-white text-neutral-900 rounded-3xl p-8 md:p-12 print:p-2 border border-neutral-200 print:border-none space-y-8 print:space-y-2 shadow-sm font-sans"
  >
  {/* Official Header & Branding with WEVENTURE Logo + WEVENTURE Header Text ABOVE Lemon Line */}
  <div className="space-y-6">
@@ -1540,20 +1545,20 @@ export default function InvoicesPage() {
  </div>
 
  {/* THE VIBRANT LEMON GREEN ACCENT LINE */}
- <div className="w-full h-2.5 bg-[#84CC16] rounded-full my-6" />
+ <div className="w-full h-2.5 print:h-1 bg-[#84CC16] rounded-full my-6 print:my-1.5" />
 
  {/* OFFICIAL INVOICE META BANNER UNDER LEMON LINE */}
- <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-neutral-900 text-white rounded-2xl p-5 gap-4">
- <div className="flex items-center gap-4 flex-wrap">
- <div className="inline-block px-4 py-1.5 bg-[#84CC16] text-black font-mono font-black text-xs md:text-sm rounded-xl">
+ <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-neutral-900 text-white rounded-2xl print:rounded-lg p-5 print:p-2.5 gap-4 print:gap-2">
+ <div className="flex items-center gap-4 print:gap-2 flex-wrap">
+ <div className="inline-block px-4 print:px-2.5 py-1.5 print:py-0.5 bg-[#84CC16] text-black font-mono font-black text-xs md:text-sm print:text-xs rounded-xl print:rounded-md">
  OFFICIAL INVOICE
  </div>
- <div className="font-mono font-black text-2xl md:text-3xl text-white">
+ <div className="font-mono font-black text-2xl md:text-3xl print:text-lg text-white">
  {selectedInvoice.invoiceNumber}
  </div>
  </div>
- <div className="flex items-center gap-4 flex-wrap">
- <div className="text-xs md:text-sm text-neutral-300 font-mono font-semibold">
+ <div className="flex items-center gap-4 print:gap-2 flex-wrap">
+ <div className="text-xs md:text-sm print:text-xs text-neutral-300 font-mono font-semibold">
  Booking ID: <span className="text-white font-bold">{selectedInvoice.bookingId || 'N/A'}</span>
  </div>
  <div>{getStatusBadge(selectedInvoice.status)}</div>
@@ -1561,13 +1566,13 @@ export default function InvoicesPage() {
  </div>
 
  {/* SUPPLIER & BILLED TO GRID BELOW LEMON LINE */}
- <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2">
+ <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-8 print:gap-3 pt-2 print:pt-0">
  {/* Supplier Information */}
- <div className="space-y-2 text-sm">
- <h4 className="font-black uppercase text-xs md:text-sm text-neutral-500 tracking-wider mb-2">
+ <div className="space-y-2 print:space-y-0.5 text-sm print:text-[11px]">
+ <h4 className="font-black uppercase text-xs md:text-sm print:text-[10px] text-neutral-500 tracking-wider mb-2 print:mb-0.5">
  SUPPLIER INFORMATION
  </h4>
- <div className="font-black text-lg md:text-xl text-neutral-900">
+ <div className="font-black text-lg md:text-xl print:text-xs text-neutral-900">
  {WEVENTURE_SUPPLIER_INFO.companyName}
  </div>
  <div className="text-neutral-700 font-medium">
@@ -1582,23 +1587,23 @@ export default function InvoicesPage() {
  <div className="text-neutral-700 font-medium">
  <span className="font-bold text-neutral-900">Date of Registration:</span> {WEVENTURE_SUPPLIER_INFO.dateOfRegistration}
  </div>
- <div className="text-neutral-500 text-xs mt-2 font-medium">
+ <div className="text-neutral-500 text-xs print:text-[10px] mt-2 print:mt-0.5 font-medium">
  Email: info@weventurehub.com | Tel: 0911243503
  </div>
  </div>
 
  {/* Billed To Information & Space Info */}
- <div className="bg-neutral-50 rounded-2xl p-5 border border-neutral-200 text-sm space-y-3">
+ <div className="bg-neutral-50 rounded-2xl print:rounded-lg p-5 print:p-2 border border-neutral-200 text-sm print:text-[11px] space-y-3 print:space-y-1">
  <div>
- <h4 className="font-black uppercase text-xs md:text-sm text-neutral-400 tracking-wider mb-1.5">
+ <h4 className="font-black uppercase text-xs md:text-sm print:text-[10px] text-neutral-400 tracking-wider mb-1.5 print:mb-0.5">
  Billed To:
  </h4>
- <div className="font-black text-lg md:text-xl text-neutral-900">
+ <div className="font-black text-lg md:text-xl print:text-xs text-neutral-900">
  {selectedInvoice.billingDetails?.name}
  </div>
  {selectedInvoice.billingDetails?.company && (
- <div className="font-bold text-indigo-700 mt-1 flex items-center gap-1.5 text-xs md:text-sm">
- <Building2 className="w-4 h-4" />
+ <div className="font-bold text-indigo-700 mt-1 print:mt-0 flex items-center gap-1.5 text-xs md:text-sm print:text-[11px]">
+ <Building2 className="w-4 h-4 print:w-3 print:h-3" />
  <span>{selectedInvoice.billingDetails.company}</span>
  </div>
  )}
@@ -1607,16 +1612,16 @@ export default function InvoicesPage() {
  <div className="text-neutral-700 font-medium">{selectedInvoice.billingDetails.phone}</div>
  )}
  {(selectedInvoice.billingDetails?.tinNumber || selectedInvoice.billingDetails?.taxId || selectedInvoice.customerTin) && (
- <div className="text-neutral-800 font-semibold text-xs md:text-sm mt-1">
+ <div className="text-neutral-800 font-semibold text-xs md:text-sm print:text-[10px] mt-1 print:mt-0">
  <span className="font-bold text-neutral-900">Customer TIN No:</span> {selectedInvoice.billingDetails?.tinNumber || selectedInvoice.billingDetails?.taxId || selectedInvoice.customerTin}
  </div>
  )}
- <div className="mt-2.5 inline-block px-3 py-1 bg-neutral-200 text-neutral-800 text-xs font-bold rounded-lg uppercase">
+ <div className="mt-2.5 print:mt-0.5 inline-block px-3 print:px-1.5 py-1 print:py-0.5 bg-neutral-200 text-neutral-800 text-xs print:text-[9px] font-bold rounded-lg uppercase">
  Customer Type: {selectedInvoice.customerType || 'Individual'}
  </div>
  </div>
 
- <div className="pt-3 border-t border-neutral-200 space-y-1.5 text-xs md:text-sm">
+ <div className="pt-3 print:pt-1 border-t border-neutral-200 space-y-1.5 print:space-y-0.5 text-xs md:text-sm print:text-[10px]">
  <div className="flex justify-between">
  <span className="text-neutral-500 font-medium">Date Issued:</span>
  <span className="font-bold text-neutral-900">
@@ -1658,45 +1663,45 @@ export default function InvoicesPage() {
 
  {/* Line Items Table */}
  <div>
- <table className="w-full text-left text-sm border-collapse">
+ <table className="w-full text-left text-sm print:text-xs border-collapse">
  <thead>
- <tr className="bg-neutral-900 text-white font-black uppercase text-xs md:text-sm tracking-wider">
- <th className="py-4 px-5 rounded-l-xl">Description</th>
- <th className="py-4 px-5 text-center">Duration / Plan</th>
- <th className="py-4 px-5 text-center">Qty</th>
- <th className="py-4 px-5 text-right">Unit Price</th>
- <th className="py-4 px-5 text-right rounded-r-xl">Total Amount</th>
+ <tr className="bg-neutral-900 text-white font-black uppercase text-xs print:text-[10px] tracking-wider">
+ <th className="py-4 print:py-1 px-5 print:px-2.5 rounded-l-xl print:rounded-l-md">Description</th>
+ <th className="py-4 print:py-1 px-5 print:px-2.5 text-center">Duration / Plan</th>
+ <th className="py-4 print:py-1 px-5 print:px-2.5 text-center">Qty</th>
+ <th className="py-4 print:py-1 px-5 print:px-2.5 text-right">Unit Price</th>
+ <th className="py-4 print:py-1 px-5 print:px-2.5 text-right rounded-r-xl print:rounded-r-md">Total Amount</th>
  </tr>
  </thead>
  <tbody className="divide-y divide-neutral-200">
  {selectedInvoice.lineItems && selectedInvoice.lineItems.length > 0 ? (
  selectedInvoice.lineItems.map((item: any, i: number) => (
  <tr key={i} className="text-neutral-800 font-medium">
- <td className="py-4 px-5 font-bold text-neutral-900">{item.description}</td>
- <td className="py-4 px-5 text-center">{item.durationType || selectedInvoice.durationType || 'N/A'}</td>
- <td className="py-4 px-5 text-center font-bold text-sm">{item.quantity}</td>
- <td className="py-4 px-5 text-right font-mono font-semibold">
+ <td className="py-4 print:py-1 px-5 print:px-2.5 font-bold text-neutral-900">{item.description}</td>
+ <td className="py-4 print:py-1 px-5 print:px-2.5 text-center">{item.durationType || selectedInvoice.durationType || 'N/A'}</td>
+ <td className="py-4 print:py-1 px-5 print:px-2.5 text-center font-bold text-sm print:text-xs">{item.quantity}</td>
+ <td className="py-4 print:py-1 px-5 print:px-2.5 text-right font-mono font-semibold">
  {item.unitPrice.toLocaleString()} {selectedInvoice.currency || 'ETB'}
  </td>
- <td className="py-4 px-5 text-right font-mono font-bold text-sm text-neutral-900">
+ <td className="py-4 print:py-1 px-5 print:px-2.5 text-right font-mono font-bold text-sm print:text-xs text-neutral-900">
  {item.amount.toLocaleString()} {selectedInvoice.currency || 'ETB'}
  </td>
  </tr>
  ))
  ) : (
  <tr className="text-neutral-800 font-medium">
- <td className="py-4 px-5 font-bold text-neutral-900">
+ <td className="py-4 print:py-1 px-5 print:px-2.5 font-bold text-neutral-900">
  Tenancy Workspace Rental Charge - {selectedInvoice.workspaceName || 'Executive Suite'}
  </td>
- <td className="py-4 px-5 text-center">{selectedInvoice.durationType || 'N/A'}</td>
- <td className="py-4 px-5 text-center font-bold text-sm">
+ <td className="py-4 print:py-1 px-5 print:px-2.5 text-center">{selectedInvoice.durationType || 'N/A'}</td>
+ <td className="py-4 print:py-1 px-5 print:px-2.5 text-center font-bold text-sm print:text-xs">
  {selectedInvoice.durationQuantity || 1}
  </td>
- <td className="py-4 px-5 text-right font-mono font-semibold">
+ <td className="py-4 print:py-1 px-5 print:px-2.5 text-right font-mono font-semibold">
  {(selectedInvoice.unitPrice || selectedInvoice.amount || 0).toLocaleString()}{' '}
  {selectedInvoice.currency || 'ETB'}
  </td>
- <td className="py-4 px-5 text-right font-mono font-bold text-sm text-neutral-900">
+ <td className="py-4 print:py-1 px-5 print:px-2.5 text-right font-mono font-bold text-sm print:text-xs text-neutral-900">
  {(selectedInvoice.amount || 0).toLocaleString()}{' '}
  {selectedInvoice.currency || 'ETB'}
  </td>
@@ -1785,12 +1790,12 @@ export default function InvoicesPage() {
  })()}
 
  {/* Signature Footer */}
- <div className="border-t border-neutral-200 pt-8 flex justify-between items-end text-xs md:text-sm text-neutral-500 font-medium">
+ <div className="border-t border-neutral-200 pt-8 print:pt-2 flex justify-between items-end text-xs md:text-sm print:text-[10px] text-neutral-500 font-medium">
  <div>
- <div className="font-bold text-neutral-800 text-xs md:text-sm">WeVentureHub Finance Department</div>
+ <div className="font-bold text-neutral-800 text-xs md:text-sm print:text-[11px]">WeVentureHub Finance Department</div>
  <div>Thank you for choosing WeVentureHub Workspaces</div>
  </div>
- <div className="text-right font-mono font-bold text-neutral-900 border-t-2 border-neutral-800 pt-2 w-56 text-center">
+ <div className="text-right font-mono font-bold text-neutral-900 border-t-2 border-neutral-800 pt-2 print:pt-1 w-56 print:w-44 text-center">
  Authorized Stamp & Signature
  </div>
  </div>

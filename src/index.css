@@ -85,19 +85,36 @@
 
 /* Printable Document & A4 Layout Optimizations */
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
   html, body {
-    background-color: white !important;
-    color: black !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
     margin: 0 !important;
     padding: 0 !important;
-    height: auto !important;
-    overflow: visible !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
   /* Hide everything on the page by default */
-  body * {
+  body > * {
+    visibility: hidden !important;
+  }
+
+  /* Hide non-printable elements completely */
+  nav,
+  header,
+  aside,
+  footer,
+  .no-print,
+  .print\:hidden {
+    display: none !important;
     visibility: hidden !important;
   }
 
@@ -111,71 +128,33 @@
     visibility: visible !important;
   }
 
-  /* Guarantee all parent elements of #printable-invoice are visible and styled cleanly */
-  div:has(#printable-invoice),
-  main:has(#printable-invoice),
-  section:has(#printable-invoice),
-  div:has(#printable-expense),
-  main:has(#printable-expense),
-  section:has(#printable-expense) {
-    visibility: visible !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    overflow: visible !important;
-    max-height: none !important;
-    opacity: 1 !important;
-    transform: none !important;
-    position: static !important;
-  }
-
-  /* Guarantee all parent elements of #printable-ticket are visible and styled cleanly */
-  div:has(#printable-ticket),
-  main:has(#printable-ticket),
-  section:has(#printable-ticket) {
-    visibility: visible !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    overflow: visible !important;
-    max-height: none !important;
-    opacity: 1 !important;
-    transform: none !important;
-    position: static !important;
-  }
-
-  /* Hide any element explicitly marked as no-print */
-  .no-print,
-  .print\:hidden {
-    display: none !important;
-  }
-
-  /* Style the invoice & expense voucher for clean, ink-friendly, high-contrast, edge-to-edge printing */
+  /* Style the invoice for clean, single-page, ink-friendly printing */
   #printable-invoice,
   #printable-expense {
     visibility: visible !important;
     display: block !important;
-    position: absolute !important;
+    position: fixed !important;
     left: 0 !important;
     top: 0 !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0.8cm !important;
+    right: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
-    margin: 0 auto !important;
+    height: auto !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    padding: 0.3cm !important;
+    box-sizing: border-box !important;
+    border: none !important;
+    box-shadow: none !important;
     border-radius: 0 !important;
-    background: white !important;
-    color: black !important;
+    background: #ffffff !important;
+    color: #000000 !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     page-break-after: avoid !important;
     break-after: avoid !important;
-    max-height: 27.5cm !important;
+    page-break-before: avoid !important;
+    break-before: avoid !important;
     overflow: hidden !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -195,30 +174,6 @@
     opacity: 1 !important;
   }
 
-  /* Ensure all nested text is completely legible (black on white) when printing */
-  #printable-invoice p,
-  #printable-invoice span,
-  #printable-invoice td,
-  #printable-invoice th,
-  #printable-invoice div,
-  #printable-invoice h1,
-  #printable-invoice h2,
-  #printable-invoice h3,
-  #printable-invoice h4,
-  #printable-expense p,
-  #printable-expense span,
-  #printable-expense td,
-  #printable-expense th,
-  #printable-expense div,
-  #printable-expense h1,
-  #printable-expense h2,
-  #printable-expense h3,
-  #printable-expense h4 {
-    color: #000000 !important;
-    background-color: transparent !important;
-    border-color: #E5E7EB !important;
-  }
-
   #printable-ticket {
     position: fixed !important;
     left: 50% !important;
@@ -236,11 +191,6 @@
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
-  }
-
-  @page {
-    size: A4 portrait;
-    margin: 1cm;
   }
 }
 

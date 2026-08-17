@@ -56,6 +56,7 @@ apiRouter.use('/bookings', bookingRouter);
 
 // Mount payment core module
 apiRouter.use('/payments', paymentRouter);
+apiRouter.use('/invoices', paymentRouter);
 
 // Mount subscription and billing foundation module
 apiRouter.use('/billing', billingRouter);

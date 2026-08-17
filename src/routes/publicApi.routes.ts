@@ -1,8 +1,15 @@
 import { Router } from 'express';
 import { publicApiController } from '../controllers/PublicApiController';
 import { publicMarketplaceController } from '../controllers/PublicMarketplaceController';
+import { paymentController } from '../controllers/PaymentController';
 
 const router = Router();
+
+// Invoices (PDF Downloads)
+router.get('/invoices/:id/download', (req, res, next) => paymentController.downloadInvoicePdf(req, res, next));
+router.get('/invoices/:id/pdf', (req, res, next) => paymentController.downloadInvoicePdf(req, res, next));
+router.get('/payments/invoices/:id/download', (req, res, next) => paymentController.downloadInvoicePdf(req, res, next));
+router.get('/payments/invoices/:id/pdf', (req, res, next) => paymentController.downloadInvoicePdf(req, res, next));
 
 // Events
 router.get('/events', (req, res, next) => publicApiController.getEvents(req, res, next));
