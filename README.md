@@ -51,7 +51,7 @@ Admin Dashboard
 
 ## 🌐 Links
 
-* 🌍 Website: https://weventurehub.com
+* 🌍 Website: https://weventure.vercel.app
 * 💻 GitHub: https://github.com/abiwolflearn-prog
 
 ## 👨‍💻 Developer
