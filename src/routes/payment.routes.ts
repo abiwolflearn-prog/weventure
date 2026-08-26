@@ -98,6 +98,35 @@ paymentRouter.get(
 );
 
 /**
+ * Settlement Bank Management endpoints
+ */
+paymentRouter.get('/banks', authGuard, paymentController.getBanks.bind(paymentController));
+paymentRouter.post(
+  '/banks',
+  authGuard,
+  hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF]),
+  paymentController.createBank.bind(paymentController)
+);
+paymentRouter.put(
+  '/banks/:id',
+  authGuard,
+  hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF]),
+  paymentController.updateBank.bind(paymentController)
+);
+paymentRouter.delete(
+  '/banks/:id',
+  authGuard,
+  hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN]),
+  paymentController.deleteBank.bind(paymentController)
+);
+paymentRouter.patch(
+  '/banks/:id/toggle',
+  authGuard,
+  hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF]),
+  paymentController.toggleBank.bind(paymentController)
+);
+
+/**
  * Promo code / coupon engine endpoints
  */
 paymentRouter.post('/promo/validate', authGuard, paymentController.validatePromoCode);

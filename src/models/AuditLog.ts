@@ -6,7 +6,7 @@ export interface IAuditLogDocument extends Document {
   userId: string;
   userEmail: string;
   action: string;
-  resourceType: 'EVENT' | 'WORKSPACE' | 'BOOKING' | 'TICKET' | 'REGISTRATION' | 'ORDER' | 'PAYMENT' | 'TRANSACTION' | 'INVOICE' | 'REFUND';
+  resourceType: 'EVENT' | 'WORKSPACE' | 'BOOKING' | 'TICKET' | 'REGISTRATION' | 'ORDER' | 'PAYMENT' | 'TRANSACTION' | 'INVOICE' | 'QUOTATION' | 'REFUND';
   resourceId: string;
   details?: Record<string, any>;
   timestamp: Date;
@@ -21,7 +21,7 @@ const AuditLogSchema = new Schema<IAuditLogDocument>(
     resourceType: { 
       type: String, 
       required: true, 
-      enum: ['EVENT', 'WORKSPACE', 'BOOKING', 'TICKET', 'REGISTRATION', 'ORDER', 'PAYMENT', 'TRANSACTION', 'INVOICE', 'REFUND'], 
+      enum: ['EVENT', 'WORKSPACE', 'BOOKING', 'TICKET', 'REGISTRATION', 'ORDER', 'PAYMENT', 'TRANSACTION', 'INVOICE', 'QUOTATION', 'REFUND'], 
       index: true 
     },
     resourceId: { type: String, required: true, index: true },

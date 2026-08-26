@@ -11,6 +11,8 @@ import { Homepage } from '../models/Homepage';
 import { Event } from '../models/Event';
 import { PricingRule } from '../models/PricingRule';
 import { User } from '../models/User';
+import { Quotation } from '../models/Quotation';
+import { PaymentBank } from '../models/PaymentBank';
 import { EventStatus, EventVisibility, UserRole } from '../types';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
@@ -1031,6 +1033,139 @@ export async function connectDatabase(): Promise<typeof mongoose> {
         { upsert: true }
       );
       logger.info('🔑 Ensured default admin and staff accounts exist in MongoDB with correct roles');
+
+      // 11. Ensure default settlement bank accounts exist
+      const existingBanks = await PaymentBank.countDocuments({ tenantId: 'weventurehub' } as any);
+      if (existingBanks === 0) {
+        await PaymentBank.insertMany([
+          {
+            tenantId: 'weventurehub',
+            bankName: 'Dashen Bank',
+            accountName: 'WE VENTURE HOLDINGS PLC',
+            accountNumber: '5032049281001',
+            branch: 'Bole Medhanialem Branch',
+            swiftCode: 'DASHETAA',
+            isActive: true,
+          },
+          {
+            tenantId: 'weventurehub',
+            bankName: 'Commercial Bank of Ethiopia',
+            accountName: 'WE VENTURE HOLDINGS PLC',
+            accountNumber: '1000293847561',
+            branch: 'Finfinne Branch',
+            swiftCode: 'CBETETAA',
+            isActive: true,
+          },
+          {
+            tenantId: 'weventurehub',
+            bankName: 'Awash Bank',
+            accountName: 'WE VENTURE HOLDINGS PLC',
+            accountNumber: '01304892019300',
+            branch: 'Kazanchis Branch',
+            swiftCode: 'AWINETAA',
+            isActive: true,
+          },
+        ] as any);
+        logger.info('🏦 Seeded initial settlement banks');
+      }
+
+      // 12. Seed initial quotation records
+      const existingQuotes = await Quotation.countDocuments({ tenantId: 'weventurehub' } as any);
+      if (existingQuotes === 0) {
+        await Quotation.insertMany([
+          {
+            tenantId: 'weventurehub',
+            quotationNumber: 'QUO-WV-1001',
+            customerName: 'Alemayehu Tadesse',
+            companyName: 'AfriTech Solutions PLC',
+            tinNumber: '0098765432',
+            email: 'alemayehu@afritech.et',
+            phone: '+251 91 123 4567',
+            address: 'Bole Subcity, Woreda 03, Addis Ababa',
+            quotationDate: new Date(),
+            validUntil: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+            preparedBy: 'WeVentureHub Commercial Sales Team',
+            currency: 'USD',
+            exchangeRate: 153.09,
+            items: [
+              {
+                itemName: 'Executive Coworking Space Rental',
+                description: 'Private 4-person executive dedicated office suite with 24/7 access',
+                quantity: 1,
+                unitPrice: 500,
+                amount: 500,
+              },
+              {
+                itemName: 'Boardroom & Conference Suite Credits',
+                description: '10 hours monthly executive boardroom video-conference reservation',
+                quantity: 2,
+                unitPrice: 50,
+                amount: 100,
+              },
+            ],
+            subtotal: 600,
+            vat: 90,
+            discount: 0,
+            grandTotal: 690,
+            convertedEtbTotal: 105632.1,
+            amountInWords: 'Six Hundred Ninety USD Only',
+            amenities: [
+              'High-Speed Dedicated Fiber Wi-Fi (Dual Redundancy)',
+              'Uninterruptible Power Supply (UPS) & Backup Generator',
+              'Electronic presentation display screens & 75" 4K Smart TVs',
+              'High-fidelity sound system & dual wireless microphones',
+              'Complimentary printing, scanning, and document copying',
+              'Full access to executive lounge, kitchenette & barista coffee stations',
+              '24/7 Biometric access & round-the-clock facility security guards',
+            ],
+            selectedBanks: ['Dashen Bank', 'Commercial Bank of Ethiopia'],
+            notes: 'Thank you for choosing WeVentureHub. This quotation is valid until the specified date. All rates are inclusive of 15% standard VAT.',
+            paymentTerms: 'Payment terms: 100% advance deposit upon contract execution or official acceptance. Bank transfer details listed below.',
+            status: 'Sent',
+          },
+          {
+            tenantId: 'weventurehub',
+            quotationNumber: 'QUO-WV-1002',
+            customerName: 'Bethlehem Haile',
+            companyName: 'Finovate East Africa',
+            tinNumber: '0076543210',
+            email: 'bethlehem@finovate.io',
+            phone: '+251 92 345 6789',
+            address: 'Kazanchis Business District, Addis Ababa',
+            quotationDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+            validUntil: new Date(Date.now() + 9 * 24 * 60 * 60 * 1000),
+            preparedBy: 'WeVentureHub Commercial Sales Team',
+            currency: 'USD',
+            exchangeRate: 153.09,
+            items: [
+              {
+                itemName: 'Event Hall & Auditorium (Full Day)',
+                description: '150-capacity event hall with stage, audio, and lighting for Fintech Demo Day',
+                quantity: 1,
+                unitPrice: 1500,
+                amount: 1500,
+              },
+            ],
+            subtotal: 1500,
+            vat: 225,
+            discount: 100,
+            grandTotal: 1625,
+            convertedEtbTotal: 248771.25,
+            amountInWords: 'One Thousand Six Hundred Twenty-Five USD Only',
+            amenities: [
+              'High-Speed Dedicated Fiber Wi-Fi (Dual Redundancy)',
+              'Uninterruptible Power Supply (UPS) & Backup Generator',
+              'High-fidelity sound system & dual wireless microphones',
+              'Complimentary printing, scanning, and document copying',
+            ],
+            selectedBanks: ['Dashen Bank', 'Awash Bank'],
+            notes: 'Includes full sound engineer support on event day.',
+            paymentTerms: '50% advance booking deposit, 50% upon event completion.',
+            status: 'Accepted',
+          }
+        ] as any);
+        logger.info('📄 Seeded initial sample quotations');
+      }
     } catch (seedErr) {
       logger.error('⚠️ Seeding failed:', seedErr);
     }

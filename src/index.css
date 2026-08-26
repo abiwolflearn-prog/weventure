@@ -121,6 +121,8 @@
   /* Force the printable containers and all of their descendants to be visible */
   #printable-invoice,
   #printable-invoice *,
+  #printable-quotation,
+  #printable-quotation *,
   #printable-expense,
   #printable-expense *,
   #printable-ticket,
@@ -128,8 +130,9 @@
     visibility: visible !important;
   }
 
-  /* Style the invoice for clean, single-page, ink-friendly printing */
+  /* Style the invoice and quotation for clean, single-page, ink-friendly printing */
   #printable-invoice,
+  #printable-quotation,
   #printable-expense {
     visibility: visible !important;
     display: block !important;
@@ -142,7 +145,7 @@
     height: auto !important;
     max-height: 100% !important;
     margin: 0 !important;
-    padding: 0.3cm !important;
+    padding: 0.25cm !important;
     box-sizing: border-box !important;
     border: none !important;
     box-shadow: none !important;
@@ -164,6 +167,9 @@
   #printable-invoice svg,
   #printable-invoice path,
   #printable-invoice circle,
+  #printable-quotation svg,
+  #printable-quotation path,
+  #printable-quotation circle,
   #printable-expense svg,
   #printable-expense path,
   #printable-expense circle {

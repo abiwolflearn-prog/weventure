@@ -19,12 +19,6 @@ export const WEVENTURE_BANKS: BankRecord[] = [
     branch: 'Bole Rwanda Branch',
   },
   {
-    bankName: 'Commercial Bank of Ethiopia',
-    accountName: 'WE VENTURE HOLDINGS PLC',
-    accountNumber: '1000571098842',
-    branch: 'Peacock Menafesha Branch',
-  },
-  {
     bankName: 'Awash Bank',
     accountName: 'WE VENTURE HOLDINGS PLC',
     accountNumber: '013251088122000',
@@ -35,6 +29,12 @@ export const WEVENTURE_BANKS: BankRecord[] = [
     accountName: 'WE VENTURE HOLDINGS PLC',
     accountNumber: '131263899',
     branch: 'Bole Branch',
+  },
+  {
+    bankName: 'Commercial Bank of Ethiopia',
+    accountName: 'WE VENTURE HOLDINGS PLC',
+    accountNumber: '1000571098842',
+    branch: 'Peacock Menafesha Branch',
   },
 ];
 

@@ -66,4 +66,12 @@ authRouter.post('/logout', authController.logout);
  */
 authRouter.get('/me', authGuard, authController.me);
 
+/**
+ * User administration endpoints
+ */
+authRouter.get('/users', authGuard, authController.getUsers.bind(authController));
+authRouter.post('/users', authGuard, authController.createUser.bind(authController));
+authRouter.patch('/users/:id/role', authGuard, authController.updateUserRole.bind(authController));
+authRouter.delete('/users/:id', authGuard, authController.deleteUser.bind(authController));
+
 export default authRouter;

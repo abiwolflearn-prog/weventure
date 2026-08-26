@@ -690,6 +690,16 @@ export default function InvoicesPage() {
 
  <Button
  size="sm"
+ variant="secondary"
+ onClick={() => navigate('/dashboard/quotations')}
+ className="rounded-xl font-bold text-[12px] flex items-center gap-1.5"
+ >
+ <FileText className="w-4 h-4 text-[#65A30D]" />
+ <span>Quotations</span>
+ </Button>
+
+ <Button
+ size="sm"
  className="bg-[#84CC16] hover:bg-[#65A30D] text-[#111827] font-bold rounded-xl text-[12px] flex items-center gap-1.5 shadow-md shadow-lime-500/10"
  onClick={handleOpenCreateInvoice}
  >

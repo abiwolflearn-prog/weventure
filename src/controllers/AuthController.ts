@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { ApiResponse } from '../utils/response';
 import { env } from '../config/env';
 import { IUserIdentity, UserRole, Permission } from '../types';
-import { ValidationError, UnauthorizedError } from '../errors/AppError';
+import { ValidationError, UnauthorizedError, NotFoundError } from '../errors/AppError';
 import { emailNotificationManager } from '../services/EmailNotificationManager';
 import { User } from '../models/User';
 
@@ -12,6 +12,60 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   [UserRole.SUPER_ADMIN]: Object.values(Permission),
   [UserRole.TENANT_ADMIN]: Object.values(Permission),
   ['ADMIN']: Object.values(Permission),
+  [UserRole.EVENT_MANAGER]: [
+    Permission.EVENTS_CREATE,
+    Permission.EVENTS_READ,
+    Permission.EVENTS_UPDATE,
+    Permission.EVENTS_DELETE,
+    Permission.BOOKINGS_READ,
+    Permission.BOOKINGS_UPDATE,
+    Permission.ANALYTICS_READ,
+    Permission.WORKSPACES_READ,
+  ],
+  [UserRole.WORKSPACE_MANAGER]: [
+    Permission.WORKSPACES_CREATE,
+    Permission.WORKSPACES_READ,
+    Permission.WORKSPACES_UPDATE,
+    Permission.WORKSPACES_DELETE,
+    Permission.BOOKINGS_CREATE,
+    Permission.BOOKINGS_READ,
+    Permission.BOOKINGS_UPDATE,
+    Permission.BOOKINGS_DELETE,
+    Permission.ANALYTICS_READ,
+  ],
+  [UserRole.FINANCE_OFFICER]: [
+    Permission.BOOKINGS_READ,
+    Permission.BOOKINGS_UPDATE,
+    Permission.ANALYTICS_READ,
+    Permission.SETTINGS_UPDATE,
+    Permission.WORKSPACES_READ,
+    Permission.EVENTS_READ,
+  ],
+  [UserRole.COMMUNITY_MANAGER]: [
+    Permission.USERS_READ,
+    Permission.EVENTS_CREATE,
+    Permission.EVENTS_READ,
+    Permission.EVENTS_UPDATE,
+    Permission.BOOKINGS_READ,
+    Permission.ANALYTICS_READ,
+  ],
+  [UserRole.MARKETING_OFFICER]: [
+    Permission.EVENTS_READ,
+    Permission.EVENTS_CREATE,
+    Permission.EVENTS_UPDATE,
+    Permission.ANALYTICS_READ,
+  ],
+  [UserRole.RECEPTION]: [
+    Permission.WORKSPACES_READ,
+    Permission.BOOKINGS_CREATE,
+    Permission.BOOKINGS_READ,
+    Permission.BOOKINGS_UPDATE,
+    Permission.EVENTS_READ,
+  ],
+  [UserRole.VOLUNTEER_COORDINATOR]: [
+    Permission.EVENTS_READ,
+    Permission.EVENTS_UPDATE,
+  ],
   [UserRole.STAFF]: [
     Permission.USERS_READ,
     Permission.WORKSPACES_READ,
@@ -458,6 +512,124 @@ export class AuthController {
       }
 
       ApiResponse.success(res, { user: req.user }, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * List platform users (Admin & Super Admin)
+   */
+  public async getUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
+      const { search, role } = req.query;
+      const query: any = { tenantId };
+
+      if (role && role !== 'ALL') {
+        query.role = role;
+      }
+
+      if (search) {
+        query.$or = [
+          { firstName: { $regex: String(search), $options: 'i' } },
+          { lastName: { $regex: String(search), $options: 'i' } },
+          { email: { $regex: String(search), $options: 'i' } },
+          { company: { $regex: String(search), $options: 'i' } },
+        ];
+      }
+
+      const users = await (User as any)
+        .find(query)
+        .select('-passwordHash -emailVerificationToken -emailVerificationOtp')
+        .sort({ createdAt: -1 })
+        .lean();
+
+      ApiResponse.success(res, users, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Create new team member or user
+   */
+  public async createUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
+      const { email, firstName, lastName, role, phone, company } = req.body;
+
+      if (!email || !firstName || !lastName) {
+        throw new ValidationError('Email, First Name, and Last Name are required');
+      }
+
+      const normalizedEmail = email.toLowerCase().trim();
+      const existing = await (User as any).findOne({ email: normalizedEmail });
+      if (existing) {
+        throw new ValidationError('A user with this email address already exists');
+      }
+
+      const user = await (User as any).create({
+        tenantId,
+        email: normalizedEmail,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        name: `${firstName.trim()} ${lastName.trim()}`,
+        role: role || UserRole.HUB_MEMBER,
+        phone: phone ? phone.trim() : undefined,
+        company: company ? company.trim() : undefined,
+        isEmailVerified: true,
+      });
+
+      ApiResponse.success(res, user, 201, { message: 'User added successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Update a user's role
+   */
+  public async updateUserRole(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
+      const { id } = req.params;
+      const { role } = req.body;
+
+      if (!role) {
+        throw new ValidationError('Role is required');
+      }
+
+      const user = await (User as any).findOneAndUpdate(
+        { _id: id, tenantId },
+        { $set: { role } },
+        { new: true }
+      ).select('-passwordHash');
+
+      if (!user) {
+        throw new NotFoundError('User record not found');
+      }
+
+      ApiResponse.success(res, user, 200, { message: 'User role updated successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Delete or deactivate user
+   */
+  public async deleteUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
+      const { id } = req.params;
+
+      const user = await (User as any).findOneAndDelete({ _id: id, tenantId });
+      if (!user) {
+        throw new NotFoundError('User record not found');
+      }
+
+      ApiResponse.success(res, { deleted: true }, 200, { message: 'User removed successfully' });
     } catch (error) {
       next(error);
     }

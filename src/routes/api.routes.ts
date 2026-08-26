@@ -23,6 +23,7 @@ import { cmsRouter } from './cms.routes';
 import startupRouter from './startup.routes';
 import pricingRouter from './pricing.routes';
 import expenseRouter from './expense.routes';
+import quotationRouter from './quotation.routes';
 
 const apiRouter = Router();
 
@@ -57,6 +58,7 @@ apiRouter.use('/bookings', bookingRouter);
 // Mount payment core module
 apiRouter.use('/payments', paymentRouter);
 apiRouter.use('/invoices', paymentRouter);
+apiRouter.use('/quotations', quotationRouter);
 
 // Mount subscription and billing foundation module
 apiRouter.use('/billing', billingRouter);

@@ -7,7 +7,8 @@ import { ValidationError, ForbiddenError, NotFoundError } from '../errors/AppErr
 import { IUserIdentity, UserRole } from '../types';
 import { logger } from '../utils/logger';
 import { PaymentProvider } from '../models/Payment';
-import { getBankRecord, getBankRecords, numberToWords, WEVENTURE_SUPPLIER_INFO } from '../utils/invoiceUtils';
+import { PaymentBank } from '../models/PaymentBank';
+import { getBankRecord, getBankRecords, numberToWords, WEVENTURE_SUPPLIER_INFO, WEVENTURE_BANKS } from '../utils/invoiceUtils';
 
 export class PaymentController {
   /**
@@ -798,6 +799,151 @@ export class PaymentController {
     } catch (error: any) {
       logger.error('❌ ArifPay Webhook error:', error.message);
       res.status(200).json({ status: 'error', message: error.message });
+    }
+  }
+
+  /**
+   * Get all settlement banks for the WeVentureHub platform
+   */
+  public async getBanks(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
+      let banks = await (PaymentBank as any).find({ tenantId }).sort({ isDefault: -1, createdAt: 1 }).lean();
+      
+      if (!banks || banks.length === 0) {
+        // Seed default WeVentureHub settlement banks
+        const toInsert = WEVENTURE_BANKS.map((b, idx) => ({
+          tenantId,
+          bankName: b.bankName,
+          accountName: b.accountName,
+          accountNumber: b.accountNumber,
+          branch: b.branch,
+          swiftCode: '',
+          isActive: true,
+          isDefault: idx === 0,
+        }));
+        await (PaymentBank as any).insertMany(toInsert);
+        banks = await (PaymentBank as any).find({ tenantId }).sort({ isDefault: -1, createdAt: 1 }).lean();
+      }
+      
+      ApiResponse.success(res, banks, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Create a new settlement bank account
+   */
+  public async createBank(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
+      const { bankName, accountName, accountNumber, branch, swiftCode, isActive, isDefault } = req.body;
+      
+      if (!bankName || !accountNumber || !branch) {
+        throw new ValidationError('Bank Name, Account Number, and Branch are required fields');
+      }
+
+      if (isDefault) {
+        await (PaymentBank as any).updateMany({ tenantId }, { isDefault: false });
+      }
+
+      const bank = await (PaymentBank as any).create({
+        tenantId,
+        bankName: bankName.trim(),
+        accountName: accountName?.trim() || 'WE VENTURE HOLDINGS PLC',
+        accountNumber: accountNumber.trim(),
+        branch: branch.trim(),
+        swiftCode: swiftCode ? swiftCode.trim() : undefined,
+        isActive: isActive !== undefined ? Boolean(isActive) : true,
+        isDefault: Boolean(isDefault),
+      });
+
+      ApiResponse.success(res, bank, 201, { message: 'Settlement bank added successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Update settlement bank account details
+   */
+  public async updateBank(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
+      const { id } = req.params;
+      const { bankName, accountName, accountNumber, branch, swiftCode, isActive, isDefault } = req.body;
+
+      if (isDefault) {
+        await (PaymentBank as any).updateMany({ tenantId, _id: { $ne: id } }, { isDefault: false });
+      }
+
+      const updateData: any = {};
+      if (bankName !== undefined) updateData.bankName = bankName.trim();
+      if (accountName !== undefined) updateData.accountName = accountName.trim();
+      if (accountNumber !== undefined) updateData.accountNumber = accountNumber.trim();
+      if (branch !== undefined) updateData.branch = branch.trim();
+      if (swiftCode !== undefined) updateData.swiftCode = swiftCode.trim();
+      if (isActive !== undefined) updateData.isActive = Boolean(isActive);
+      if (isDefault !== undefined) updateData.isDefault = Boolean(isDefault);
+
+      const bank = await (PaymentBank as any).findOneAndUpdate(
+        { _id: id, tenantId },
+        { $set: updateData },
+        { new: true }
+      );
+
+      if (!bank) {
+        throw new NotFoundError('Settlement bank record not found');
+      }
+
+      ApiResponse.success(res, bank, 200, { message: 'Settlement bank updated successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Delete settlement bank account
+   */
+  public async deleteBank(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
+      const { id } = req.params;
+
+      const bank = await (PaymentBank as any).findOneAndDelete({ _id: id, tenantId });
+      if (!bank) {
+        throw new NotFoundError('Settlement bank record not found');
+      }
+
+      ApiResponse.success(res, { deleted: true }, 200, { message: 'Bank account deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Toggle settlement bank active status
+   */
+  public async toggleBank(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId || req.user?.tenantId || 'weventurehub';
+      const { id } = req.params;
+      const { isActive } = req.body;
+
+      const bank = await (PaymentBank as any).findOneAndUpdate(
+        { _id: id, tenantId },
+        { $set: { isActive: Boolean(isActive) } },
+        { new: true }
+      );
+
+      if (!bank) {
+        throw new NotFoundError('Settlement bank record not found');
+      }
+
+      ApiResponse.success(res, bank, 200, { message: 'Settlement bank status updated successfully' });
+    } catch (error) {
+      next(error);
     }
   }
 }

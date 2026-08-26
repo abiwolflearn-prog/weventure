@@ -37,6 +37,7 @@ import OrganizationsPage from './views/OrganizationsPage';
 import NotFoundPage from './views/NotFoundPage';
 import CheckoutPage from './views/CheckoutPage';
 import InvoicesPage from './views/InvoicesPage';
+import QuotationsPage from './views/QuotationsPage';
 import TransactionsPage from './views/TransactionsPage';
 import AnnouncementsPage from './views/AnnouncementsPage';
 import AnalyticsDashboard from './views/AnalyticsDashboard';
@@ -91,6 +92,7 @@ export default function App() {
       <Route path="checkout" element={<CheckoutPage />} />
       <Route path="billing" element={<BillingPage />} />
       <Route path="invoices" element={<InvoicesPage />} />
+      <Route path="quotations" element={<QuotationsPage />} />
       <Route path="transactions" element={<TransactionsPage />} />
       <Route path="announcements" element={<AnnouncementsPage />} />
       <Route path="emails" element={<EmailCenterPage />} />
