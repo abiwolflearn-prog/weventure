@@ -22,15 +22,17 @@ export class BookingRepository {
     return await booking.save();
   }
 
-  public async findById(id: string, tenantId: string): Promise<IBookingDocument | null> {
+  public async findById(id: string, tenantId?: string): Promise<IBookingDocument | null> {
     if (!id) return null;
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const tenantFilter = tenantId ? { tenantId } : {};
     if (isObjectId) {
-      const doc = await Booking.findOne({ _id: id, tenantId }).exec();
+      const doc = await Booking.findOne({ _id: id, ...tenantFilter }).exec();
       if (doc) return doc;
     }
+    // Also lookup by custom ID, qrCode, reservationTitle, invoiceId, or paymentId
     return await Booking.findOne({
-      tenantId,
+      ...tenantFilter,
       $or: [{ qrCode: id }, { reservationTitle: id }, { invoiceId: id }, { paymentId: id }]
     }).exec();
   }
@@ -42,9 +44,12 @@ export class BookingRepository {
   ): Promise<IBookingDocument | null> {
     if (!id) return null;
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const tenantFilter = tenantId ? { tenantId } : {};
     const query: any = {
-      tenantId,
-      ...(isObjectId ? { _id: id } : { $or: [{ qrCode: id }, { reservationTitle: id }, { invoiceId: id }, { paymentId: id }] })
+      ...tenantFilter,
+      ...(isObjectId
+        ? { _id: id }
+        : { $or: [{ qrCode: id }, { reservationTitle: id }, { invoiceId: id }, { paymentId: id }] })
     };
     const isDirectQuery = Object.keys(updateData).some(key => key.startsWith('$'));
     const updatePayload = isDirectQuery ? updateData : { $set: updateData };

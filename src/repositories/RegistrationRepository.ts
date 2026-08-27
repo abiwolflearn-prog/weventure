@@ -7,15 +7,16 @@ export class RegistrationRepository {
     return await registration.save();
   }
 
-  public async findById(id: string, tenantId: string): Promise<IRegistrationDocument | null> {
+  public async findById(id: string, tenantId?: string): Promise<IRegistrationDocument | null> {
     if (!id) return null;
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const tenantFilter = tenantId ? { tenantId } : {};
     if (isObjectId) {
-      const doc = await Registration.findOne({ _id: id, tenantId }).exec();
+      const doc = await Registration.findOne({ _id: id, ...tenantFilter }).exec();
       if (doc) return doc;
     }
     return await Registration.findOne({
-      tenantId,
+      ...tenantFilter,
       $or: [{ ticketNumber: id }, { qrCode: id }, { verificationToken: id }]
     }).exec();
   }
@@ -58,8 +59,9 @@ export class RegistrationRepository {
   public async updateStatus(id: string, tenantId: string, status: RegistrationStatus): Promise<IRegistrationDocument | null> {
     if (!id) return null;
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const tenantFilter = tenantId ? { tenantId } : {};
     const query: any = {
-      tenantId,
+      ...tenantFilter,
       ...(isObjectId ? { _id: id } : { $or: [{ ticketNumber: id }, { qrCode: id }, { verificationToken: id }] })
     };
     return await Registration.findOneAndUpdate(
@@ -72,8 +74,9 @@ export class RegistrationRepository {
   public async checkIn(id: string, tenantId: string, checkedIn: boolean = true): Promise<IRegistrationDocument | null> {
     if (!id) return null;
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const tenantFilter = tenantId ? { tenantId } : {};
     const query: any = {
-      tenantId,
+      ...tenantFilter,
       ...(isObjectId ? { _id: id } : { $or: [{ ticketNumber: id }, { qrCode: id }, { verificationToken: id }] })
     };
     return await Registration.findOneAndUpdate(

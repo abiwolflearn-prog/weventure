@@ -310,9 +310,23 @@ export class BookingService {
   public async cancelBooking(id: string, tenantId: string, user: IUserIdentity): Promise<IBookingDocument> {
     const booking = await this.getBookingById(id, tenantId);
 
-    // Only the creator, or Staff/Admin can cancel the booking
-    const isAdminOrStaff = [UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF].includes(user.role);
-    if (booking.userId !== user.id && !isAdminOrStaff) {
+    // Any Administrative/Staff/Manager user OR the reservation owner can cancel
+    const isAdminOrStaff = [
+      UserRole.SUPER_ADMIN,
+      UserRole.TENANT_ADMIN,
+      UserRole.WORKSPACE_MANAGER,
+      UserRole.EVENT_MANAGER,
+      UserRole.FINANCE_OFFICER,
+      UserRole.MARKETING_OFFICER,
+      UserRole.COMMUNITY_MANAGER,
+      UserRole.RECEPTION,
+      UserRole.VOLUNTEER_COORDINATOR,
+      UserRole.STAFF,
+    ].includes(user.role);
+
+    const isOwner = booking.userId === user.id || booking.userEmail?.toLowerCase() === user.email?.toLowerCase();
+
+    if (!isOwner && !isAdminOrStaff) {
       throw new ForbiddenError('You do not have permissions to cancel this reservation');
     }
 
@@ -325,28 +339,42 @@ export class BookingService {
       throw new NotFoundError('Booking cancel operation failed');
     }
 
-    await this.logActivity(tenantId, user, 'CANCEL_BOOKING', id, { previousStatus: booking.status });
+    try {
+      await this.logActivity(tenantId, user, 'CANCEL_BOOKING', id, { previousStatus: booking.status });
+    } catch (e) {
+      console.warn('Booking cancel audit log failure:', e);
+    }
 
     // Send real-time notification to the reservation owner
-    await notificationService.createNotification({
-      tenantId,
-      userId: booking.userId,
-      title: 'Workspace Booking Cancelled',
-      message: `Your reservation session has been cancelled.`,
-      category: NotificationCategory.BOOKING,
-      link: '/dashboard/bookings',
-    });
+    try {
+      if (booking.userId) {
+        await notificationService.createNotification({
+          tenantId,
+          userId: booking.userId,
+          title: 'Workspace Booking Cancelled',
+          message: `Your reservation session has been cancelled.`,
+          category: NotificationCategory.BOOKING,
+          link: '/dashboard/bookings',
+        });
+      }
+    } catch (e) {
+      console.warn('Booking cancel notification failure:', e);
+    }
 
     // Record timeline activity
-    await notificationService.trackActivity({
-      tenantId,
-      userId: user.id,
-      userEmail: user.email,
-      userName: `${user.firstName} ${user.lastName}`,
-      action: 'BOOKING_CANCEL',
-      resourceType: 'BOOKING',
-      resourceId: booking.id,
-    });
+    try {
+      await notificationService.trackActivity({
+        tenantId,
+        userId: user.id,
+        userEmail: user.email,
+        userName: `${user.firstName} ${user.lastName}`,
+        action: 'BOOKING_CANCEL',
+        resourceType: 'BOOKING',
+        resourceId: booking.id,
+      });
+    } catch (e) {
+      console.warn('Booking cancel trackActivity failure:', e);
+    }
 
     return updated;
   }

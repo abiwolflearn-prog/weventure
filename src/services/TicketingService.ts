@@ -553,9 +553,22 @@ export class TicketingService {
   }
 
   public async cancelRegistration(id: string, tenantId: string, user: IUserIdentity): Promise<IRegistrationDocument> {
-    const registration = await registrationRepository.findById(id, tenantId);
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const tenantFilter = tenantId ? { tenantId } : {};
+    let registration: IRegistrationDocument | null = null;
+
+    if (isObjectId) {
+      registration = await Registration.findOne({ _id: id, ...tenantFilter }).exec();
+    }
     if (!registration) {
-      throw new NotFoundError('Registration not found');
+      registration = await Registration.findOne({
+        ...tenantFilter,
+        $or: [{ ticketNumber: id }, { qrCode: id }, { verificationToken: id }]
+      }).exec();
+    }
+
+    if (!registration) {
+      throw new NotFoundError('Event ticket registration not found');
     }
 
     if (registration.status === RegistrationStatus.CANCELLED) {
@@ -566,25 +579,51 @@ export class TicketingService {
     registration.status = RegistrationStatus.CANCELLED;
     const updated = await registration.save();
 
-    // 2. Decrement event capacity count & ticket type sold count
-    if (registration.ticketTypeId) {
-      await TicketType.updateOne(
-        { _id: registration.ticketTypeId, tenantId, 'capacity.soldQuantity': { $gt: 0 } },
-        { $inc: { 'capacity.soldQuantity': -1 } }
-      ).exec();
+    // 2. Decrement event capacity count & ticket type sold count (safely)
+    try {
+      if (registration.ticketTypeId) {
+        await TicketType.updateOne(
+          { _id: registration.ticketTypeId, ...tenantFilter, 'capacity.soldQuantity': { $gt: 0 } },
+          { $inc: { 'capacity.soldQuantity': -1 } }
+        ).exec();
+      }
+    } catch (e) {
+      console.warn('Could not decrement ticket type count:', e);
     }
 
-    await Event.updateOne(
-      { _id: registration.eventId, tenantId, 'capacity.activeRegistrations': { $gt: 0 } },
-      { $inc: { 'capacity.activeRegistrations': -1 } }
-    ).exec();
+    try {
+      if (registration.eventId) {
+        const isEvtObjectId = /^[0-9a-fA-F]{24}$/.test(registration.eventId);
+        const evtQuery: any = {
+          ...tenantFilter,
+          ...(isEvtObjectId ? { _id: registration.eventId } : { slug: registration.eventId }),
+          'capacity.activeRegistrations': { $gt: 0 }
+        };
+        await Event.updateOne(
+          evtQuery,
+          { $inc: { 'capacity.activeRegistrations': -1 } }
+        ).exec();
+      }
+    } catch (e) {
+      console.warn('Could not decrement event capacity count:', e);
+    }
 
-    await this.logActivity(tenantId, user, 'CANCEL_REGISTRATION', 'REGISTRATION', registration.id, {
-      ticketNumber: registration.ticketNumber,
-    });
+    try {
+      await this.logActivity(tenantId, user, 'CANCEL_REGISTRATION', 'REGISTRATION', registration.id, {
+        ticketNumber: registration.ticketNumber,
+      });
+    } catch (e) {
+      console.warn('Could not record registration cancel audit log:', e);
+    }
 
     // 3. Process Waitlist Autopromotion (If any waitlisted user is in queue)
-    await this.autoPromoteNextWaitlist(registration.eventId, registration.ticketTypeId || '', tenantId, user);
+    try {
+      if (registration.eventId) {
+        await this.autoPromoteNextWaitlist(registration.eventId, registration.ticketTypeId || '', tenantId, user);
+      }
+    } catch (e) {
+      console.warn('Could not auto-promote waitlist:', e);
+    }
 
     return updated;
   }
@@ -924,7 +963,7 @@ export class TicketingService {
    * Approve a pending registration
    */
   public async approveRegistration(id: string, tenantId: string, user: IUserIdentity): Promise<IRegistrationDocument> {
-    const registration = await registrationRepository.findById(id, tenantId);
+    const registration = await Registration.findOne({ _id: id, tenantId }).exec();
     if (!registration) {
       throw new NotFoundError('Registration not found');
     }
@@ -966,7 +1005,7 @@ export class TicketingService {
    * Reject/cancel a pending registration
    */
   public async rejectRegistration(id: string, tenantId: string, user: IUserIdentity): Promise<IRegistrationDocument> {
-    const registration = await registrationRepository.findById(id, tenantId);
+    const registration = await Registration.findOne({ _id: id, tenantId }).exec();
     if (!registration) {
       throw new NotFoundError('Registration not found');
     }

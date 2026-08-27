@@ -443,19 +443,26 @@ export default function BookingList() {
   // Mutation to cancel/delete Event Ticket Registrations
   const cancelEventRegMutation = useMutation({
     mutationFn: async (regId: string) => {
-      // If it starts with local ID prefix, remove from localStorage
-      if (regId.startsWith('WVH-EVT-LOCAL-')) {
-        const stored = localStorage.getItem('weventurehub_user_registrations');
-        if (stored) {
-          try {
-            const parsed = JSON.parse(stored);
-            const filtered = parsed.filter((r: any) => r.id !== regId && r.ticketNumber !== regId);
-            localStorage.setItem('weventurehub_user_registrations', JSON.stringify(filtered));
-          } catch (e) {
-            console.error('Error removing local event registration:', e);
-          }
+      // Always remove matching items from local storage
+      const stored = localStorage.getItem('weventurehub_user_registrations');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          const filtered = parsed.filter((r: any) => r.id !== regId && r.ticketNumber !== regId && r._id !== regId);
+          localStorage.setItem('weventurehub_user_registrations', JSON.stringify(filtered));
+          setLocalEventRegs(filtered);
+        } catch (e) {
+          console.error('Error removing local event registration:', e);
         }
-        return true;
+      }
+
+      // If it starts with local ID prefix, return true immediately
+      if (regId.startsWith('WVH-EVT-') || regId.startsWith('WVH-LOCAL-')) {
+        try {
+          return await ticketingApi.cancelRegistration(regId);
+        } catch (e) {
+          return true; // Already removed from local storage
+        }
       }
       return await ticketingApi.cancelRegistration(regId);
     },
@@ -477,18 +484,21 @@ export default function BookingList() {
 
   const handleCancelClick = (id: string) => {
     if (confirm('Are you sure you want to cancel / revoke this booking reservation pass?')) {
-      // If local booking, clear it from localStorage
-      if (id.startsWith('WVH-LOCAL-')) {
-        const stored = localStorage.getItem('weventurehub_user_bookings');
-        if (stored) {
-          try {
-            const parsed = JSON.parse(stored);
-            const filtered = parsed.filter((b: any) => b.id !== id);
-            localStorage.setItem('weventurehub_user_bookings', JSON.stringify(filtered));
-          } catch (e) {
-            console.error('Error removing local workspace booking:', e);
-          }
+      // Clean from localStorage as well
+      const stored = localStorage.getItem('weventurehub_user_bookings');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          const filtered = parsed.filter((b: any) => b.id !== id && b._id !== id);
+          localStorage.setItem('weventurehub_user_bookings', JSON.stringify(filtered));
+          setLocalWorkspaces(filtered);
+        } catch (e) {
+          console.error('Error removing local workspace booking:', e);
         }
+      }
+
+      // If purely local generated ID, clear and return
+      if (id.startsWith('WVH-LOCAL-')) {
         queryClient.invalidateQueries({ queryKey: ['bookings'] });
         setSuccessBanner('Workspace booking reservation pass has been removed.');
         return;
