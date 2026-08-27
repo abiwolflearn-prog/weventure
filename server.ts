@@ -22,6 +22,9 @@ import { emailQueueProcessor } from './src/services/EmailQueueProcessor';
 import { emailCronScheduler } from './src/services/EmailCronScheduler';
 import { IntegrationController } from './src/controllers/IntegrationController';
 import { tenantContext } from './src/middleware/tenantContext';
+import jwt from 'jsonwebtoken';
+import { User } from './src/models/User';
+import { UserRole } from './src/types';
 
 async function startServer() {
   const app = express();
@@ -66,24 +69,98 @@ async function startServer() {
   // Initialize our centralized notification and real-time state publisher
   notificationService.init(io);
 
-  // Socket.io Handshake and Connection logic
-  io.on('connection', (socket) => {
-    logger.info(`🔌 Socket connected: ${socket.id}`);
+  // Secure Socket.io Authentication Middleware
+  io.use(async (socket, next) => {
+    try {
+      const token =
+        socket.handshake.auth?.token ||
+        socket.handshake.headers?.authorization?.replace(/^Bearer\s+/i, '') ||
+        (socket.handshake.query?.token as string);
 
-    socket.on('join-tenant-room', (tenantId: string) => {
-      const room = `tenant:${tenantId.toLowerCase()}`;
-      socket.join(room);
-      logger.info(`🔌 Socket ${socket.id} joined space boundary: ${room}`);
+      if (!token || token === 'undefined' || token === 'null' || !token.trim()) {
+        return next(new Error('Authentication required for socket connection'));
+      }
+
+      const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as any;
+      if (!decoded || (!decoded.id && !decoded.email)) {
+        return next(new Error('Invalid socket authentication token'));
+      }
+
+      let dbUser: any = null;
+      if (decoded.id && decoded.id.length === 24) {
+        dbUser = await (User as any).findById(decoded.id).select('email role firstName lastName').lean();
+      }
+      if (!dbUser && decoded.email) {
+        const cleanEmail = String(decoded.email).toLowerCase().trim();
+        dbUser = await (User as any).findOne({ email: cleanEmail }).select('email role firstName lastName').lean();
+      }
+
+      if (!dbUser) {
+        return next(new Error('User account not found or access revoked'));
+      }
+
+      socket.data.user = {
+        id: dbUser._id.toString(),
+        email: dbUser.email,
+        role: dbUser.role || UserRole.HUB_MEMBER,
+        tenantId: 'weventurehub',
+      };
+
+      next();
+    } catch (err: any) {
+      logger.warn(`🔒 Socket connection authentication rejected: ${err.message}`);
+      return next(new Error('Authentication failed'));
+    }
+  });
+
+  // Socket.io Handshake and Authoritative Connection logic
+  io.on('connection', (socket) => {
+    const user = socket.data.user;
+    if (!user) {
+      socket.disconnect(true);
+      return;
+    }
+
+    logger.info(`🔌 Authenticated socket connected: ${socket.id} (${user.email}, ${user.role})`);
+
+    // Authoritatively join user's private personal room using verified user ID
+    const personalRoom = `user:${user.id}`;
+    socket.join(personalRoom);
+
+    // Join platform organization room
+    socket.join('tenant:weventurehub');
+
+    // If administrative or operational role, join staff/admin channel
+    const isAdmin = [
+      UserRole.SUPER_ADMIN,
+      UserRole.TENANT_ADMIN,
+      'ADMIN',
+      UserRole.STAFF,
+      'MANAGER',
+      UserRole.EVENT_MANAGER,
+      UserRole.WORKSPACE_MANAGER,
+      UserRole.FINANCE_OFFICER,
+    ].includes(user.role);
+
+    if (isAdmin) {
+      socket.join('admin:notifications');
+    }
+
+    // Client requests to join rooms are verified against the authenticated user
+    socket.on('join-tenant-room', () => {
+      socket.join('tenant:weventurehub');
     });
 
-    socket.on('join-user-room', (userId: string) => {
-      const room = `user:${userId.toLowerCase()}`;
-      socket.join(room);
-      logger.info(`🔌 Socket ${socket.id} joined personal boundary: ${room}`);
+    socket.on('join-user-room', (requestedUserId: string) => {
+      if (requestedUserId && requestedUserId.toLowerCase() !== user.id.toLowerCase()) {
+        logger.warn(`⚠️ [SECURITY] Socket ${socket.id} attempted to join unauthorized user room: ${requestedUserId}`);
+        return;
+      }
+      socket.join(personalRoom);
     });
 
     socket.on('disconnect', () => {
-      logger.info(`🔌 Socket disconnected: ${socket.id}`);
+      logger.info(`🔌 Socket disconnected: ${socket.id} (${user.email})`);
     });
   });
 

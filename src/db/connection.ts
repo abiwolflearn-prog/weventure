@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
 import { Workspace } from '../models/Workspace';
@@ -987,7 +988,12 @@ export async function connectDatabase(): Promise<typeof mongoose> {
         logger.info('🌱 Seeded active database pricing rules');
       }
 
-      // 10. Ensure default administrative and staff accounts exist in MongoDB with correct roles
+      // 10. Ensure default administrative and staff accounts exist in MongoDB with correct roles and hashed passwords
+      const superAdminPassHash = await bcrypt.hash('SuperAdmin@2026!', 10);
+      const adminPassHash = await bcrypt.hash('AdminPass@2026!', 10);
+      const staffPassHash = await bcrypt.hash('StaffPass@2026!', 10);
+      const memberPassHash = await bcrypt.hash('MemberPass@2026!', 10);
+
       await User.updateOne(
         { email: 'superadmin@weventurehub.com' },
         {
@@ -997,6 +1003,7 @@ export async function connectDatabase(): Promise<typeof mongoose> {
             firstName: 'Super',
             lastName: 'Admin',
             role: UserRole.SUPER_ADMIN,
+            passwordHash: superAdminPassHash,
             isEmailVerified: true,
           }
         },
@@ -1012,6 +1019,7 @@ export async function connectDatabase(): Promise<typeof mongoose> {
             firstName: 'Admin',
             lastName: 'Manager',
             role: UserRole.TENANT_ADMIN,
+            passwordHash: adminPassHash,
             isEmailVerified: true,
           }
         },
@@ -1027,12 +1035,77 @@ export async function connectDatabase(): Promise<typeof mongoose> {
             firstName: 'Staff',
             lastName: 'Manager',
             role: UserRole.STAFF,
+            passwordHash: staffPassHash,
             isEmailVerified: true,
           }
         },
         { upsert: true }
       );
-      logger.info('🔑 Ensured default admin and staff accounts exist in MongoDB with correct roles');
+
+      await User.updateOne(
+        { email: 'alex.chen@work.com' },
+        {
+          $set: {
+            tenantId: 'weventurehub',
+            email: 'alex.chen@work.com',
+            firstName: 'Alex',
+            lastName: 'Chen',
+            role: UserRole.HUB_MEMBER,
+            passwordHash: memberPassHash,
+            isEmailVerified: true,
+          }
+        },
+        { upsert: true }
+      );
+
+      await User.updateOne(
+        { email: 'user@weventurehub.com' },
+        {
+          $set: {
+            tenantId: 'weventurehub',
+            email: 'user@weventurehub.com',
+            firstName: 'Demo',
+            lastName: 'Member',
+            role: UserRole.HUB_MEMBER,
+            passwordHash: memberPassHash,
+            isEmailVerified: true,
+          }
+        },
+        { upsert: true }
+      );
+
+      await User.updateOne(
+        { email: 'member@weventurehub.com' },
+        {
+          $set: {
+            tenantId: 'weventurehub',
+            email: 'member@weventurehub.com',
+            firstName: 'Community',
+            lastName: 'Member',
+            role: UserRole.HUB_MEMBER,
+            passwordHash: memberPassHash,
+            isEmailVerified: true,
+          }
+        },
+        { upsert: true }
+      );
+
+      await User.updateOne(
+        { email: 'abelbimrew868@gmail.com' },
+        {
+          $set: {
+            tenantId: 'weventurehub',
+            email: 'abelbimrew868@gmail.com',
+            firstName: 'Abel',
+            lastName: 'Bimrew',
+            role: UserRole.SUPER_ADMIN,
+            passwordHash: superAdminPassHash,
+            isEmailVerified: true,
+          }
+        },
+        { upsert: true }
+      );
+      logger.info('🔑 Ensured default admin, staff, and member accounts exist in MongoDB with correct roles and hashed credentials');
 
       // 11. Ensure default settlement bank accounts exist
       const existingBanks = await PaymentBank.countDocuments({ tenantId: 'weventurehub' } as any);

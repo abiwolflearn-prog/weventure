@@ -8,7 +8,6 @@ import { useAppDispatch, useAppSelector } from '../store';
 import { loginStart, loginSuccess, loginFailure } from '../store/authSlice';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
-import { UserRole } from '../types';
 import { axiosInstance } from '../lib/axiosInstance';
 
 const loginSchema = z.object({
@@ -28,25 +27,24 @@ export default function LoginPage() {
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFields>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: 'alex.chen@work.com',
-      password: 'SecurePassword123!',
+      email: '',
+      password: '',
     }
   });
 
   const onSubmit = async (data: LoginFields) => {
     dispatch(loginStart());
     try {
-      // Authenticate via User Portal endpoint
       const response = await axiosInstance.post('/auth/login', {
         email: data.email,
         password: data.password,
-        tenantId: 'weventurehub',
+        portal: 'user',
       });
 
       const { user, token } = response.data.data;
       
       localStorage.setItem('weventure_jwt_token', token);
-      localStorage.setItem('weventure_tenant_id', user.tenantId);
+      localStorage.setItem('weventure_tenant_id', user.tenantId || 'weventurehub');
 
       dispatch(loginSuccess(user));
       
@@ -100,7 +98,7 @@ export default function LoginPage() {
           id="email"
           type="email"
           error={errors.email?.message}
-          placeholder="user@weventurehub.com"
+          placeholder="your.email@example.com"
         />
 
         <Input
@@ -130,27 +128,14 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <div className="border-t border-slate-200 dark:border-slate-800 pt-5 space-y-4">
+      <div className="border-t border-slate-200 dark:border-slate-800 pt-5">
         <p className="text-center text-xs text-slate-500 dark:text-slate-400">
           Don&apos;t have a member account?{' '}
           <Link to="/register" className="text-[#65A30D] dark:text-[#84CC16] hover:underline font-extrabold">
             Register Member Account
           </Link>
         </p>
-
-        <div className="flex justify-center space-x-3 text-xs font-semibold text-slate-500 dark:text-slate-400">
-          <Link to="/admin" className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center space-x-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#84CC16]" />
-            <span>Admin Portal</span>
-          </Link>
-          <Link to="/superadmin" className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center space-x-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#84CC16]" />
-            <span>Super Admin Portal</span>
-          </Link>
-        </div>
       </div>
     </div>
   );
 }
-
-

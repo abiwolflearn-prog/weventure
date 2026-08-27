@@ -27,7 +27,7 @@ export const authGuard = async (req: Request, res: Response, next: NextFunction)
       token = cookies['jwt_access_token'] || null;
     }
 
-    // 3. Fallback to query parameters
+    // 3. Fallback to query parameter (e.g. for downloads/webhooks)
     if (!token && req.query.token) {
       token = req.query.token as string;
     }
@@ -37,63 +37,64 @@ export const authGuard = async (req: Request, res: Response, next: NextFunction)
     }
 
     if (!token) {
-      throw new UnauthorizedError('Access token is missing');
+      throw new UnauthorizedError('Access token is missing. Please log in to continue.');
     }
 
-    // Verify token
-    const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET, { ignoreExpiration: true }) as any;
-
-    const cleanEmail = String(decoded.email || '').toLowerCase().trim();
-    let rawRole = String(decoded.role || '').toUpperCase();
-
-    // Look up current role in MongoDB if email is provided
-    if (cleanEmail) {
-      try {
-        const dbUser = await (User as any).findOne({ email: cleanEmail }).select('role').lean();
-        if (dbUser && dbUser.role) {
-          rawRole = String(dbUser.role).toUpperCase();
-        }
-      } catch (_) {}
-    }
-
-    // Email pattern fallback inference if role is generic or missing
-    if (rawRole === 'HUB_MEMBER' || rawRole === 'USER' || rawRole === 'EXTERNAL_USER' || !rawRole) {
-      if (cleanEmail.startsWith('superadmin') || cleanEmail.includes('superadmin')) {
-        rawRole = UserRole.SUPER_ADMIN;
-      } else if (cleanEmail.startsWith('admin') || cleanEmail.includes('admin') || cleanEmail.includes('operator') || cleanEmail.includes('cfo')) {
-        rawRole = UserRole.TENANT_ADMIN;
-      } else if (cleanEmail.startsWith('staff') || cleanEmail.includes('staff') || cleanEmail.includes('manager')) {
-        rawRole = UserRole.STAFF;
+    // Verify token with signature and expiration checks
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, env.JWT_ACCESS_SECRET);
+    } catch (jwtErr: any) {
+      if (jwtErr.name === 'TokenExpiredError') {
+        throw new UnauthorizedError('Your session has expired. Please log in again.');
       }
+      throw new UnauthorizedError('Invalid access token. Authentication failed.');
     }
 
-    // Normalize canonical role
+    if (!decoded || (!decoded.id && !decoded.email)) {
+      throw new UnauthorizedError('Malformed access token');
+    }
+
+    // Fetch user from DB to verify active account and get authoritative role
+    let dbUser: any = null;
+    if (decoded.id && decoded.id.length === 24) {
+      dbUser = await (User as any).findById(decoded.id).select('-passwordHash').lean();
+    }
+    if (!dbUser && decoded.email) {
+      const cleanEmail = String(decoded.email).toLowerCase().trim();
+      dbUser = await (User as any).findOne({ email: cleanEmail }).select('-passwordHash').lean();
+    }
+
+    if (!dbUser) {
+      throw new UnauthorizedError('User account not found or access has been revoked.');
+    }
+
+    // Authoritative role from database
+    const rawRole = String(dbUser.role || '').toUpperCase();
     const effectiveRole: UserRole =
       rawRole === 'ADMIN' ? UserRole.TENANT_ADMIN :
       rawRole === 'SUPER_ADMIN' ? UserRole.SUPER_ADMIN :
       rawRole === 'TENANT_ADMIN' ? UserRole.TENANT_ADMIN :
       rawRole === 'STAFF' ? UserRole.STAFF :
-      rawRole === 'MANAGER' ? UserRole.STAFF :
       (rawRole as UserRole) || UserRole.HUB_MEMBER;
 
-    const permissions = ROLE_PERMISSIONS[effectiveRole] || decoded.permissions || Object.values(Permission);
+    const permissions = ROLE_PERMISSIONS[effectiveRole] || Object.values(Permission);
 
-    // Build the User Identity schema
+    // Build the verified User Identity
     const userIdentity: IUserIdentity = {
-      id: decoded.id || `usr_${Math.random().toString(36).substring(2, 8)}`,
+      id: dbUser._id.toString(),
       tenantId: 'weventurehub',
-      email: cleanEmail,
-      firstName: decoded.firstName || 'User',
-      lastName: decoded.lastName || 'Member',
+      email: dbUser.email,
+      firstName: dbUser.firstName || 'User',
+      lastName: dbUser.lastName || 'Member',
       role: effectiveRole,
       permissions,
     };
 
-    // Set on request
     req.user = userIdentity;
     next();
   } catch (error) {
-    next(new UnauthorizedError(error instanceof Error ? error.message : undefined));
+    next(error instanceof UnauthorizedError ? error : new UnauthorizedError(error instanceof Error ? error.message : undefined));
   }
 };
 
@@ -122,54 +123,46 @@ export const optionalAuthGuard = async (req: Request, res: Response, next: NextF
     }
 
     if (token) {
-      const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET, { ignoreExpiration: true }) as any;
-      if (decoded) {
-        const cleanEmail = String(decoded.email || '').toLowerCase().trim();
-        let rawRole = String(decoded.role || '').toUpperCase();
+      try {
+        const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as any;
+        if (decoded && (decoded.id || decoded.email)) {
+          let dbUser: any = null;
+          if (decoded.id && decoded.id.length === 24) {
+            dbUser = await (User as any).findById(decoded.id).select('-passwordHash').lean();
+          }
+          if (!dbUser && decoded.email) {
+            const cleanEmail = String(decoded.email).toLowerCase().trim();
+            dbUser = await (User as any).findOne({ email: cleanEmail }).select('-passwordHash').lean();
+          }
 
-        if (cleanEmail) {
-          try {
-            const dbUser = await (User as any).findOne({ email: cleanEmail }).select('role').lean();
-            if (dbUser && dbUser.role) {
-              rawRole = String(dbUser.role).toUpperCase();
-            }
-          } catch (_) {}
-        }
+          if (dbUser) {
+            const rawRole = String(dbUser.role || '').toUpperCase();
+            const effectiveRole: UserRole =
+              rawRole === 'ADMIN' ? UserRole.TENANT_ADMIN :
+              rawRole === 'SUPER_ADMIN' ? UserRole.SUPER_ADMIN :
+              rawRole === 'TENANT_ADMIN' ? UserRole.TENANT_ADMIN :
+              rawRole === 'STAFF' ? UserRole.STAFF :
+              (rawRole as UserRole) || UserRole.HUB_MEMBER;
 
-        if (rawRole === 'HUB_MEMBER' || rawRole === 'USER' || rawRole === 'EXTERNAL_USER' || !rawRole) {
-          if (cleanEmail.startsWith('superadmin') || cleanEmail.includes('superadmin')) {
-            rawRole = UserRole.SUPER_ADMIN;
-          } else if (cleanEmail.startsWith('admin') || cleanEmail.includes('admin') || cleanEmail.includes('operator') || cleanEmail.includes('cfo')) {
-            rawRole = UserRole.TENANT_ADMIN;
-          } else if (cleanEmail.startsWith('staff') || cleanEmail.includes('staff') || cleanEmail.includes('manager')) {
-            rawRole = UserRole.STAFF;
+            const permissions = ROLE_PERMISSIONS[effectiveRole] || Object.values(Permission);
+
+            req.user = {
+              id: dbUser._id.toString(),
+              tenantId: 'weventurehub',
+              email: dbUser.email,
+              firstName: dbUser.firstName || 'User',
+              lastName: dbUser.lastName || 'Member',
+              role: effectiveRole,
+              permissions,
+            };
           }
         }
-
-        const effectiveRole: UserRole =
-          rawRole === 'ADMIN' ? UserRole.TENANT_ADMIN :
-          rawRole === 'SUPER_ADMIN' ? UserRole.SUPER_ADMIN :
-          rawRole === 'TENANT_ADMIN' ? UserRole.TENANT_ADMIN :
-          rawRole === 'STAFF' ? UserRole.STAFF :
-          rawRole === 'MANAGER' ? UserRole.STAFF :
-          (rawRole as UserRole) || UserRole.HUB_MEMBER;
-
-        const permissions = ROLE_PERMISSIONS[effectiveRole] || decoded.permissions || Object.values(Permission);
-
-        req.user = {
-          id: decoded.id,
-          tenantId: 'weventurehub',
-          email: cleanEmail,
-          firstName: decoded.firstName || 'User',
-          lastName: decoded.lastName || 'Member',
-          role: effectiveRole,
-          permissions,
-        };
+      } catch (_) {
+        // Ignore token errors in optional guard
       }
     }
   } catch (_) {
-    // Ignore invalid tokens for optional auth
+    // Ignore error for optional authentication
   }
   next();
 };
-

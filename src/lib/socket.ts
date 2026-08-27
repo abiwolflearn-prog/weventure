@@ -1,5 +1,4 @@
 import { io, Socket } from 'socket.io-client';
-import { logger } from '../utils/logger';
 
 let socket: Socket | null = null;
 
@@ -13,16 +12,21 @@ const getSocketServerUrl = (): string => {
 };
 
 export const getSocket = (): Socket => {
+  const token = typeof window !== 'undefined' ? (localStorage.getItem('weventure_jwt_token') || '') : '';
+
   if (!socket) {
     socket = io(getSocketServerUrl(), {
       autoConnect: false,
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 1500,
+      auth: {
+        token,
+      },
     });
 
     socket.on('connect', () => {
-      console.log('🔌 Socket connected successfully to WeVentureHub server');
+      console.log('🔌 Secure socket connected to WeVentureHub server');
     });
 
     socket.on('disconnect', () => {
@@ -30,20 +34,31 @@ export const getSocket = (): Socket => {
     });
 
     socket.on('connect_error', (error) => {
-      console.warn('⚠️ Socket connection error, entering retry loop:', error);
+      console.warn('⚠️ Socket connection error, entering retry loop:', error.message);
     });
+  } else {
+    // Keep auth token in sync with localStorage
+    if (token && socket.auth) {
+      (socket.auth as any).token = token;
+    }
   }
   return socket;
 };
 
-export const connectSocket = (userId: string, tenantId: string) => {
+export const connectSocket = (_userId?: string, _tenantId?: string) => {
   try {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('weventure_jwt_token') : null;
+    if (!token || token === 'undefined' || token === 'null' || !token.trim()) {
+      return;
+    }
+
     const s = getSocket();
+    if (s.auth) {
+      (s.auth as any).token = token;
+    }
     if (!s.connected) {
       s.connect();
     }
-    s.emit('join-tenant-room', tenantId.toLowerCase());
-    s.emit('join-user-room', userId.toLowerCase());
   } catch (err) {
     console.error('Failed to coordinate socket connections:', err);
   }

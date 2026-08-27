@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { authController } from '../controllers/AuthController';
 import { authGuard } from '../middleware/authGuard';
+import { hasRoles } from '../middleware/roleGuard';
+import { UserRole } from '../types';
 
 const authRouter = Router();
 
@@ -9,7 +11,9 @@ const authRouter = Router();
  * @desc    Authenticate user and set cookie
  * @access  Public
  */
-authRouter.post('/login', authController.login);
+authRouter.post('/login', (req, res, next) => {
+  authController.login(req, res, next);
+});
 
 /**
  * @route   POST /api/v1/auth/register
@@ -53,25 +57,69 @@ authRouter.post('/forgot-password', (req, res, next) => {
 });
 
 /**
+ * @route   POST /api/v1/auth/reset-password
+ * @desc    Complete password reset
+ * @access  Public
+ */
+authRouter.post('/reset-password', (req, res, next) => {
+  authController.resetPassword(req, res, next);
+});
+
+/**
  * @route   POST /api/v1/auth/logout
  * @desc    Logout user and clear cookie
  * @access  Public
  */
-authRouter.post('/logout', authController.logout);
+authRouter.post('/logout', (req, res, next) => {
+  authController.logout(req, res, next);
+});
 
 /**
  * @route   GET /api/v1/auth/me
  * @desc    Fetch active user identity context
  * @access  Private (Requires JWT token)
  */
-authRouter.get('/me', authGuard, authController.me);
+authRouter.get('/me', authGuard, (req, res, next) => {
+  authController.me(req, res, next);
+});
 
 /**
- * User administration endpoints
+ * User administration endpoints (Strict RBAC Protected)
  */
-authRouter.get('/users', authGuard, authController.getUsers.bind(authController));
-authRouter.post('/users', authGuard, authController.createUser.bind(authController));
-authRouter.patch('/users/:id/role', authGuard, authController.updateUserRole.bind(authController));
-authRouter.delete('/users/:id', authGuard, authController.deleteUser.bind(authController));
+authRouter.get(
+  '/users',
+  authGuard,
+  hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF, UserRole.COMMUNITY_MANAGER]),
+  (req, res, next) => {
+    authController.getUsers(req, res, next);
+  }
+);
+
+authRouter.post(
+  '/users',
+  authGuard,
+  hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF]),
+  (req, res, next) => {
+    authController.createUser(req, res, next);
+  }
+);
+
+authRouter.patch(
+  '/users/:id/role',
+  authGuard,
+  hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN]),
+  (req, res, next) => {
+    authController.updateUserRole(req, res, next);
+  }
+);
+
+authRouter.delete(
+  '/users/:id',
+  authGuard,
+  hasRoles([UserRole.SUPER_ADMIN]),
+  (req, res, next) => {
+    authController.deleteUser(req, res, next);
+  }
+);
 
 export default authRouter;

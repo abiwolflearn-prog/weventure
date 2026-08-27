@@ -8,7 +8,6 @@ import { useAppDispatch, useAppSelector } from '../store';
 import { loginStart, loginSuccess, loginFailure } from '../store/authSlice';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
-import { UserRole } from '../types';
 import { axiosInstance } from '../lib/axiosInstance';
 
 const loginSchema = z.object({
@@ -33,28 +32,24 @@ export default function AdminLoginPage() {
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<LoginFields>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: isSuperAdminDefault ? 'superadmin@weventurehub.com' : 'admin@weventurehub.com',
-      password: 'SecurePassword123!',
+      email: '',
+      password: '',
     }
   });
 
   useEffect(() => {
     if (location.pathname.startsWith('/superadmin')) {
       setPortalMode('superadmin');
-      setValue('email', 'superadmin@weventurehub.com');
     } else if (location.pathname.startsWith('/admin')) {
       setPortalMode('admin');
-      setValue('email', 'admin@weventurehub.com');
     }
-  }, [location.pathname, setValue]);
+  }, [location.pathname]);
 
   const handleTabSwitch = (mode: 'admin' | 'superadmin') => {
     setPortalMode(mode);
     if (mode === 'superadmin') {
-      setValue('email', 'superadmin@weventurehub.com');
       navigate('/superadmin', { replace: true });
     } else {
-      setValue('email', 'admin@weventurehub.com');
       navigate('/admin', { replace: true });
     }
   };
@@ -63,20 +58,18 @@ export default function AdminLoginPage() {
     dispatch(loginStart());
     try {
       const isSuper = portalMode === 'superadmin';
-      const role = isSuper ? UserRole.SUPER_ADMIN : UserRole.TENANT_ADMIN;
       const targetDashboard = isSuper ? '/superadmin/dashboard' : '/admin/dashboard';
 
       const response = await axiosInstance.post('/auth/login', {
         email: data.email,
         password: data.password,
-        tenantId: 'weventurehub',
-        role,
+        portal: portalMode,
       });
 
       const { user, token } = response.data.data;
 
       localStorage.setItem('weventure_jwt_token', token);
-      localStorage.setItem('weventure_tenant_id', user.tenantId);
+      localStorage.setItem('weventure_tenant_id', user.tenantId || 'weventurehub');
 
       dispatch(loginSuccess(user));
       navigate(targetDashboard);
@@ -85,7 +78,7 @@ export default function AdminLoginPage() {
         loginFailure(
           err.response?.data?.error?.message ||
             err.message ||
-            'Authentication failed. Please verify credentials.'
+            'Authentication failed. Please verify your credentials.'
         )
       );
     }

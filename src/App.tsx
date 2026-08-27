@@ -56,19 +56,48 @@ import PricingRulesPage from './views/PricingRulesPage';
 import PublicRsvpPage from './views/PublicRsvpPage';
 import PublicTicketPage from './views/PublicTicketPage';
 
+import { UserRole } from './types';
+
 /**
  * Access Guard to restrict access to authenticated members/admins
  */
-function ProtectedRoute({ children, fallbackPath }: { children: React.ReactNode; fallbackPath?: string }) {
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
+function ProtectedRoute({ children, fallbackPath, requiredRole }: { children: React.ReactNode; fallbackPath?: string; requiredRole?: 'admin' | 'superadmin' }) {
+  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   const location = useLocation();
   
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     if (fallbackPath) return <Navigate to={fallbackPath} replace />;
     if (location.pathname.startsWith('/superadmin')) return <Navigate to="/superadmin" replace />;
     if (location.pathname.startsWith('/admin')) return <Navigate to="/admin" replace />;
     return <Navigate to="/login" replace />;
   }
+
+  const role = user.role;
+  const isSuper = role === UserRole.SUPER_ADMIN;
+  const isAdmin = isSuper || [
+    UserRole.TENANT_ADMIN,
+    UserRole.STAFF,
+    UserRole.EVENT_MANAGER,
+    UserRole.WORKSPACE_MANAGER,
+    UserRole.FINANCE_OFFICER,
+    UserRole.COMMUNITY_MANAGER,
+    UserRole.MARKETING_OFFICER,
+    UserRole.RECEPTION,
+    UserRole.VOLUNTEER_COORDINATOR,
+  ].includes(role);
+
+  if (requiredRole === 'superadmin' || location.pathname.startsWith('/superadmin')) {
+    if (!isSuper) {
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
+
+  if (requiredRole === 'admin' || location.pathname.startsWith('/admin')) {
+    if (!isAdmin) {
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
+
   return <>{children}</>;
 }
 
