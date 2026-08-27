@@ -440,8 +440,59 @@ export default function BookingList() {
     }
   });
 
+  // Mutation to cancel/delete Event Ticket Registrations
+  const cancelEventRegMutation = useMutation({
+    mutationFn: async (regId: string) => {
+      // If it starts with local ID prefix, remove from localStorage
+      if (regId.startsWith('WVH-EVT-LOCAL-')) {
+        const stored = localStorage.getItem('weventurehub_user_registrations');
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            const filtered = parsed.filter((r: any) => r.id !== regId && r.ticketNumber !== regId);
+            localStorage.setItem('weventurehub_user_registrations', JSON.stringify(filtered));
+          } catch (e) {
+            console.error('Error removing local event registration:', e);
+          }
+        }
+        return true;
+      }
+      return await ticketingApi.cancelRegistration(regId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-event-registrations'] });
+      setErrorBanner(null);
+      setSuccessBanner('Event ticket pass has been revoked/cancelled successfully.');
+    },
+    onError: (err: any) => {
+      setErrorBanner(err.message || 'Failed to cancel event registration.');
+    }
+  });
+
+  const handleCancelEventRegClick = (id: string) => {
+    if (confirm('Are you sure you want to revoke / cancel this event ticket pass?')) {
+      cancelEventRegMutation.mutate(id);
+    }
+  };
+
   const handleCancelClick = (id: string) => {
-    if (confirm('Are you sure you want to cancel this booking reservation?')) {
+    if (confirm('Are you sure you want to cancel / revoke this booking reservation pass?')) {
+      // If local booking, clear it from localStorage
+      if (id.startsWith('WVH-LOCAL-')) {
+        const stored = localStorage.getItem('weventurehub_user_bookings');
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            const filtered = parsed.filter((b: any) => b.id !== id);
+            localStorage.setItem('weventurehub_user_bookings', JSON.stringify(filtered));
+          } catch (e) {
+            console.error('Error removing local workspace booking:', e);
+          }
+        }
+        queryClient.invalidateQueries({ queryKey: ['bookings'] });
+        setSuccessBanner('Workspace booking reservation pass has been removed.');
+        return;
+      }
       cancelBookingMutation.mutate(id);
     }
   };
@@ -927,14 +978,15 @@ export default function BookingList() {
                           </Button>
                         )}
 
-                        {/* Cancel button action */}
-                        {bkg.status !== 'CANCELLED' && bkg.status !== 'REJECTED' && bkg.status !== 'CONFIRMED' && (
+                        {/* Cancel / Revoke button action for workspace reservations & active passes */}
+                        {bkg.status !== 'CANCELLED' && bkg.status !== 'REJECTED' && (
                           <button 
                             onClick={() => handleCancelClick(bkg.id)}
-                            className="p-2 text-rose-500 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-lg transition"
-                            title="Cancel reservation guidelines"
+                            className="p-2 text-rose-500 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-lg transition flex items-center gap-1 text-xs font-semibold"
+                            title="Cancel / Revoke this booking reservation and access pass"
                           >
                             <Trash2 className="w-4 h-4" />
+                            <span className="hidden sm:inline">Cancel / Revoke</span>
                           </button>
                         )}
                       </div>
@@ -1058,20 +1110,31 @@ export default function BookingList() {
                   </div>
 
                   {/* Card Footer */}
-                  <div className="border-t border-gray-200 pt-4 mt-2 flex items-center justify-between">
+                  <div className="border-t border-gray-200 pt-4 mt-2 flex items-center justify-between gap-2 flex-wrap">
                     <span className="text-xs font-bold text-gray-500 font-mono">
                       Pass Ref: {reg.ticketNumber || reg.id}
                     </span>
 
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="flex items-center space-x-1.5 text-xs"
-                      onClick={() => setActiveBooking(reg)}
-                    >
-                      <QrCode className="w-4 h-4 text-brand-primary" />
-                      <span>View Ticket QR Pass</span>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="flex items-center space-x-1.5 text-xs"
+                        onClick={() => setActiveBooking(reg)}
+                      >
+                        <QrCode className="w-4 h-4 text-brand-primary" />
+                        <span>View QR Pass</span>
+                      </Button>
+
+                      <button
+                        onClick={() => handleCancelEventRegClick(reg.id)}
+                        className="p-2 text-rose-500 hover:bg-rose-50 border border-rose-200/60 rounded-lg transition flex items-center gap-1 text-xs font-semibold"
+                        title="Cancel / Revoke this event ticket pass"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span className="hidden sm:inline">Revoke Pass</span>
+                      </button>
+                    </div>
                   </div>
 
                 </div>
