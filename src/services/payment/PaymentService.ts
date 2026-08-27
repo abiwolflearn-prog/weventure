@@ -800,6 +800,44 @@ export class PaymentService {
   }
 
   /**
+   * Helper to find invoice document safely by ObjectId or invoiceNumber/reference
+   */
+  public async findInvoiceDoc(tenantId: string, invoiceId: string): Promise<IInvoiceDocument | null> {
+    if (!invoiceId || typeof invoiceId !== 'string') return null;
+    const cleanId = invoiceId.trim().replace(/^#/, '');
+    const isMongoId = /^[0-9a-fA-F]{24}$/.test(cleanId);
+    const tenantFilter = tenantId ? { tenantId } : {};
+
+    if (isMongoId) {
+      const doc = await Invoice.findOne({ _id: cleanId, ...tenantFilter }).exec();
+      if (doc) return doc;
+    }
+
+    let doc = await Invoice.findOne({
+      ...tenantFilter,
+      $or: [
+        { invoiceNumber: { $regex: new RegExp(`^${cleanId}$`, 'i') } },
+        { bookingId: cleanId },
+        { reservationId: cleanId },
+        { paymentId: cleanId },
+      ]
+    }).exec();
+    if (doc) return doc;
+
+    if (isMongoId) {
+      doc = await Invoice.findOne({ _id: cleanId }).exec();
+      if (doc) return doc;
+    }
+
+    return await Invoice.findOne({
+      $or: [
+        { invoiceNumber: { $regex: new RegExp(`^${cleanId}$`, 'i') } },
+        { bookingId: cleanId },
+      ]
+    }).exec();
+  }
+
+  /**
    * Update Invoice status (Admin/Super Admin)
    */
   public async updateInvoiceStatus(
@@ -808,11 +846,7 @@ export class PaymentService {
     newStatus: string,
     user: IUserIdentity
   ): Promise<any> {
-    const isMongoId = /^[0-9a-fA-F]{24}$/.test(invoiceId);
-    const invoice = await Invoice.findOne({
-      tenantId,
-      ...(isMongoId ? { _id: invoiceId } : { invoiceNumber: invoiceId })
-    }).exec() || await Invoice.findOne({ invoiceNumber: { $regex: new RegExp(`^${invoiceId}$`, 'i') }, tenantId }).exec();
+    const invoice = await this.findInvoiceDoc(tenantId, invoiceId);
     if (!invoice) {
       throw new NotFoundError('Invoice not found');
     }
@@ -1313,11 +1347,7 @@ export class PaymentService {
    */
   public async updateInvoice(tenantId: string, invoiceId: string, data: any, user?: IUserIdentity): Promise<any> {
     const tid = tenantId || 'weventurehub';
-    const isMongoId = /^[0-9a-fA-F]{24}$/.test(invoiceId);
-    const invoice = await Invoice.findOne({
-      tenantId: tid,
-      ...(isMongoId ? { _id: invoiceId } : { invoiceNumber: invoiceId })
-    }).exec() || await Invoice.findOne({ invoiceNumber: { $regex: new RegExp(`^${invoiceId}$`, 'i') } }).exec();
+    const invoice = await this.findInvoiceDoc(tid, invoiceId);
     if (!invoice) {
       throw new NotFoundError('Invoice not found');
     }
@@ -1420,38 +1450,73 @@ export class PaymentService {
   }
 
   /**
-   * Delete Invoice
+   * Delete Invoice Completely (Hard Deletion)
    */
   public async deleteInvoice(tenantId: string, invoiceId: string, user?: IUserIdentity): Promise<any> {
-    const isMongoId = /^[0-9a-fA-F]{24}$/.test(invoiceId);
-    const query: any = {
-      tenantId,
-      ...(isMongoId
-        ? { $or: [{ _id: invoiceId }, { invoiceNumber: invoiceId }] }
-        : { invoiceNumber: { $regex: new RegExp(`^${invoiceId}$`, 'i') } })
-    };
-    let res = await Invoice.deleteOne(query).exec();
-    if (res.deletedCount === 0 && !isMongoId) {
-      res = await Invoice.deleteOne({ invoiceNumber: invoiceId }).exec();
+    if (!invoiceId || typeof invoiceId !== 'string') {
+      throw new NotFoundError('Invoice ID is required');
     }
-    if (res.deletedCount === 0) {
-      throw new NotFoundError('Invoice not found');
+    const cleanId = invoiceId.trim().replace(/^#/, '');
+    const isMongoId = /^[0-9a-fA-F]{24}$/.test(cleanId);
+    const tenantFilter = tenantId ? { tenantId } : {};
+
+    // 1. Locate the target invoice document
+    let invoice = await this.findInvoiceDoc(tenantId, cleanId);
+
+    let deletedCount = 0;
+    if (invoice) {
+      const targetId = invoice._id;
+      const targetNumber = invoice.invoiceNumber;
+
+      // Permanently remove the invoice document
+      const res = await Invoice.deleteOne({ _id: targetId }).exec();
+      deletedCount = res.deletedCount;
+
+      // Clean up references in associated bookings
+      try {
+        await Booking.updateMany(
+          { $or: [{ invoiceId: targetNumber }, { invoiceId: String(targetId) }] },
+          { $unset: { invoiceId: 1 } }
+        ).exec();
+      } catch (e) {
+        logger.warn('Could not unlink booking invoice reference:', e);
+      }
+
+      if (user) {
+        try {
+          await this.logActivity(tenantId, user, 'DELETE_INVOICE', 'INVOICE', String(targetId), {
+            invoiceNumber: targetNumber,
+          });
+        } catch (e) {
+          logger.warn('Could not record delete invoice audit log:', e);
+        }
+      }
+    } else {
+      // Fallback query
+      const deleteQuery: any = isMongoId
+        ? { _id: cleanId }
+        : { invoiceNumber: { $regex: new RegExp(`^${cleanId}$`, 'i') } };
+
+      const res = await Invoice.deleteOne({ ...tenantFilter, ...deleteQuery }).exec();
+      deletedCount = res.deletedCount;
+      if (deletedCount === 0) {
+        const fallbackRes = await Invoice.deleteOne(deleteQuery).exec();
+        deletedCount = fallbackRes.deletedCount;
+      }
     }
-    if (user) {
-      await this.logActivity(tenantId, user, 'DELETE_INVOICE', 'INVOICE', invoiceId, {});
+
+    if (deletedCount === 0) {
+      throw new NotFoundError(`Invoice "${invoiceId}" not found or already deleted`);
     }
-    return { success: true };
+
+    return { success: true, message: 'Invoice permanently deleted' };
   }
 
   /**
    * Email Invoice
    */
   public async emailInvoice(tenantId: string, invoiceId: string, recipientEmail: string, emailType: string = 'Invoice', customMessage?: string): Promise<any> {
-    const isMongoId = /^[0-9a-fA-F]{24}$/.test(invoiceId);
-    const invoice = await Invoice.findOne({
-      tenantId,
-      ...(isMongoId ? { _id: invoiceId } : { invoiceNumber: invoiceId })
-    }).exec() || await Invoice.findOne({ invoiceNumber: { $regex: new RegExp(`^${invoiceId}$`, 'i') } }).exec();
+    const invoice = await this.findInvoiceDoc(tenantId, invoiceId);
     if (!invoice) {
       throw new NotFoundError('Invoice not found');
     }
@@ -1469,11 +1534,7 @@ export class PaymentService {
    * Record Invoice Payment
    */
   public async recordPayment(tenantId: string, invoiceId: string, paymentData: any, user?: IUserIdentity): Promise<any> {
-    const isMongoId = /^[0-9a-fA-F]{24}$/.test(invoiceId);
-    const invoice = await Invoice.findOne({
-      tenantId,
-      ...(isMongoId ? { _id: invoiceId } : { invoiceNumber: invoiceId })
-    }).exec() || await Invoice.findOne({ invoiceNumber: { $regex: new RegExp(`^${invoiceId}$`, 'i') } }).exec();
+    const invoice = await this.findInvoiceDoc(tenantId, invoiceId);
     if (!invoice) {
       throw new NotFoundError('Invoice not found');
     }

@@ -38,26 +38,36 @@ paymentRouter.get('/verify/:txRef', authGuard, paymentController.verifyPayment);
  */
 paymentRouter.get('/transactions', authGuard, paymentController.getTransactions);
 
+const invoiceManagementRoles = [
+  UserRole.SUPER_ADMIN,
+  UserRole.TENANT_ADMIN,
+  UserRole.FINANCE_OFFICER,
+  UserRole.WORKSPACE_MANAGER,
+  UserRole.EVENT_MANAGER,
+  UserRole.COMMUNITY_MANAGER,
+  UserRole.STAFF,
+];
+
 /**
  * Invoice endpoints
  */
 paymentRouter.get('/invoices', authGuard, paymentController.getInvoices);
-paymentRouter.post('/invoices', authGuard, hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF]), paymentController.createInvoice);
-paymentRouter.put('/invoices/:id', authGuard, hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF]), paymentController.updateInvoice);
-paymentRouter.patch('/invoices/:id', authGuard, hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF]), paymentController.updateInvoice);
+paymentRouter.post('/invoices', authGuard, hasRoles(invoiceManagementRoles), paymentController.createInvoice);
+paymentRouter.put('/invoices/:id', authGuard, hasRoles(invoiceManagementRoles), paymentController.updateInvoice);
+paymentRouter.patch('/invoices/:id', authGuard, hasRoles(invoiceManagementRoles), paymentController.updateInvoice);
 paymentRouter.get('/invoices/stats', authGuard, paymentController.getInvoiceStats);
 paymentRouter.get('/invoices/:id', authGuard, paymentController.getInvoiceById);
-paymentRouter.delete('/invoices/:id', authGuard, hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF]), paymentController.deleteInvoice);
+paymentRouter.delete('/invoices/:id', authGuard, hasRoles(invoiceManagementRoles), paymentController.deleteInvoice);
 paymentRouter.get('/invoices/:id/download', optionalAuthGuard, paymentController.downloadInvoicePdf);
 paymentRouter.get('/invoices/:id/pdf', optionalAuthGuard, paymentController.downloadInvoicePdf);
 paymentRouter.get('/:id/download', optionalAuthGuard, paymentController.downloadInvoicePdf);
 paymentRouter.get('/:id/pdf', optionalAuthGuard, paymentController.downloadInvoicePdf);
 paymentRouter.post('/invoices/:id/email', authGuard, paymentController.emailInvoice);
-paymentRouter.post('/invoices/:id/payments', authGuard, hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF]), paymentController.recordPayment);
+paymentRouter.post('/invoices/:id/payments', authGuard, hasRoles(invoiceManagementRoles), paymentController.recordPayment);
 paymentRouter.patch(
   '/invoices/:id/status',
   authGuard,
-  hasRoles([UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.STAFF]),
+  hasRoles(invoiceManagementRoles),
   paymentController.updateInvoiceStatus
 );
 

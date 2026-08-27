@@ -67,9 +67,13 @@ export default function InvoicesPage() {
  const { user } = useAppSelector((state) => state.auth);
 
  const isAdmin =
- user?.role === UserRole.SUPER_ADMIN ||
- user?.role === UserRole.TENANT_ADMIN ||
- user?.role === UserRole.STAFF;
+  user?.role === UserRole.SUPER_ADMIN ||
+  user?.role === UserRole.TENANT_ADMIN ||
+  user?.role === UserRole.FINANCE_OFFICER ||
+  user?.role === UserRole.WORKSPACE_MANAGER ||
+  user?.role === UserRole.EVENT_MANAGER ||
+  user?.role === UserRole.COMMUNITY_MANAGER ||
+  user?.role === UserRole.STAFF;
 
  // View state: 'ledger' or 'analytics'
  const [activeTab, setActiveTab] = useState<'ledger' | 'analytics'>('ledger');
