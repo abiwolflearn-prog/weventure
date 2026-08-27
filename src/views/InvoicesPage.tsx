@@ -499,11 +499,15 @@ export default function InvoicesPage() {
    setIsDeletingId(invId);
    try {
      await paymentApi.deleteInvoice(invId);
+     queryClient.setQueriesData({ queryKey: ['invoices'] }, (old: any) => {
+       if (!Array.isArray(old)) return old;
+       return old.filter((item: any) => item.id !== invId && item._id !== invId && item.invoiceNumber !== invNumber);
+     });
      await queryClient.invalidateQueries({ queryKey: ['invoices'] });
      await queryClient.invalidateQueries({ queryKey: ['invoice-stats'] });
      refetchInvoices();
      if (isAdmin) refetchStats();
-     if (selectedInvoice && (selectedInvoice.id === invId || selectedInvoice._id === invId)) {
+     if (selectedInvoice && (selectedInvoice.id === invId || selectedInvoice._id === invId || selectedInvoice.invoiceNumber === invNumber)) {
        setIsDetailModalOpen(false);
        setSelectedInvoice(null);
      }

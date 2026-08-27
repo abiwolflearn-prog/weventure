@@ -718,8 +718,6 @@ export class PaymentService {
    * Get Invoices list with filtering and search
    */
   public async getInvoices(tenantId: string, filter: any = {}): Promise<any[]> {
-    await this.syncWorkspaceInvoices(tenantId);
-
     const query: Record<string, any> = { tenantId };
 
     if (filter.userId || filter.userEmail) {
@@ -893,8 +891,6 @@ export class PaymentService {
    * Get Invoice Statistics
    */
   public async getInvoiceStats(tenantId: string, filter: any = {}): Promise<any> {
-    await this.syncWorkspaceInvoices(tenantId);
-
     const query: Record<string, any> = { tenantId };
     if (filter.userId || filter.userEmail) {
       const userConditions: any[] = [];
@@ -1472,14 +1468,37 @@ export class PaymentService {
       const res = await Invoice.deleteOne({ _id: targetId }).exec();
       deletedCount = res.deletedCount;
 
-      // Clean up references in associated bookings
+      // Clean up references in associated bookings and payments
       try {
+        const bookingOrConditions: any[] = [
+          { invoiceId: targetNumber },
+          { invoiceId: String(targetId) },
+        ];
+        if (invoice.bookingId) bookingOrConditions.push({ _id: invoice.bookingId });
+        if (invoice.reservationId) bookingOrConditions.push({ _id: invoice.reservationId });
+
         await Booking.updateMany(
-          { $or: [{ invoiceId: targetNumber }, { invoiceId: String(targetId) }] },
+          { $or: bookingOrConditions },
           { $unset: { invoiceId: 1 } }
         ).exec();
       } catch (e) {
         logger.warn('Could not unlink booking invoice reference:', e);
+      }
+
+      try {
+        await Payment.updateMany(
+          {
+            $or: [
+              { invoiceId: String(targetId) },
+              { invoiceId: targetNumber },
+              { 'metadata.invoiceId': String(targetId) },
+              { 'metadata.invoiceNumber': targetNumber },
+            ]
+          },
+          { $unset: { invoiceId: 1 } }
+        ).exec();
+      } catch (e) {
+        logger.warn('Could not unlink payment invoice reference:', e);
       }
 
       if (user) {
