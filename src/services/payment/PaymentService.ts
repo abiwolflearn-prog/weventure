@@ -808,7 +808,11 @@ export class PaymentService {
     newStatus: string,
     user: IUserIdentity
   ): Promise<any> {
-    const invoice = await Invoice.findOne({ _id: invoiceId, tenantId }).exec();
+    const isMongoId = /^[0-9a-fA-F]{24}$/.test(invoiceId);
+    const invoice = await Invoice.findOne({
+      tenantId,
+      ...(isMongoId ? { _id: invoiceId } : { invoiceNumber: invoiceId })
+    }).exec() || await Invoice.findOne({ invoiceNumber: { $regex: new RegExp(`^${invoiceId}$`, 'i') }, tenantId }).exec();
     if (!invoice) {
       throw new NotFoundError('Invoice not found');
     }
@@ -1309,7 +1313,11 @@ export class PaymentService {
    */
   public async updateInvoice(tenantId: string, invoiceId: string, data: any, user?: IUserIdentity): Promise<any> {
     const tid = tenantId || 'weventurehub';
-    const invoice = await Invoice.findOne({ _id: invoiceId, tenantId: tid }).exec();
+    const isMongoId = /^[0-9a-fA-F]{24}$/.test(invoiceId);
+    const invoice = await Invoice.findOne({
+      tenantId: tid,
+      ...(isMongoId ? { _id: invoiceId } : { invoiceNumber: invoiceId })
+    }).exec() || await Invoice.findOne({ invoiceNumber: { $regex: new RegExp(`^${invoiceId}$`, 'i') } }).exec();
     if (!invoice) {
       throw new NotFoundError('Invoice not found');
     }
@@ -1415,7 +1423,17 @@ export class PaymentService {
    * Delete Invoice
    */
   public async deleteInvoice(tenantId: string, invoiceId: string, user?: IUserIdentity): Promise<any> {
-    const res = await Invoice.deleteOne({ _id: invoiceId, tenantId }).exec();
+    const isMongoId = /^[0-9a-fA-F]{24}$/.test(invoiceId);
+    const query: any = {
+      tenantId,
+      ...(isMongoId
+        ? { $or: [{ _id: invoiceId }, { invoiceNumber: invoiceId }] }
+        : { invoiceNumber: { $regex: new RegExp(`^${invoiceId}$`, 'i') } })
+    };
+    let res = await Invoice.deleteOne(query).exec();
+    if (res.deletedCount === 0 && !isMongoId) {
+      res = await Invoice.deleteOne({ invoiceNumber: invoiceId }).exec();
+    }
     if (res.deletedCount === 0) {
       throw new NotFoundError('Invoice not found');
     }
@@ -1429,7 +1447,11 @@ export class PaymentService {
    * Email Invoice
    */
   public async emailInvoice(tenantId: string, invoiceId: string, recipientEmail: string, emailType: string = 'Invoice', customMessage?: string): Promise<any> {
-    const invoice = await Invoice.findOne({ _id: invoiceId, tenantId }).exec();
+    const isMongoId = /^[0-9a-fA-F]{24}$/.test(invoiceId);
+    const invoice = await Invoice.findOne({
+      tenantId,
+      ...(isMongoId ? { _id: invoiceId } : { invoiceNumber: invoiceId })
+    }).exec() || await Invoice.findOne({ invoiceNumber: { $regex: new RegExp(`^${invoiceId}$`, 'i') } }).exec();
     if (!invoice) {
       throw new NotFoundError('Invoice not found');
     }
@@ -1447,7 +1469,11 @@ export class PaymentService {
    * Record Invoice Payment
    */
   public async recordPayment(tenantId: string, invoiceId: string, paymentData: any, user?: IUserIdentity): Promise<any> {
-    const invoice = await Invoice.findOne({ _id: invoiceId, tenantId }).exec();
+    const isMongoId = /^[0-9a-fA-F]{24}$/.test(invoiceId);
+    const invoice = await Invoice.findOne({
+      tenantId,
+      ...(isMongoId ? { _id: invoiceId } : { invoiceNumber: invoiceId })
+    }).exec() || await Invoice.findOne({ invoiceNumber: { $regex: new RegExp(`^${invoiceId}$`, 'i') } }).exec();
     if (!invoice) {
       throw new NotFoundError('Invoice not found');
     }

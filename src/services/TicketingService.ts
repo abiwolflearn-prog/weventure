@@ -553,7 +553,7 @@ export class TicketingService {
   }
 
   public async cancelRegistration(id: string, tenantId: string, user: IUserIdentity): Promise<IRegistrationDocument> {
-    const registration = await Registration.findOne({ _id: id, tenantId }).exec();
+    const registration = await registrationRepository.findById(id, tenantId);
     if (!registration) {
       throw new NotFoundError('Registration not found');
     }
@@ -924,7 +924,7 @@ export class TicketingService {
    * Approve a pending registration
    */
   public async approveRegistration(id: string, tenantId: string, user: IUserIdentity): Promise<IRegistrationDocument> {
-    const registration = await Registration.findOne({ _id: id, tenantId }).exec();
+    const registration = await registrationRepository.findById(id, tenantId);
     if (!registration) {
       throw new NotFoundError('Registration not found');
     }
@@ -966,7 +966,7 @@ export class TicketingService {
    * Reject/cancel a pending registration
    */
   public async rejectRegistration(id: string, tenantId: string, user: IUserIdentity): Promise<IRegistrationDocument> {
-    const registration = await Registration.findOne({ _id: id, tenantId }).exec();
+    const registration = await registrationRepository.findById(id, tenantId);
     if (!registration) {
       throw new NotFoundError('Registration not found');
     }

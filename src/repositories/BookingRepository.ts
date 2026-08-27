@@ -23,7 +23,16 @@ export class BookingRepository {
   }
 
   public async findById(id: string, tenantId: string): Promise<IBookingDocument | null> {
-    return await Booking.findOne({ _id: id, tenantId }).exec();
+    if (!id) return null;
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    if (isObjectId) {
+      const doc = await Booking.findOne({ _id: id, tenantId }).exec();
+      if (doc) return doc;
+    }
+    return await Booking.findOne({
+      tenantId,
+      $or: [{ qrCode: id }, { reservationTitle: id }, { invoiceId: id }, { paymentId: id }]
+    }).exec();
   }
 
   public async update(
@@ -31,10 +40,16 @@ export class BookingRepository {
     tenantId: string,
     updateData: any
   ): Promise<IBookingDocument | null> {
+    if (!id) return null;
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const query: any = {
+      tenantId,
+      ...(isObjectId ? { _id: id } : { $or: [{ qrCode: id }, { reservationTitle: id }, { invoiceId: id }, { paymentId: id }] })
+    };
     const isDirectQuery = Object.keys(updateData).some(key => key.startsWith('$'));
     const updatePayload = isDirectQuery ? updateData : { $set: updateData };
     return await Booking.findOneAndUpdate(
-      { _id: id, tenantId },
+      query,
       updatePayload,
       { new: true, runValidators: true }
     ).exec();
