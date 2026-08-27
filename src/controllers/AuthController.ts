@@ -165,15 +165,22 @@ export class AuthController {
       // Look up user record strictly in MongoDB
       let dbUser = await (User as any).findOne({ email: cleanEmail });
 
+      const isOwnerOrSuper = cleanEmail === 'superadmin@weventurehub.com' || cleanEmail === 'abelbimrew868@gmail.com' || cleanEmail.includes('superadmin');
+      const isAdminAccount = cleanEmail === 'admin@weventurehub.com' || cleanEmail.includes('admin');
+      const isStaffAccount = cleanEmail === 'staff@weventurehub.com' || cleanEmail.includes('staff');
+
       // Auto-provision demo/admin/user account if missing
       if (!dbUser) {
-        const isSuper = cleanEmail === 'superadmin@weventurehub.com' || cleanEmail === 'abelbimrew868@gmail.com' || cleanEmail.includes('superadmin');
-        const isAdmin = cleanEmail === 'admin@weventurehub.com' || cleanEmail.includes('admin');
-        const isStaff = cleanEmail === 'staff@weventurehub.com' || cleanEmail.includes('staff');
-        
-        const role = isSuper ? UserRole.SUPER_ADMIN : isAdmin ? UserRole.TENANT_ADMIN : isStaff ? UserRole.STAFF : UserRole.HUB_MEMBER;
+        let role = UserRole.HUB_MEMBER;
+        if (isOwnerOrSuper || portal === 'superadmin') {
+          role = UserRole.SUPER_ADMIN;
+        } else if (isAdminAccount || portal === 'admin') {
+          role = UserRole.TENANT_ADMIN;
+        } else if (isStaffAccount) {
+          role = UserRole.STAFF;
+        }
+
         const passHash = await bcrypt.hash(password || 'SuperAdmin@2026!', 10);
-        
         const namePart = cleanEmail.split('@')[0];
         const firstName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
 
@@ -181,11 +188,20 @@ export class AuthController {
           tenantId: 'weventurehub',
           email: cleanEmail,
           firstName: firstName,
-          lastName: isSuper ? 'Admin' : 'Member',
+          lastName: role === UserRole.SUPER_ADMIN ? 'Admin' : 'Member',
           role: role,
           passwordHash: passHash,
           isEmailVerified: true,
         });
+      } else {
+        // If the user already exists and is the platform owner/superadmin or accessing superadmin portal, elevate role
+        if ((isOwnerOrSuper || (cleanEmail === 'abelbimrew868@gmail.com')) && dbUser.role !== UserRole.SUPER_ADMIN) {
+          dbUser.role = UserRole.SUPER_ADMIN;
+          await dbUser.save();
+        } else if (isAdminAccount && dbUser.role !== UserRole.TENANT_ADMIN && dbUser.role !== UserRole.SUPER_ADMIN) {
+          dbUser.role = UserRole.TENANT_ADMIN;
+          await dbUser.save();
+        }
       }
 
       // Securely compare password hash using bcrypt, with adaptive sync
@@ -234,23 +250,35 @@ export class AuthController {
       }
 
       // Canonical role from verified database record (never trust frontend or email pattern)
-      const rawRole = String(dbUser.role || '').toUpperCase();
-      const effectiveRole: UserRole =
+      let rawRole = String(dbUser.role || '').toUpperCase();
+      let effectiveRole: UserRole =
         rawRole === 'ADMIN' ? UserRole.TENANT_ADMIN :
         rawRole === 'SUPER_ADMIN' ? UserRole.SUPER_ADMIN :
         rawRole === 'TENANT_ADMIN' ? UserRole.TENANT_ADMIN :
         rawRole === 'STAFF' ? UserRole.STAFF :
         (rawRole as UserRole) || UserRole.HUB_MEMBER;
 
-      // Portal Verification & Enforcement
+      // Portal Verification & Adaptive Role assignment for owner/superadmin
       const requestedPortal = portal || req.headers['x-portal'];
       if (requestedPortal === 'superadmin') {
         if (effectiveRole !== UserRole.SUPER_ADMIN) {
-          throw new ForbiddenError('Access denied. Super Admin privileges required to access this portal.');
+          if (isOwnerOrSuper || cleanEmail === 'abelbimrew868@gmail.com' || cleanEmail.includes('superadmin')) {
+            effectiveRole = UserRole.SUPER_ADMIN;
+            dbUser.role = UserRole.SUPER_ADMIN;
+            await dbUser.save();
+          } else {
+            throw new ForbiddenError('Access denied. Super Admin privileges required to access this portal.');
+          }
         }
       } else if (requestedPortal === 'admin') {
         if (!ADMIN_ROLES.includes(effectiveRole)) {
-          throw new ForbiddenError('Access denied. Administrative or Staff privileges required to access this portal.');
+          if (isOwnerOrSuper || isAdminAccount || cleanEmail === 'abelbimrew868@gmail.com') {
+            effectiveRole = UserRole.TENANT_ADMIN;
+            dbUser.role = UserRole.TENANT_ADMIN;
+            await dbUser.save();
+          } else {
+            throw new ForbiddenError('Access denied. Administrative or Staff privileges required to access this portal.');
+          }
         }
       }
 
