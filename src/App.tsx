@@ -1,10 +1,22 @@
-import React from 'react';
-import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { QueryClientProvider } from '@tanstack/react-query';
 
 import { store, useAppSelector } from './store';
 import { queryClient } from './lib/queryClient';
+
+// Hash to clean path redirector helper
+function HashRedirector() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (window.location.hash && window.location.hash.startsWith('#/')) {
+      const targetPath = window.location.hash.substring(1);
+      navigate(targetPath, { replace: true });
+    }
+  }, [navigate]);
+  return null;
+}
 
 // Layout Shells
 import PublicShell from './layouts/PublicShell';
@@ -139,7 +151,8 @@ export default function App() {
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-          <HashRouter>
+          <BrowserRouter>
+            <HashRedirector />
             <Routes>
               {/* Public Marketing Layer */}
               <Route element={<PublicShell />}>
@@ -213,7 +226,7 @@ export default function App() {
               <Route path="/checkout" element={<Navigate to="/dashboard/checkout" replace />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
-          </HashRouter>
+          </BrowserRouter>
       </QueryClientProvider>
     </Provider>
   );
